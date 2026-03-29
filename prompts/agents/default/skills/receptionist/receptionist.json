@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "produced_by": "receptionist-setup.md",
+    "schema_version": "1.2",
+    "last_updated": ""
+  },
+  "phone": {
+    "agentId": null,
+    "agentName": null,
+    "mainLanguageCode": null,
+    "languageCodes": [],
+    "voice": {},
+    "fallbackTransferNumber": null,
+    "receptionistPhoneNumber": null
+  },
+  "behavior": {
+    "greetingMessage": null,
+    "transferRules": [],
+    "forbiddenPhrases": []
+  },
+  "policy": [],
+  "summary": {
+    "tagChoices": ["appointment", "inquiry", "complaint", "marketing", "wrong_number", "other"],
+    "additionalInstructions": null
+  }
+}

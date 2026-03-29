@@ -1,0 +1,15 @@
+{
+  "bootstrap_complete": false,
+  "timezone": "",
+  "modules": {
+    "receptionist": false,
+    "booking": false
+  },
+  "connections": {
+    "google-calendar": false
+  },
+  "_meta": {
+    "schema_version": "1.1",
+    "last_updated": ""
+  }
+}

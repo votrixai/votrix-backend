@@ -1,0 +1,46 @@
+{
+  "mode": "managed",
+
+  "mode_config": {
+    "booking_link": null
+  },
+
+  "timezone": "",
+
+  "services": [
+    {
+      "name": "",
+      "duration_mins": 30,
+      "notes": null
+    }
+  ],
+
+  "staff": [
+    {
+      "name": "",
+      "services": ["*"],
+      "hours": {
+        "mon": { "open": "09:00", "close": "18:00" },
+        "tue": { "open": "09:00", "close": "18:00" },
+        "wed": { "open": "09:00", "close": "18:00" },
+        "thu": { "open": "09:00", "close": "18:00" },
+        "fri": { "open": "09:00", "close": "18:00" }
+      },
+      "calendar_id": null
+    }
+  ],
+
+  "scheduling_rules": {
+    "min_notice_hours": null,
+    "buffer_mins": null,
+    "max_bookings_per_day": null,
+    "advance_booking_days": null,
+    "additional": []
+  },
+
+  "intake_fields": [
+    { "field": "Name", "required": true }
+  ],
+
+  "special_instructions": []
+}
