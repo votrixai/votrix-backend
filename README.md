@@ -91,14 +91,15 @@ print(json.dumps(app.openapi(), indent=2))
 | Table | Purpose |
 |---|---|
 | `orgs` | Tenant root, keyed by `org_id` |
-| `agents` | Agent config + prompt sections (flat columns) + registry (JSONB) + `prompt_version` |
-| `agent_prompt_files` | Virtual filesystem with override layer (base + end user overrides) |
-| `agent_version_log` | Changelog per version bump |
-| `agent_conflicts` | Detected conflicts between publishes and end user overrides |
-| `end_user_profiles` | Persistent cross-session end user metadata |
+| `agent_config` | Agent config = model version, timezone, registory|
+| `blueprint_files` | Virtual filesystem = database |
+| 'user_files' | User or AI created filesystem |
+// | `agent_version_log` | Changelog per version bump |
+// | `agent_conflicts` | Detected conflicts between publishes and end user overrides |
+// | `enduser_config` | end user account info |
 | `sessions` | Chat session metadata |
 | `session_events` | Append-only event log (user messages, AI replies, tool results) |
-| `guidelines` | Global singleton prompt guidelines (TOOL_CALLS, SKILLS) |
+// | `guidelines` | Global singleton prompt guidelines (TOOL_CALLS, SKILLS) |
 
 ### agent_prompt_files — virtual filesystem
 
@@ -113,7 +114,6 @@ Each file node has:
 | `end_user_id` | `NULL` = base file, set = end user override |
 | `base_version` | Which admin version this file/override was created against |
 | `mime_type` | e.g. `text/markdown`, `application/json` |
-| `file_class` | `skill` / `skill_asset` / `prompt` / `file` |
 
 **Override layer**: Base files (`end_user_id IS NULL`) are member-owned. End users get a merged view where their overrides win per path. Writes by end users create overrides, never modify base files. Files with `end_user_perm='none'` are hidden from end users.
 
@@ -121,13 +121,13 @@ Core filesystem operations and their index coverage:
 
 | Op | Index |
 |---|---|
-| `ls(parent)` | `idx_prompt_files_ls` — B-tree on `(org_id, agent_id, parent)` where base |
-| `ls(parent, end_user_id)` | `idx_prompt_files_ls_user` — includes end_user_id for merged view |
+// | `ls(parent)` | `idx_prompt_files_ls` — B-tree on `(org_id, agent_id, parent)` where base |
+// | `ls(parent, end_user_id)` | `idx_prompt_files_ls_user` — includes end_user_id for merged view |
 | `read_file(path)` | Unique index on `(org_id, agent_id, coalesce(end_user_id,''), path)` |
 | `write_file(path)` | Same unique index (upsert) |
-| `edit_file(path, old, new)` | Same unique index |
-| `grep(pattern)` | Seq scan on `(org_id, agent_id)` filtered set + `idx_prompt_files_fts` for FTS |
-| `glob(pattern)` | `idx_prompt_files_glob` — `text_pattern_ops` prefix scan |
+// | `edit_file(path, old, new)` | Same unique index |
+// | `grep(pattern)` | Seq scan on `(org_id, agent_id)` filtered set + `idx_prompt_files_fts` for FTS |
+// | `glob(pattern)` | `idx_prompt_files_glob` — `text_pattern_ops` prefix scan |
 
 ### Versioning + Conflict Resolution
 
@@ -160,7 +160,7 @@ app/
 ├── models/
 │   ├── agent.py             # Agent CRUD schemas
 │   ├── chat.py              # ChatStreamRequest/Message
-│   ├── conflicts.py         # Publish, conflict, resolve schemas
+// │   ├── conflicts.py         # Publish, conflict, resolve schemas
 │   └── files.py             # FileEntry, WriteFileRequest, etc.
 ├── routers/
 │   ├── chat.py              # POST /chat/stream
@@ -175,9 +175,8 @@ app/
 │   ├── queries/
 │   │   ├── agents.py        # Agent table queries
 │   │   ├── agent_files.py   # Filesystem ops + override layer helpers
-│   │   ├── conflicts.py     # Conflict detection, resolution, version log
+|   |   ├── 
 │   │   ├── sessions.py      # Session + event queries
-│   │   └── guidelines.py    # Global guidelines
 │   └── seed.py              # First-run seeder
 └── utils/                   # ChatManager, logger
 
