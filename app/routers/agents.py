@@ -1,11 +1,11 @@
-"""Agent CRUD API.
+"""Blueprint agent CRUD API.
 
 Routes:
-  POST   /orgs/{org_id}/agents                              — create agent
-  GET    /orgs/{org_id}/agents                              — list agents
-  GET    /orgs/{org_id}/agents/{agent_id}                   — get agent detail
-  PATCH  /orgs/{org_id}/agents/{agent_id}                   — update agent
-  DELETE /orgs/{org_id}/agents/{agent_id}                   — delete agent
+  POST   /orgs/{org_id}/agents                — create agent
+  GET    /orgs/{org_id}/agents                — list agents
+  GET    /orgs/{org_id}/agents/{slug}          — get agent detail
+  PATCH  /orgs/{org_id}/agents/{slug}          — update agent
+  DELETE /orgs/{org_id}/agents/{slug}          — delete agent
 """
 
 import logging
@@ -33,14 +33,14 @@ async def create_agent(
     body: CreateAgentRequest,
     session: AsyncSession = Depends(get_session),
 ):
-    """Create a new agent. Optionally seed from an existing agent."""
-    existing = await agents_q.get_agent(session, org_id, body.agent_id)
+    """Create a new blueprint agent. Optionally seed from an existing agent."""
+    existing = await agents_q.get_agent(session, org_id, body.slug)
     if existing:
-        raise HTTPException(status_code=409, detail=f"Agent '{body.agent_id}' already exists in org '{org_id}'")
+        raise HTTPException(status_code=409, detail=f"Agent '{body.slug}' already exists in org '{org_id}'")
 
     kwargs = {}
-    if body.agent_name is not None:
-        kwargs["agent_name"] = body.agent_name
+    if body.name is not None:
+        kwargs["name"] = body.name
     if body.integrations is not None:
         kwargs["integrations"] = [i.model_dump() for i in body.integrations]
 
@@ -50,21 +50,24 @@ async def create_agent(
             raise HTTPException(status_code=404, detail=f"Seed source agent '{body.seed_from}' not found")
         if "integrations" not in kwargs:
             kwargs["integrations"] = source.get("integrations", [])
-        if "agent_name" not in kwargs:
-            kwargs["agent_name"] = source.get("agent_name", "")
+        if "name" not in kwargs:
+            kwargs["name"] = source.get("name", "")
 
-    row = await agents_q.create_agent(session, org_id, body.agent_id, **kwargs)
+    row = await agents_q.create_agent(session, org_id, body.slug, **kwargs)
 
     if body.seed_from:
-        source_files = await blueprint_files.tree(session, org_id, body.seed_from)
+        source = await agents_q.get_agent(session, org_id, body.seed_from)
+        source_id = source["id"]
+        new_id = row["id"]
+        source_files = await blueprint_files.tree(session, source_id)
         for f in source_files:
             if f["type"] == "directory":
-                await blueprint_files.mkdir(session, org_id, body.agent_id, f["path"])
+                await blueprint_files.mkdir(session, new_id, f["path"])
             else:
-                content_row = await blueprint_files.read_file(session, org_id, body.seed_from, f["path"])
+                content_row = await blueprint_files.read_file(session, source_id, f["path"])
                 if content_row:
                     await blueprint_files.write_file(
-                        session, org_id, body.agent_id, f["path"],
+                        session, new_id, f["path"],
                         content_row.get("content", ""),
                         mime_type=content_row.get("mime_type", "text/markdown"),
                     )
@@ -74,57 +77,58 @@ async def create_agent(
 
 @router.get("/orgs/{org_id}/agents", response_model=List[AgentSummary])
 async def list_agents(org_id: str, session: AsyncSession = Depends(get_session)):
-    """List all agents in an org."""
+    """List all blueprint agents in an org."""
     rows = await agents_q.list_agents(session, org_id)
-    return [AgentSummary(**r) for r in rows]
+    return [AgentSummary(id=str(r["id"]), slug=r["slug"], name=r["name"], created_at=r["created_at"], updated_at=r["updated_at"]) for r in rows]
 
 
-@router.get("/orgs/{org_id}/agents/{agent_id}", response_model=AgentDetail)
-async def get_agent(org_id: str, agent_id: str, session: AsyncSession = Depends(get_session)):
+@router.get("/orgs/{org_id}/agents/{slug}", response_model=AgentDetail)
+async def get_agent(org_id: str, slug: str, session: AsyncSession = Depends(get_session)):
     """Get full agent detail."""
-    row = await agents_q.get_agent(session, org_id, agent_id)
+    row = await agents_q.get_agent(session, org_id, slug)
     if not row:
         raise HTTPException(status_code=404, detail="Agent not found")
     return _to_detail(row)
 
 
-@router.patch("/orgs/{org_id}/agents/{agent_id}", response_model=AgentDetail)
+@router.patch("/orgs/{org_id}/agents/{slug}", response_model=AgentDetail)
 async def update_agent(
     org_id: str,
-    agent_id: str,
+    slug: str,
     body: UpdateAgentRequest,
     session: AsyncSession = Depends(get_session),
 ):
     """Update agent name and/or integrations."""
-    existing = await agents_q.get_agent(session, org_id, agent_id)
+    existing = await agents_q.get_agent(session, org_id, slug)
     if not existing:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    if body.agent_name is not None:
-        await agents_q.set_agent_name(session, org_id, agent_id, body.agent_name)
+    if body.name is not None:
+        await agents_q.set_agent_name(session, org_id, slug, body.name)
     if body.integrations is not None:
         await agents_q.set_agent_integrations(
-            session, org_id, agent_id, [i.model_dump() for i in body.integrations]
+            session, existing["id"], [i.model_dump() for i in body.integrations]
         )
 
-    row = await agents_q.get_agent(session, org_id, agent_id)
+    row = await agents_q.get_agent(session, org_id, slug)
     return _to_detail(row)
 
 
-@router.delete("/orgs/{org_id}/agents/{agent_id}", status_code=204)
-async def delete_agent(org_id: str, agent_id: str, session: AsyncSession = Depends(get_session)):
-    """Delete an agent and all its files (cascade)."""
-    existing = await agents_q.get_agent(session, org_id, agent_id)
+@router.delete("/orgs/{org_id}/agents/{slug}", status_code=204)
+async def delete_agent(org_id: str, slug: str, session: AsyncSession = Depends(get_session)):
+    """Delete a blueprint agent and all its files (cascade)."""
+    existing = await agents_q.get_agent(session, org_id, slug)
     if not existing:
         raise HTTPException(status_code=404, detail="Agent not found")
-    await agents_q.delete_agent(session, org_id, agent_id)
+    await agents_q.delete_agent(session, org_id, slug)
 
 
 def _to_detail(row: dict) -> AgentDetail:
     return AgentDetail(
+        id=str(row.get("id", "")),
         org_id=row.get("org_id", ""),
-        agent_id=row.get("agent_id", ""),
-        agent_name=row.get("agent_name", ""),
+        slug=row.get("slug", ""),
+        name=row.get("name", ""),
         integrations=row.get("integrations", []),
         created_at=row.get("created_at"),
         updated_at=row.get("updated_at"),

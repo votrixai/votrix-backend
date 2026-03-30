@@ -17,8 +17,7 @@ class FileEntry(BaseModel):
     """A single node in the virtual filesystem."""
 
     id: Optional[str] = None
-    org_id: str
-    agent_id: str = "default"
+    blueprint_agent_id: Optional[str] = None
     end_user_id: Optional[str] = None
     path: str
     name: str

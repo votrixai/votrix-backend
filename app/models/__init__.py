@@ -1,3 +1,9 @@
+from app.models.org import (
+    CreateOrgRequest,
+    OrgDetail,
+    OrgSummary,
+    UpdateOrgRequest,
+)
 from app.models.agent import (
     Agent,
     AgentDetail,
@@ -6,19 +12,6 @@ from app.models.agent import (
     CreateAgentRequest,
     UpdateAgentRequest,
 )
-from app.models.chat import ChatStreamMessage, ChatStreamRequest
-# conflicts models disabled — tables commented out in 001_initial.sql
-# from app.models.conflicts import (
-#     ConflictEntry,
-#     ConflictSummary,
-#     EndUserOverview,
-#     PublishResponse,
-#     ResolveRequest,
-#     ResolveResponse,
-#     ResolveScope,
-#     ResolveStrategy,
-#     VersionLogEntry,
-# )
 from app.models.files import (
     EditFileRequest,
     FileContent,
@@ -34,12 +27,14 @@ from app.models.files import (
 )
 
 __all__ = [
+    "CreateOrgRequest",
+    "OrgDetail",
+    "OrgSummary",
+    "UpdateOrgRequest",
     "Agent",
     "AgentDetail",
     "AgentIntegration",
     "AgentSummary",
-    "ChatStreamMessage",
-    "ChatStreamRequest",
     "CreateAgentRequest",
     "EditFileRequest",
     "FileContent",

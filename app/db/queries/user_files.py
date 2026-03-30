@@ -1,11 +1,14 @@
 """User file queries — end-user's own independent files.
 
-Pure CRUD scoped by (org_id, agent_id, end_user_id).
+Pure CRUD scoped by (blueprint_agent_id, end_user_id).
 Mirrors blueprint_files.py in API shape.
 """
 
+from __future__ import annotations
+
 import posixpath
 import re
+import uuid
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import delete, select
@@ -37,7 +40,7 @@ def _row_to_dict(row) -> Dict[str, Any]:
 
 
 async def ls(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, parent: str = "/"
 ) -> List[Dict[str, Any]]:
     """List directory contents for an end user."""
@@ -48,8 +51,7 @@ async def ls(
             UserFile.created_by, UserFile.updated_at,
         )
         .where(
-            UserFile.org_id == org_id,
-            UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id,
             UserFile.parent == parent,
         )
@@ -60,7 +62,7 @@ async def ls(
 
 
 async def read_file(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, path: str
 ) -> Optional[Dict[str, Any]]:
     """Read a user file by path."""
@@ -70,8 +72,7 @@ async def read_file(
             UserFile.file_class, UserFile.name, UserFile.type, UserFile.path,
         )
         .where(
-            UserFile.org_id == org_id,
-            UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id,
             UserFile.path == path,
         )
@@ -83,8 +84,7 @@ async def read_file(
 
 async def write_file(
     session: AsyncSession,
-    org_id: str,
-    agent_id: str,
+    blueprint_agent_id: uuid.UUID,
     end_user_id: str,
     path: str,
     content: str,
@@ -95,8 +95,7 @@ async def write_file(
     name = posixpath.basename(path)
     derived = _derive_fields(path, name, content)
     values = {
-        "org_id": org_id,
-        "agent_id": agent_id,
+        "blueprint_agent_id": blueprint_agent_id,
         "end_user_id": end_user_id,
         "path": path,
         "name": name,
@@ -106,12 +105,12 @@ async def write_file(
         "created_by": created_by,
         **derived,
     }
-    update_cols = {k: v for k, v in values.items() if k not in ("org_id", "agent_id", "end_user_id", "path")}
+    update_cols = {k: v for k, v in values.items() if k not in ("blueprint_agent_id", "end_user_id", "path")}
     stmt = (
         pg_insert(UserFile)
         .values(**values)
         .on_conflict_do_update(
-            index_elements=["org_id", "agent_id", "end_user_id", "path"],
+            index_elements=["blueprint_agent_id", "end_user_id", "path"],
             set_=update_cols,
         )
         .returning(UserFile)
@@ -122,30 +121,29 @@ async def write_file(
 
 
 async def edit_file(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, path: str, old_str: str, new_str: str
 ) -> Optional[Dict[str, Any]]:
     """Replace first occurrence of old_str with new_str in file content."""
-    file = await read_file(session, org_id, agent_id, end_user_id, path)
+    file = await read_file(session, blueprint_agent_id, end_user_id, path)
     if not file or old_str not in file["content"]:
         return None
     updated_content = file["content"].replace(old_str, new_str, 1)
     return await write_file(
-        session, org_id, agent_id, end_user_id, path, updated_content,
+        session, blueprint_agent_id, end_user_id, path, updated_content,
         file.get("mime_type", "text/markdown"),
     )
 
 
 async def grep(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, pattern: str, case_insensitive: bool = False
 ) -> List[Dict[str, Any]]:
     """Regex search across all user files."""
     stmt = (
         select(UserFile.path, UserFile.name, UserFile.file_class, UserFile.content)
         .where(
-            UserFile.org_id == org_id,
-            UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id,
             UserFile.type == "file",
         )
@@ -168,7 +166,7 @@ async def grep(
 
 
 async def glob(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, pattern: str
 ) -> List[Dict[str, Any]]:
     """Match user files by glob pattern."""
@@ -190,8 +188,7 @@ async def glob(
             UserFile.file_class, UserFile.size_bytes, UserFile.updated_at,
         )
         .where(
-            UserFile.org_id == org_id,
-            UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id,
         )
     )
@@ -209,14 +206,13 @@ async def glob(
 
 
 async def mkdir(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, path: str, created_by: str = "system"
 ) -> Dict[str, Any]:
     name = posixpath.basename(path)
     derived = _derive_fields(path, name)
     values = {
-        "org_id": org_id,
-        "agent_id": agent_id,
+        "blueprint_agent_id": blueprint_agent_id,
         "end_user_id": end_user_id,
         "path": path,
         "name": name,
@@ -226,12 +222,12 @@ async def mkdir(
         "created_by": created_by,
         **derived,
     }
-    update_cols = {k: v for k, v in values.items() if k not in ("org_id", "agent_id", "end_user_id", "path")}
+    update_cols = {k: v for k, v in values.items() if k not in ("blueprint_agent_id", "end_user_id", "path")}
     stmt = (
         pg_insert(UserFile)
         .values(**values)
         .on_conflict_do_update(
-            index_elements=["org_id", "agent_id", "end_user_id", "path"],
+            index_elements=["blueprint_agent_id", "end_user_id", "path"],
             set_=update_cols,
         )
         .returning(UserFile)
@@ -242,13 +238,13 @@ async def mkdir(
 
 
 async def rm(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, path: str
 ) -> None:
     stmt = (
         delete(UserFile)
         .where(
-            UserFile.org_id == org_id, UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id, UserFile.path == path,
         )
     )
@@ -257,14 +253,14 @@ async def rm(
 
 
 async def rm_rf(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, path: str
 ) -> int:
     """Delete a directory and everything under it."""
     stmt1 = (
         delete(UserFile)
         .where(
-            UserFile.org_id == org_id, UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id, UserFile.path.like(f"{path}/%"),
         )
         .returning(UserFile.id)
@@ -272,7 +268,7 @@ async def rm_rf(
     stmt2 = (
         delete(UserFile)
         .where(
-            UserFile.org_id == org_id, UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id, UserFile.path == path,
         )
         .returning(UserFile.id)
@@ -284,7 +280,7 @@ async def rm_rf(
 
 
 async def stat(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, path: str
 ) -> Optional[Dict[str, Any]]:
     stmt = (
@@ -294,7 +290,7 @@ async def stat(
             UserFile.created_by, UserFile.created_at, UserFile.updated_at,
         )
         .where(
-            UserFile.org_id == org_id, UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id, UserFile.path == path,
         )
     )
@@ -304,13 +300,13 @@ async def stat(
 
 
 async def exists(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, path: str
 ) -> bool:
     stmt = (
         select(UserFile.id)
         .where(
-            UserFile.org_id == org_id, UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id, UserFile.path == path,
         )
     )
@@ -319,14 +315,14 @@ async def exists(
 
 
 async def tree(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, root: str = "/"
 ) -> List[Dict[str, Any]]:
     """Flat list of all nodes under root, ordered by path."""
     stmt = (
         select(UserFile.path, UserFile.name, UserFile.type, UserFile.file_class)
         .where(
-            UserFile.org_id == org_id, UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id,
         )
     )
@@ -338,13 +334,13 @@ async def tree(
 
 
 async def get_user_files(
-    session: AsyncSession, org_id: str, agent_id: str, end_user_id: str
+    session: AsyncSession, blueprint_agent_id: uuid.UUID, end_user_id: str
 ) -> List[Dict[str, Any]]:
     """Get all files for a specific end user."""
     stmt = (
         select(UserFile.path, UserFile.name, UserFile.content, UserFile.file_class)
         .where(
-            UserFile.org_id == org_id, UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id, UserFile.type == "file",
         )
     )
@@ -353,14 +349,14 @@ async def get_user_files(
 
 
 async def delete_files(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     end_user_id: str, paths: Optional[List[str]] = None
 ) -> int:
     """Delete user files. If paths given, only those; else all for the user."""
     stmt = (
         delete(UserFile)
         .where(
-            UserFile.org_id == org_id, UserFile.agent_id == agent_id,
+            UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.end_user_id == end_user_id,
         )
         .returning(UserFile.id)

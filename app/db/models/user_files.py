@@ -1,13 +1,16 @@
 """ORM model for the user_files table."""
 
+import uuid
+
 from sqlalchemy import (
     Enum as SAEnum,
-    ForeignKeyConstraint,
+    ForeignKey,
     Index,
     Integer,
     Text,
     UniqueConstraint,
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -17,19 +20,15 @@ from app.db.models.blueprint_files import NodeType
 class UserFile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "user_files"
     __table_args__ = (
-        ForeignKeyConstraint(
-            ["org_id", "agent_id"],
-            ["agent_config.org_id", "agent_config.agent_id"],
-            ondelete="CASCADE",
-        ),
-        UniqueConstraint("org_id", "agent_id", "end_user_id", "path"),
-        Index("idx_user_files_by_user", "org_id", "agent_id", "end_user_id"),
-        Index("idx_user_files_ls", "org_id", "agent_id", "end_user_id", "parent"),
-        Index("idx_user_files_glob", "org_id", "agent_id", "path", postgresql_ops={"path": "text_pattern_ops"}),
+        UniqueConstraint("blueprint_agent_id", "end_user_id", "path"),
+        Index("idx_user_files_by_user", "blueprint_agent_id", "end_user_id"),
+        Index("idx_user_files_ls", "blueprint_agent_id", "end_user_id", "parent"),
+        Index("idx_user_files_glob", "blueprint_agent_id", "path", postgresql_ops={"path": "text_pattern_ops"}),
     )
 
-    org_id: Mapped[str] = mapped_column(Text, nullable=False)
-    agent_id: Mapped[str] = mapped_column(Text, nullable=False, server_default="default")
+    blueprint_agent_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("blueprint_agents.id", ondelete="CASCADE"), nullable=False
+    )
     end_user_id: Mapped[str] = mapped_column(Text, nullable=False)
 
     path: Mapped[str] = mapped_column(Text, nullable=False)

@@ -9,7 +9,7 @@ from scalar_fastapi import get_scalar_api_reference
 
 from app.config import get_settings
 from app.db.engine import dispose_engine, init_engine
-from app.routers import agents, chat, files
+from app.routers import agents, files, orgs
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Votrix Backend",
-    description="Multi-tenant AI chat backend. Streams responses in Vercel AI SDK data stream protocol.",
+    description="Multi-tenant agentic filesystem backend backed by Postgres.",
     version="0.1.0",
     lifespan=lifespan,
     redoc_url=None,
@@ -41,7 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(chat.router, prefix="/chat", tags=["chat"])
+app.include_router(orgs.router, tags=["orgs"])
 app.include_router(agents.router, tags=["agents"])
 app.include_router(files.router, tags=["files"])
 

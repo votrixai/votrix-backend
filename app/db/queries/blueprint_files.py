@@ -4,8 +4,11 @@ Core ops (fast path): ls, read_file, write_file, edit_file, grep, glob
 Supporting ops: mkdir, rm, rm_rf, mv, stat, tree
 """
 
+from __future__ import annotations
+
 import posixpath
 import re
+import uuid
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import delete, select, update
@@ -37,7 +40,7 @@ def _row_to_dict(row) -> Dict[str, Any]:
 
 
 async def ls(
-    session: AsyncSession, org_id: str, agent_id: str, parent: str = "/"
+    session: AsyncSession, blueprint_agent_id: uuid.UUID, parent: str = "/"
 ) -> List[Dict[str, Any]]:
     """List directory contents (base files only)."""
     stmt = (
@@ -47,8 +50,7 @@ async def ls(
             BlueprintFile.file_class, BlueprintFile.created_by, BlueprintFile.updated_at,
         )
         .where(
-            BlueprintFile.org_id == org_id,
-            BlueprintFile.agent_id == agent_id,
+            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
             BlueprintFile.parent == parent,
         )
         .order_by(BlueprintFile.type.desc(), BlueprintFile.name)
@@ -58,7 +60,7 @@ async def ls(
 
 
 async def read_file(
-    session: AsyncSession, org_id: str, agent_id: str, path: str
+    session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str
 ) -> Optional[Dict[str, Any]]:
     """Read a base file by path."""
     stmt = (
@@ -67,8 +69,7 @@ async def read_file(
             BlueprintFile.file_class, BlueprintFile.name, BlueprintFile.type, BlueprintFile.path,
         )
         .where(
-            BlueprintFile.org_id == org_id,
-            BlueprintFile.agent_id == agent_id,
+            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
             BlueprintFile.path == path,
         )
     )
@@ -79,8 +80,7 @@ async def read_file(
 
 async def write_file(
     session: AsyncSession,
-    org_id: str,
-    agent_id: str,
+    blueprint_agent_id: uuid.UUID,
     path: str,
     content: str,
     mime_type: str = "text/markdown",
@@ -90,8 +90,7 @@ async def write_file(
     name = posixpath.basename(path)
     derived = _derive_fields(path, name, content)
     values = {
-        "org_id": org_id,
-        "agent_id": agent_id,
+        "blueprint_agent_id": blueprint_agent_id,
         "path": path,
         "name": name,
         "type": "file",
@@ -100,12 +99,12 @@ async def write_file(
         "created_by": created_by,
         **derived,
     }
-    update_cols = {k: v for k, v in values.items() if k not in ("org_id", "agent_id", "path")}
+    update_cols = {k: v for k, v in values.items() if k not in ("blueprint_agent_id", "path")}
     stmt = (
         pg_insert(BlueprintFile)
         .values(**values)
         .on_conflict_do_update(
-            index_elements=["org_id", "agent_id", "path"],
+            index_elements=["blueprint_agent_id", "path"],
             set_=update_cols,
         )
         .returning(BlueprintFile)
@@ -116,29 +115,28 @@ async def write_file(
 
 
 async def edit_file(
-    session: AsyncSession, org_id: str, agent_id: str, path: str, old_str: str, new_str: str
+    session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str, old_str: str, new_str: str
 ) -> Optional[Dict[str, Any]]:
     """Replace first occurrence of old_str with new_str in file content."""
-    file = await read_file(session, org_id, agent_id, path)
+    file = await read_file(session, blueprint_agent_id, path)
     if not file or old_str not in file["content"]:
         return None
     updated_content = file["content"].replace(old_str, new_str, 1)
     return await write_file(
-        session, org_id, agent_id, path, updated_content,
+        session, blueprint_agent_id, path, updated_content,
         file.get("mime_type", "text/markdown"),
     )
 
 
 async def grep(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     pattern: str, case_insensitive: bool = False
 ) -> List[Dict[str, Any]]:
     """Regex search across all base files. Returns matching paths + lines."""
     stmt = (
         select(BlueprintFile.path, BlueprintFile.name, BlueprintFile.file_class, BlueprintFile.content)
         .where(
-            BlueprintFile.org_id == org_id,
-            BlueprintFile.agent_id == agent_id,
+            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
             BlueprintFile.type == "file",
         )
     )
@@ -160,7 +158,7 @@ async def grep(
 
 
 async def glob(
-    session: AsyncSession, org_id: str, agent_id: str, pattern: str
+    session: AsyncSession, blueprint_agent_id: uuid.UUID, pattern: str
 ) -> List[Dict[str, Any]]:
     """Match base files by glob pattern. Supports *.md, skills/**/*.md, etc."""
     if "**" in pattern:
@@ -180,10 +178,7 @@ async def glob(
             BlueprintFile.path, BlueprintFile.name, BlueprintFile.type,
             BlueprintFile.file_class, BlueprintFile.size_bytes, BlueprintFile.updated_at,
         )
-        .where(
-            BlueprintFile.org_id == org_id,
-            BlueprintFile.agent_id == agent_id,
-        )
+        .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id)
     )
     if prefix:
         stmt = stmt.where(BlueprintFile.path.like(f"{prefix}/%"))
@@ -199,14 +194,13 @@ async def glob(
 
 
 async def mkdir(
-    session: AsyncSession, org_id: str, agent_id: str,
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
     path: str, created_by: str = "system"
 ) -> Dict[str, Any]:
     name = posixpath.basename(path)
     derived = _derive_fields(path, name)
     values = {
-        "org_id": org_id,
-        "agent_id": agent_id,
+        "blueprint_agent_id": blueprint_agent_id,
         "path": path,
         "name": name,
         "type": "directory",
@@ -215,12 +209,12 @@ async def mkdir(
         "created_by": created_by,
         **derived,
     }
-    update_cols = {k: v for k, v in values.items() if k not in ("org_id", "agent_id", "path")}
+    update_cols = {k: v for k, v in values.items() if k not in ("blueprint_agent_id", "path")}
     stmt = (
         pg_insert(BlueprintFile)
         .values(**values)
         .on_conflict_do_update(
-            index_elements=["org_id", "agent_id", "path"],
+            index_elements=["blueprint_agent_id", "path"],
             set_=update_cols,
         )
         .returning(BlueprintFile)
@@ -230,29 +224,28 @@ async def mkdir(
     return _row_to_dict(result.scalar_one())
 
 
-async def rm(session: AsyncSession, org_id: str, agent_id: str, path: str) -> None:
+async def rm(session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str) -> None:
     stmt = (
         delete(BlueprintFile)
-        .where(BlueprintFile.org_id == org_id, BlueprintFile.agent_id == agent_id, BlueprintFile.path == path)
+        .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id, BlueprintFile.path == path)
     )
     await session.execute(stmt)
     await session.commit()
 
 
-async def rm_rf(session: AsyncSession, org_id: str, agent_id: str, path: str) -> int:
+async def rm_rf(session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str) -> int:
     """Delete a directory and everything under it."""
     stmt1 = (
         delete(BlueprintFile)
         .where(
-            BlueprintFile.org_id == org_id,
-            BlueprintFile.agent_id == agent_id,
+            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
             BlueprintFile.path.like(f"{path}/%"),
         )
         .returning(BlueprintFile.id)
     )
     stmt2 = (
         delete(BlueprintFile)
-        .where(BlueprintFile.org_id == org_id, BlueprintFile.agent_id == agent_id, BlueprintFile.path == path)
+        .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id, BlueprintFile.path == path)
         .returning(BlueprintFile.id)
     )
     r1 = await session.execute(stmt1)
@@ -262,7 +255,7 @@ async def rm_rf(session: AsyncSession, org_id: str, agent_id: str, path: str) ->
 
 
 async def mv(
-    session: AsyncSession, org_id: str, agent_id: str, old_path: str, new_path: str
+    session: AsyncSession, blueprint_agent_id: uuid.UUID, old_path: str, new_path: str
 ) -> None:
     """Move/rename a file or directory. Also updates children."""
     new_name = posixpath.basename(new_path)
@@ -270,7 +263,7 @@ async def mv(
 
     stmt = (
         update(BlueprintFile)
-        .where(BlueprintFile.org_id == org_id, BlueprintFile.agent_id == agent_id, BlueprintFile.path == old_path)
+        .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id, BlueprintFile.path == old_path)
         .values(path=new_path, name=new_name, **new_derived)
     )
     await session.execute(stmt)
@@ -278,8 +271,7 @@ async def mv(
     children_stmt = (
         select(BlueprintFile.id, BlueprintFile.path, BlueprintFile.name)
         .where(
-            BlueprintFile.org_id == org_id,
-            BlueprintFile.agent_id == agent_id,
+            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
             BlueprintFile.path.like(f"{old_path}/%"),
         )
     )
@@ -298,7 +290,7 @@ async def mv(
 
 
 async def stat(
-    session: AsyncSession, org_id: str, agent_id: str, path: str
+    session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str
 ) -> Optional[Dict[str, Any]]:
     stmt = (
         select(
@@ -308,8 +300,7 @@ async def stat(
             BlueprintFile.created_at, BlueprintFile.updated_at,
         )
         .where(
-            BlueprintFile.org_id == org_id,
-            BlueprintFile.agent_id == agent_id,
+            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
             BlueprintFile.path == path,
         )
     )
@@ -318,22 +309,22 @@ async def stat(
     return dict(row) if row else None
 
 
-async def exists(session: AsyncSession, org_id: str, agent_id: str, path: str) -> bool:
+async def exists(session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str) -> bool:
     stmt = (
         select(BlueprintFile.id)
-        .where(BlueprintFile.org_id == org_id, BlueprintFile.agent_id == agent_id, BlueprintFile.path == path)
+        .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id, BlueprintFile.path == path)
     )
     result = await session.execute(stmt)
     return result.scalar_one_or_none() is not None
 
 
 async def tree(
-    session: AsyncSession, org_id: str, agent_id: str, root: str = "/"
+    session: AsyncSession, blueprint_agent_id: uuid.UUID, root: str = "/"
 ) -> List[Dict[str, Any]]:
     """Flat list of all nodes under root, ordered by path."""
     stmt = (
         select(BlueprintFile.path, BlueprintFile.name, BlueprintFile.type, BlueprintFile.file_class)
-        .where(BlueprintFile.org_id == org_id, BlueprintFile.agent_id == agent_id)
+        .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id)
     )
     if root != "/":
         stmt = stmt.where(BlueprintFile.path.like(f"{root}/%"))
@@ -342,13 +333,12 @@ async def tree(
     return [dict(r) for r in result.mappings()]
 
 
-async def get_all_files(session: AsyncSession, org_id: str, agent_id: str) -> List[Dict[str, Any]]:
+async def get_all_files(session: AsyncSession, blueprint_agent_id: uuid.UUID) -> List[Dict[str, Any]]:
     """Get all base files (for publish diffing)."""
     stmt = (
         select(BlueprintFile.path, BlueprintFile.name, BlueprintFile.content, BlueprintFile.file_class)
         .where(
-            BlueprintFile.org_id == org_id,
-            BlueprintFile.agent_id == agent_id,
+            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
             BlueprintFile.type == "file",
         )
     )

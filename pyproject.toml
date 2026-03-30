@@ -1,7 +1,7 @@
 [project]
 name = "votrix-backend"
 version = "0.1.0"
-description = "Votrix AI backend — chat stream + agent prompt filesystem"
+description = "Votrix multi-tenant agentic filesystem backend"
 requires-python = ">=3.11"
 dependencies = [
     # Web framework
@@ -11,17 +11,8 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0",
     "asyncpg>=0.29",
     "alembic>=1.13",
-    # LangChain + LangGraph
-    "langchain-core>=0.3",
-    "langchain-google-genai>=2.0",
-    "langchain-openai>=0.2",
-    "langgraph>=0.2",
     # Settings
     "pydantic-settings>=2.0",
-    # YAML parsing (skill frontmatter)
-    "pyyaml>=6.0",
-    # HTTP client (fetch handler)
-    "httpx>=0.27",
     # API docs
     "scalar-fastapi>=1.0",
 ]
@@ -36,6 +27,9 @@ dev = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
 
 [tool.ruff]
 target-version = "py311"

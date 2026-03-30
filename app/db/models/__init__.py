@@ -2,22 +2,19 @@
 
 from app.db.models.base import Base
 from app.db.models.orgs import Org
-from app.db.models.agent_config import AgentConfig
-from app.db.models.agent_integration import AgentIntegration
+from app.db.models.blueprint_agents import BlueprintAgent
+from app.db.models.agent_integrations import AgentIntegration
 from app.db.models.blueprint_files import BlueprintFile, NodeType
 from app.db.models.user_files import UserFile
-from app.db.models.end_user_account_info import EndUserAccountInfo
-from app.db.models.sessions import Session, SessionEvent
+from app.db.models.end_user_accounts import EndUserAccount
 
 __all__ = [
     "Base",
     "Org",
-    "AgentConfig",
+    "BlueprintAgent",
     "AgentIntegration",
     "BlueprintFile",
     "NodeType",
     "UserFile",
-    "EndUserAccountInfo",
-    "Session",
-    "SessionEvent",
+    "EndUserAccount",
 ]
