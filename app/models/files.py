@@ -23,12 +23,10 @@ class FileEntry(BaseModel):
     path: str
     name: str
     type: NodeType = NodeType.file
-    end_user_perm: str = "r"
     content: str = ""
     mime_type: str = "text/markdown"
     size_bytes: int = 0
     file_class: str = "file"
-    base_version: int = 1
     parent: str = "/"
     ext: str = ""
     depth: int = 0
@@ -69,26 +67,12 @@ def classify_file(path: str, name: str) -> str:
     return "file"
 
 
-def default_end_user_perm(path: str, name: str) -> str:
-    """Default end_user_perm based on file type."""
-    if name in {"IDENTITY.md", "TOOLS.md", "BOOTSTRAP.md"}:
-        return "r"
-    if name == "SKILL.md":
-        return "r"
-    if name in {"SOUL.md", "USER.md"}:
-        return "rw"
-    if name == "registry.json":
-        return "none"
-    return "r"
-
-
 # ── Request models ────────────────────────────────────────────
 
 class WriteFileRequest(BaseModel):
     path: str = Field(..., description="File path, e.g. /skills/booking/SKILL.md")
     content: str = Field(..., description="File content")
     mime_type: str = Field("text/markdown", description="MIME type")
-    end_user_perm: str = Field("r", description="End user permission: 'none' | 'r' | 'rw'")
 
 
 class EditFileRequest(BaseModel):
@@ -113,7 +97,6 @@ class FileListEntry(BaseModel):
     path: str
     name: str
     type: NodeType
-    end_user_perm: Optional[str] = None
     end_user_id: Optional[str] = None
     mime_type: Optional[str] = None
     size_bytes: int = 0
@@ -126,7 +109,6 @@ class FileContent(BaseModel):
     path: str
     name: str
     type: NodeType
-    end_user_perm: Optional[str] = None
     end_user_id: Optional[str] = None
     content: str
     mime_type: str = "text/markdown"

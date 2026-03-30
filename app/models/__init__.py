@@ -9,17 +9,18 @@ from app.models.agent import (
     UpdatePromptSectionRequest,
 )
 from app.models.chat import ChatStreamMessage, ChatStreamRequest
-from app.models.conflicts import (
-    ConflictEntry,
-    ConflictSummary,
-    EndUserOverview,
-    PublishResponse,
-    ResolveRequest,
-    ResolveResponse,
-    ResolveScope,
-    ResolveStrategy,
-    VersionLogEntry,
-)
+# conflicts models disabled — tables commented out in 001_initial.sql
+# from app.models.conflicts import (
+#     ConflictEntry,
+#     ConflictSummary,
+#     EndUserOverview,
+#     PublishResponse,
+#     ResolveRequest,
+#     ResolveResponse,
+#     ResolveScope,
+#     ResolveStrategy,
+#     VersionLogEntry,
+# )
 from app.models.files import (
     EditFileRequest,
     FileContent,
@@ -42,11 +43,8 @@ __all__ = [
     "AgentSummary",
     "ChatStreamMessage",
     "ChatStreamRequest",
-    "ConflictEntry",
-    "ConflictSummary",
     "CreateAgentRequest",
     "EditFileRequest",
-    "EndUserOverview",
     "FileContent",
     "FileEntry",
     "FileListEntry",
@@ -54,15 +52,9 @@ __all__ = [
     "MkdirRequest",
     "MoveRequest",
     "NodeType",
-    "PublishResponse",
-    "ResolveRequest",
-    "ResolveResponse",
-    "ResolveScope",
-    "ResolveStrategy",
     "TreeEntry",
     "UpdateAgentRequest",
     "UpdatePromptSectionRequest",
-    "VersionLogEntry",
     "WriteFileRequest",
     "classify_file",
 ]

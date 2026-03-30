@@ -1,16 +1,16 @@
 # votrix-backend
 
-AI chat backend for Votrix — multi-tenant agent platform with virtual filesystem on Supabase.
+AI chat backend for Votrix — multi-tenant agent platform with virtual filesystem on Postgres.
 
 ## Architecture
 
 ```
 POST /chat/stream (Vercel AI SDK data stream)
   → build_assistant_context (org_id, agent_id)
-    → Supabase: agents, agent_files, sessions
+    → Postgres: agent_config, blueprint_files, sessions
   → LangGraph (ChatConversationNode)
     → Tools: read, write, votrix_run
-      → Supabase queries for file ops
+      → SQLAlchemy async queries for file ops
     → Gemini Flash (primary) / Gemini 2.0 Flash (backup)
   → Stream response (text deltas, tool calls, tool results)
 ```
@@ -23,27 +23,40 @@ pip install -e ".[dev]"
 
 # 2. Copy env
 cp .env.example .env
-# Fill in SUPABASE_URL, SUPABASE_SERVICE_KEY, GOOGLE_API_KEY
+# Fill in DATABASE_URL, GOOGLE_API_KEY
 
-# 3. Run Supabase migration
-supabase db push
-# Or apply manually:
-#   psql $DATABASE_URL -f supabase/migrations/001_initial.sql
+# 3. Apply schema (fresh database)
+psql $DATABASE_URL -f supabase/migrations/001_initial.sql
+alembic stamp head  # tell Alembic the DB matches current models
 
 # 4. Seed default data
 python -c "
 import asyncio
-from app.db.client import init_supabase
+from app.db.engine import init_engine
 from app.config import get_settings
 from app.db.seed import seed_all
 
-settings = get_settings()
-init_supabase(settings.supabase_url, settings.supabase_service_key)
+init_engine(get_settings().database_url)
 asyncio.run(seed_all())
 "
 
 # 5. Run
 uvicorn app.main:app --reload --port 8000
+```
+
+## Migrations
+
+Schema is managed via **Alembic** with async support. ORM models live in `app/db/models/`.
+
+```bash
+# Generate a new migration after changing ORM models
+alembic revision --autogenerate -m "description of change"
+
+# Apply migrations
+alembic upgrade head
+
+# Check current revision
+alembic current
 ```
 
 ## OpenAPI → TypeScript Client Generation
@@ -61,17 +74,9 @@ curl http://localhost:8000/openapi.json -o openapi.json
 
 # Option A: openapi-typescript + openapi-fetch (recommended, lightweight)
 npx openapi-typescript openapi.json -o src/api/schema.d.ts
-# Then use with openapi-fetch:
-#   import createClient from 'openapi-fetch'
-#   import type { paths } from './schema'
-#   const client = createClient<paths>({ baseUrl: 'http://localhost:8000' })
 
 # Option B: orval (generates axios/fetch hooks for React)
 npx orval --input openapi.json --output src/api/client.ts
-
-# Option C: openapi-generator (full SDK)
-npx @openapitools/openapi-generator-cli generate \
-  -i openapi.json -g typescript-fetch -o src/api/generated
 ```
 
 For CI, export the schema without running the server:
@@ -86,19 +91,20 @@ print(json.dumps(app.openapi(), indent=2))
 
 ## Database Schema
 
-7 active tables (agent_version_log and agent_conflicts are disabled):
+8 active tables (agent_version_log and agent_conflicts are commented out):
 
 | Table | Purpose |
 |---|---|
 | `orgs` | Tenant root, keyed by `org_id` |
-| `agents` | Agent config + prompt sections (flat columns) + registry (JSONB) + `prompt_version` |
-| `agent_files` | Virtual filesystem with override layer (base + end user overrides) |
+| `agent_config` | Agent config + prompt sections (flat columns) + registry (JSONB) + `prompt_version` |
+| `blueprint_files` | Admin-owned virtual filesystem (base files) |
+| `user_files` | End-user independent files |
 | `end_user_account_info` | Persistent cross-session end user metadata |
 | `sessions` | Chat session metadata |
 | `session_events` | Append-only event log (user messages, AI replies, tool results) |
 | `guidelines` | Global singleton prompt guidelines (TOOL_CALLS, SKILLS) |
 
-### agent_files — virtual filesystem
+### blueprint_files — admin-owned virtual filesystem
 
 Each file node has:
 
@@ -107,36 +113,26 @@ Each file node has:
 | `path` | Full path, e.g. `/skills/booking/SKILL.md` |
 | `name` | Filename, e.g. `SKILL.md` |
 | `type` | `file` or `directory` |
-| `end_user_perm` | `'none'` (hidden) / `'r'` (read-only) / `'rw'` (personalizable) |
-| `end_user_id` | `NULL` = base file, set = end user override |
-| `base_version` | Which admin version this file/override was created against |
 | `mime_type` | e.g. `text/markdown`, `application/json` |
 | `file_class` | `skill` / `skill_asset` / `prompt` / `file` |
 
-**Override layer**: Base files (`end_user_id IS NULL`) are member-owned. End users get a merged view where their overrides win per path. Writes by end users create overrides, never modify base files. Files with `end_user_perm='none'` are hidden from end users.
+### user_files — end-user independent files
+
+| Field | Description |
+|---|---|
+| `end_user_id` | Always set — identifies the end user |
+| `path` | Independent path namespace per end user |
+| `content`, `name`, `type`, etc. | Same structure as blueprint_files |
 
 Core filesystem operations and their index coverage:
 
 | Op | Index |
 |---|---|
-| `ls(parent)` | `idx_agent_files_ls` — B-tree on `(org_id, agent_id, parent)` where base |
-| `ls(parent, end_user_id)` | `idx_agent_files_ls_user` — includes end_user_id for merged view |
-| `read_file(path)` | Unique index on `(org_id, agent_id, coalesce(end_user_id,''), path)` |
+| `ls(parent)` | `idx_blueprint_ls` — B-tree on `(org_id, agent_id, parent)` |
+| `read_file(path)` | Unique index on `(org_id, agent_id, path)` |
 | `write_file(path)` | Same unique index (upsert) |
-| `edit_file(path, old, new)` | Same unique index |
-| `grep(pattern)` | Seq scan on `(org_id, agent_id)` filtered set + `idx_agent_files_fts` for FTS |
-| `glob(pattern)` | `idx_agent_files_glob` — `text_pattern_ops` prefix scan |
-
-### Versioning + Conflict Resolution
-
-1. Admin edits base files normally via the files API
-2. `POST /orgs/{org_id}/agents/{agent_id}/publish` bumps `prompt_version`, detects conflicts with end user overrides, auto-syncs clean end users
-3. `GET /conflicts` lists unresolved conflicts (filterable by end_user_id, path)
-4. `POST /conflicts/resolve` applies a strategy:
-   - `force_admin` — delete conflicting overrides, keep admin version
-   - `force_user` — keep overrides, update their base_version
-   - `drop_overrides` — delete all overrides for affected users
-5. Conflicts are superseded (not stacked) — unique on `(end_user_id, path)`, so a new publish replaces the stale conflict
+| `grep(pattern)` | `idx_blueprint_fts` — GIN full-text search |
+| `glob(pattern)` | `idx_blueprint_glob` — `text_pattern_ops` prefix scan |
 
 ## API Reference
 
@@ -147,38 +143,46 @@ Scalar API docs at `GET /reference` (interactive). OpenAPI schema at `GET /opena
 | **chat** | `POST /chat/stream` |
 | **agents** | Agent CRUD + prompt section get/put |
 | **files** | ls, read, write, edit, delete, mkdir, mv, grep, glob, tree (all support `end_user_id`) |
-| **versioning** | publish, conflicts, conflicts/summary, conflicts/resolve, version-log, end-users |
 
 ## Project Structure
 
 ```
 app/
 ├── main.py                  # FastAPI app + lifespan + Scalar docs
-├── config.py                # Pydantic settings
-├── models/
+├── config.py                # Pydantic settings (DATABASE_URL, API keys)
+├── deps.py                  # FastAPI dependencies (get_session)
+├── models/                  # Pydantic request/response schemas
 │   ├── agent.py             # Agent CRUD schemas
 │   ├── chat.py              # ChatStreamRequest/Message
-│   ├── conflicts.py         # Publish, conflict, resolve schemas
 │   └── files.py             # FileEntry, WriteFileRequest, etc.
 ├── routers/
 │   ├── chat.py              # POST /chat/stream
 │   ├── agents.py            # Agent CRUD + prompt sections
-│   ├── files.py             # Virtual filesystem CRUD
-│   └── conflicts.py         # Publish, versioning, conflict resolution
-├── context/                 # AssistantContext (org_id, agent_id)
+│   └── files.py             # Virtual filesystem CRUD
+├── context/                 # AssistantContext (org_id, agent_id, db_session)
 ├── llm/                     # LangGraph, prompt builder, model manager
 ├── tools/                   # read/write/votrix_run + exec handlers
 ├── db/
-│   ├── client.py            # Supabase singleton
-│   ├── queries/
-│   │   ├── agents.py        # Agent table queries
-│   │   ├── agent_files.py   # Filesystem ops + override layer helpers
-│   │   ├── conflicts.py     # Conflict detection, resolution, version log
+│   ├── engine.py            # SQLAlchemy async engine + session factory
+│   ├── models/              # ORM models (one per table)
+│   │   ├── base.py          # DeclarativeBase + common mixins
+│   │   ├── orgs.py
+│   │   ├── agent_config.py
+│   │   ├── blueprint_files.py
+│   │   ├── user_files.py
+│   │   ├── end_user_account_info.py
+│   │   ├── sessions.py
+│   │   └── guidelines.py
+│   ├── queries/             # DAO layer (SQLAlchemy queries)
+│   │   ├── agents.py        # agent_config table queries
+│   │   ├── blueprint_files.py # Blueprint filesystem ops
+│   │   ├── user_files.py    # User file ops
 │   │   ├── sessions.py      # Session + event queries
 │   │   └── guidelines.py    # Global guidelines
 │   └── seed.py              # First-run seeder
 └── utils/                   # ChatManager, logger
 
-supabase/migrations/         # SQL schema (9 tables)
-prompts/                     # Seed data (disk → Supabase on first boot)
+alembic/                     # Alembic migration config + versions
+supabase/migrations/         # Reference SQL schema
+prompts/                     # Seed data (disk → DB on first boot)
 ```

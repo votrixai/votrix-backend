@@ -11,14 +11,19 @@ Routes:
   GET    /orgs/{org_id}/agents/{agent_id}/files/grep          — regex search (query: pattern)
   GET    /orgs/{org_id}/agents/{agent_id}/files/glob          — glob match (query: pattern)
   GET    /orgs/{org_id}/agents/{agent_id}/files/tree          — full tree (query: root)
+
+When end_user_id is provided, routes target user_files directly.
+When absent, routes target blueprint_files.
 """
 
 import logging
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.queries import agent_files
+from app.db.engine import get_session
+from app.db.queries import blueprint_files, user_files
 from app.models.files import (
     EditFileRequest,
     FileContent,
@@ -44,9 +49,13 @@ async def ls(
     org_id: str,
     agent_id: str,
     path: str = Query("/", description="Directory path to list"),
-    end_user_id: Optional[str] = Query(None, description="End user ID for personalized view"),
+    end_user_id: Optional[str] = Query(None, description="End user ID for user files"),
+    session: AsyncSession = Depends(get_session),
 ):
-    entries = await agent_files.ls(org_id, agent_id, path, end_user_id=end_user_id)
+    if end_user_id:
+        entries = await user_files.ls(session, org_id, agent_id, end_user_id, path)
+    else:
+        entries = await blueprint_files.ls(session, org_id, agent_id, path)
     return [FileListEntry(**e) for e in entries]
 
 
@@ -59,9 +68,13 @@ async def read_file(
     org_id: str,
     agent_id: str,
     path: str = Query(..., description="File path to read"),
-    end_user_id: Optional[str] = Query(None, description="End user ID for personalized view"),
+    end_user_id: Optional[str] = Query(None, description="End user ID for user files"),
+    session: AsyncSession = Depends(get_session),
 ):
-    file = await agent_files.read_file(org_id, agent_id, path, end_user_id=end_user_id)
+    if end_user_id:
+        file = await user_files.read_file(session, org_id, agent_id, end_user_id, path)
+    else:
+        file = await blueprint_files.read_file(session, org_id, agent_id, path)
     if not file:
         raise HTTPException(status_code=404, detail=f"File not found: {path}")
     return FileContent(path=path, **file)
@@ -77,23 +90,19 @@ async def write_file(
     org_id: str,
     agent_id: str,
     body: WriteFileRequest,
-    end_user_id: Optional[str] = Query(None, description="End user ID (creates override if set)"),
+    end_user_id: Optional[str] = Query(None, description="End user ID (writes to user_files if set)"),
+    session: AsyncSession = Depends(get_session),
 ):
-    # Permission guard: if end_user_id, check the base file allows writes
     if end_user_id:
-        base = await agent_files.read_file(org_id, agent_id, body.path)
-        if base and base.get("end_user_perm") != "rw":
-            raise HTTPException(
-                status_code=403,
-                detail=f"End user does not have write permission on {body.path}",
-            )
-
-    row = await agent_files.write_file(
-        org_id, agent_id, body.path, body.content,
-        mime_type=body.mime_type,
-        end_user_perm=body.end_user_perm,
-        end_user_id=end_user_id,
-    )
+        row = await user_files.write_file(
+            session, org_id, agent_id, end_user_id, body.path, body.content,
+            mime_type=body.mime_type,
+        )
+    else:
+        row = await blueprint_files.write_file(
+            session, org_id, agent_id, body.path, body.content,
+            mime_type=body.mime_type,
+        )
     return FileListEntry(**row)
 
 
@@ -106,24 +115,24 @@ async def edit_file(
     org_id: str,
     agent_id: str,
     body: EditFileRequest,
-    end_user_id: Optional[str] = Query(None, description="End user ID (edits override if set)"),
+    end_user_id: Optional[str] = Query(None, description="End user ID (edits user file if set)"),
+    session: AsyncSession = Depends(get_session),
 ):
-    # Permission guard
     if end_user_id:
-        base = await agent_files.read_file(org_id, agent_id, body.path)
-        if base and base.get("end_user_perm") != "rw":
-            raise HTTPException(
-                status_code=403,
-                detail=f"End user does not have write permission on {body.path}",
-            )
-
-    result = await agent_files.edit_file(
-        org_id, agent_id, body.path, body.old_str, body.new_str,
-        end_user_id=end_user_id,
-    )
-    if not result:
-        raise HTTPException(status_code=404, detail=f"File not found or old_str not present: {body.path}")
-    file = await agent_files.read_file(org_id, agent_id, body.path, end_user_id=end_user_id)
+        result = await user_files.edit_file(
+            session, org_id, agent_id, end_user_id,
+            body.path, body.old_str, body.new_str,
+        )
+        if not result:
+            raise HTTPException(status_code=404, detail=f"File not found or old_str not present: {body.path}")
+        file = await user_files.read_file(session, org_id, agent_id, end_user_id, body.path)
+    else:
+        result = await blueprint_files.edit_file(
+            session, org_id, agent_id, body.path, body.old_str, body.new_str,
+        )
+        if not result:
+            raise HTTPException(status_code=404, detail=f"File not found or old_str not present: {body.path}")
+        file = await blueprint_files.read_file(session, org_id, agent_id, body.path)
     return FileContent(path=body.path, **file)
 
 
@@ -137,17 +146,29 @@ async def delete_file(
     agent_id: str,
     path: str = Query(..., description="Path to delete"),
     recursive: bool = Query(False, description="If true, delete directory and all contents"),
+    end_user_id: Optional[str] = Query(None, description="End user ID (deletes from user_files if set)"),
+    session: AsyncSession = Depends(get_session),
 ):
-    """Delete a base file. End user overrides are not deleted here (use conflict resolve)."""
-    if recursive:
-        count = await agent_files.rm_rf(org_id, agent_id, path)
-        if count == 0:
-            raise HTTPException(status_code=404, detail=f"Path not found: {path}")
+    if end_user_id:
+        if recursive:
+            count = await user_files.rm_rf(session, org_id, agent_id, end_user_id, path)
+            if count == 0:
+                raise HTTPException(status_code=404, detail=f"Path not found: {path}")
+        else:
+            file_exists = await user_files.exists(session, org_id, agent_id, end_user_id, path)
+            if not file_exists:
+                raise HTTPException(status_code=404, detail=f"File not found: {path}")
+            await user_files.rm(session, org_id, agent_id, end_user_id, path)
     else:
-        file_exists = await agent_files.exists(org_id, agent_id, path)
-        if not file_exists:
-            raise HTTPException(status_code=404, detail=f"File not found: {path}")
-        await agent_files.rm(org_id, agent_id, path)
+        if recursive:
+            count = await blueprint_files.rm_rf(session, org_id, agent_id, path)
+            if count == 0:
+                raise HTTPException(status_code=404, detail=f"Path not found: {path}")
+        else:
+            file_exists = await blueprint_files.exists(session, org_id, agent_id, path)
+            if not file_exists:
+                raise HTTPException(status_code=404, detail=f"File not found: {path}")
+            await blueprint_files.rm(session, org_id, agent_id, path)
 
 
 @router.post(
@@ -156,8 +177,17 @@ async def delete_file(
     status_code=201,
     summary="Create directory",
 )
-async def mkdir(org_id: str, agent_id: str, body: MkdirRequest):
-    row = await agent_files.mkdir(org_id, agent_id, body.path)
+async def mkdir(
+    org_id: str,
+    agent_id: str,
+    body: MkdirRequest,
+    end_user_id: Optional[str] = Query(None, description="End user ID"),
+    session: AsyncSession = Depends(get_session),
+):
+    if end_user_id:
+        row = await user_files.mkdir(session, org_id, agent_id, end_user_id, body.path)
+    else:
+        row = await blueprint_files.mkdir(session, org_id, agent_id, body.path)
     return FileListEntry(**row)
 
 
@@ -166,11 +196,17 @@ async def mkdir(org_id: str, agent_id: str, body: MkdirRequest):
     status_code=200,
     summary="Move or rename",
 )
-async def move(org_id: str, agent_id: str, body: MoveRequest):
-    file_exists = await agent_files.exists(org_id, agent_id, body.old_path)
+async def move(
+    org_id: str,
+    agent_id: str,
+    body: MoveRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Move/rename a blueprint file."""
+    file_exists = await blueprint_files.exists(session, org_id, agent_id, body.old_path)
     if not file_exists:
         raise HTTPException(status_code=404, detail=f"Source not found: {body.old_path}")
-    await agent_files.mv(org_id, agent_id, body.old_path, body.new_path)
+    await blueprint_files.mv(session, org_id, agent_id, body.old_path, body.new_path)
     return {"old_path": body.old_path, "new_path": body.new_path}
 
 
@@ -184,13 +220,19 @@ async def grep(
     agent_id: str,
     pattern: str = Query(..., description="Regex pattern to search for"),
     case_insensitive: bool = Query(False, description="Case insensitive search"),
-    end_user_id: Optional[str] = Query(None, description="End user ID for personalized view"),
+    end_user_id: Optional[str] = Query(None, description="End user ID for user files"),
+    session: AsyncSession = Depends(get_session),
 ):
-    results = await agent_files.grep(
-        org_id, agent_id, pattern,
-        case_insensitive=case_insensitive,
-        end_user_id=end_user_id,
-    )
+    if end_user_id:
+        results = await user_files.grep(
+            session, org_id, agent_id, end_user_id, pattern,
+            case_insensitive=case_insensitive,
+        )
+    else:
+        results = await blueprint_files.grep(
+            session, org_id, agent_id, pattern,
+            case_insensitive=case_insensitive,
+        )
     return [GrepMatch(**r) for r in results]
 
 
@@ -203,9 +245,13 @@ async def glob(
     org_id: str,
     agent_id: str,
     pattern: str = Query(..., description="Glob pattern, e.g. skills/**/*.md or *.json"),
-    end_user_id: Optional[str] = Query(None, description="End user ID for personalized view"),
+    end_user_id: Optional[str] = Query(None, description="End user ID for user files"),
+    session: AsyncSession = Depends(get_session),
 ):
-    results = await agent_files.glob(org_id, agent_id, pattern, end_user_id=end_user_id)
+    if end_user_id:
+        results = await user_files.glob(session, org_id, agent_id, end_user_id, pattern)
+    else:
+        results = await blueprint_files.glob(session, org_id, agent_id, pattern)
     return [FileListEntry(**r) for r in results]
 
 
@@ -218,7 +264,11 @@ async def tree(
     org_id: str,
     agent_id: str,
     root: str = Query("/", description="Root path for tree"),
-    end_user_id: Optional[str] = Query(None, description="End user ID for personalized view"),
+    end_user_id: Optional[str] = Query(None, description="End user ID for user files"),
+    session: AsyncSession = Depends(get_session),
 ):
-    entries = await agent_files.tree(org_id, agent_id, root, end_user_id=end_user_id)
+    if end_user_id:
+        entries = await user_files.tree(session, org_id, agent_id, end_user_id, root)
+    else:
+        entries = await blueprint_files.tree(session, org_id, agent_id, root)
     return [TreeEntry(**e) for e in entries]

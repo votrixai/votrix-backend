@@ -1,9 +1,9 @@
-"""fs handler — ls command via Supabase agent_files."""
+"""fs handler — ls command via blueprint_files."""
 
 import re
 from typing import Optional, Dict
 
-from app.db.queries import agent_files
+from app.db.queries import blueprint_files
 from app.tools.tool_context import get_tool_context
 
 
@@ -21,7 +21,7 @@ async def run(path: str = "/") -> str:
     if not ctx:
         return "Error: no context"
 
-    entries = await agent_files.ls(ctx.org_id, ctx.agent_id, path)
+    entries = await blueprint_files.ls(ctx.db_session, ctx.org_id, ctx.agent_id, path)
     if not entries:
         return f"Directory empty or not found: {path}"
 

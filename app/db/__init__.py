@@ -1,3 +1,3 @@
-from app.db.client import get_supabase, init_supabase
+from app.db.engine import get_session, init_engine, dispose_engine, session_scope
 
-__all__ = ["get_supabase", "init_supabase"]
+__all__ = ["get_session", "init_engine", "dispose_engine", "session_scope"]

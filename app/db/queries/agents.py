@@ -1,12 +1,12 @@
-"""Agent queries — CRUD for agents table + prompt sections + registry."""
+"""Agent queries — CRUD for agent_config table + prompt sections + registry."""
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
-from app.db.client import get_supabase
+from sqlalchemy import delete, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
-TABLE = "agents"
+from app.db.models.agent_config import AgentConfig
 
-# Maps prompt section keys to DB column names.
 _PROMPT_COLS = {
     "identity": "prompt_identity",
     "soul": "prompt_soul",
@@ -17,106 +17,82 @@ _PROMPT_COLS = {
 }
 
 
-async def get_agent(org_id: str, agent_id: str = "default") -> Optional[Dict[str, Any]]:
-    resp = (
-        get_supabase()
-        .table(TABLE)
-        .select("*")
-        .eq("org_id", org_id)
-        .eq("agent_id", agent_id)
-        .maybe_single()
-        .execute()
-    )
-    return resp.data
+def _row_to_dict(row: AgentConfig) -> Dict[str, Any]:
+    return {c.key: getattr(row, c.key) for c in AgentConfig.__table__.columns}
 
 
-async def create_agent(org_id: str, agent_id: str = "default", **kwargs) -> Dict[str, Any]:
-    row = {"org_id": org_id, "agent_id": agent_id, **kwargs}
-    resp = get_supabase().table(TABLE).insert(row).execute()
-    return resp.data[0]
+async def get_agent(session: AsyncSession, org_id: str, agent_id: str = "default") -> Optional[Dict[str, Any]]:
+    stmt = select(AgentConfig).where(AgentConfig.org_id == org_id, AgentConfig.agent_id == agent_id)
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    return _row_to_dict(row) if row else None
 
 
-async def get_prompt_sections(org_id: str, agent_id: str = "default") -> Dict[str, str]:
-    cols = ", ".join(_PROMPT_COLS.values())
-    resp = (
-        get_supabase()
-        .table(TABLE)
-        .select(cols)
-        .eq("org_id", org_id)
-        .eq("agent_id", agent_id)
-        .maybe_single()
-        .execute()
-    )
-    if not resp.data:
+async def create_agent(session: AsyncSession, org_id: str, agent_id: str = "default", **kwargs) -> Dict[str, Any]:
+    obj = AgentConfig(org_id=org_id, agent_id=agent_id, **kwargs)
+    session.add(obj)
+    await session.commit()
+    await session.refresh(obj)
+    return _row_to_dict(obj)
+
+
+async def get_prompt_sections(session: AsyncSession, org_id: str, agent_id: str = "default") -> Dict[str, str]:
+    cols = [getattr(AgentConfig, col) for col in _PROMPT_COLS.values()]
+    stmt = select(*cols).where(AgentConfig.org_id == org_id, AgentConfig.agent_id == agent_id)
+    result = await session.execute(stmt)
+    row = result.mappings().first()
+    if not row:
         return {}
-    row = resp.data
     return {key: row.get(col, "") for key, col in _PROMPT_COLS.items()}
 
 
-async def set_prompt_section(org_id: str, agent_id: str, section: str, content: str) -> None:
+async def set_prompt_section(session: AsyncSession, org_id: str, agent_id: str, section: str, content: str) -> None:
     col = _PROMPT_COLS.get(section)
     if not col:
         raise ValueError(f"Unknown prompt section: {section}")
-    (
-        get_supabase()
-        .table(TABLE)
-        .update({col: content, "updated_at": "now()"})
-        .eq("org_id", org_id)
-        .eq("agent_id", agent_id)
-        .execute()
+    stmt = (
+        update(AgentConfig)
+        .where(AgentConfig.org_id == org_id, AgentConfig.agent_id == agent_id)
+        .values(**{col: content})
     )
+    await session.execute(stmt)
+    await session.commit()
 
 
-async def get_registry(org_id: str, agent_id: str = "default") -> Dict[str, Any]:
-    resp = (
-        get_supabase()
-        .table(TABLE)
-        .select("registry")
-        .eq("org_id", org_id)
-        .eq("agent_id", agent_id)
-        .maybe_single()
-        .execute()
+async def get_registry(session: AsyncSession, org_id: str, agent_id: str = "default") -> Dict[str, Any]:
+    stmt = select(AgentConfig.registry).where(AgentConfig.org_id == org_id, AgentConfig.agent_id == agent_id)
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    return row or {}
+
+
+async def set_registry(session: AsyncSession, org_id: str, agent_id: str, registry: Dict[str, Any]) -> None:
+    stmt = (
+        update(AgentConfig)
+        .where(AgentConfig.org_id == org_id, AgentConfig.agent_id == agent_id)
+        .values(registry=registry)
     )
-    if not resp.data:
-        return {}
-    return resp.data.get("registry") or {}
+    await session.execute(stmt)
+    await session.commit()
 
 
-async def set_registry(org_id: str, agent_id: str, registry: Dict[str, Any]) -> None:
-    (
-        get_supabase()
-        .table(TABLE)
-        .update({"registry": registry, "updated_at": "now()"})
-        .eq("org_id", org_id)
-        .eq("agent_id", agent_id)
-        .execute()
-    )
-
-
-async def set_registry_field(org_id: str, agent_id: str, field: str, value: Any) -> None:
+async def set_registry_field(session: AsyncSession, org_id: str, agent_id: str, field: str, value: Any) -> None:
     """Update a single top-level field in the registry JSONB."""
-    reg = await get_registry(org_id, agent_id)
+    reg = await get_registry(session, org_id, agent_id)
     reg[field] = value
-    await set_registry(org_id, agent_id, reg)
+    await set_registry(session, org_id, agent_id, reg)
 
 
-async def list_agents(org_id: str):
-    resp = (
-        get_supabase()
-        .table(TABLE)
-        .select("agent_id, created_at, updated_at")
-        .eq("org_id", org_id)
-        .execute()
+async def list_agents(session: AsyncSession, org_id: str) -> List[Dict[str, Any]]:
+    stmt = (
+        select(AgentConfig.agent_id, AgentConfig.created_at, AgentConfig.updated_at)
+        .where(AgentConfig.org_id == org_id)
     )
-    return resp.data or []
+    result = await session.execute(stmt)
+    return [dict(r) for r in result.mappings()]
 
 
-async def delete_agent(org_id: str, agent_id: str) -> None:
-    (
-        get_supabase()
-        .table(TABLE)
-        .delete()
-        .eq("org_id", org_id)
-        .eq("agent_id", agent_id)
-        .execute()
-    )
+async def delete_agent(session: AsyncSession, org_id: str, agent_id: str) -> None:
+    stmt = delete(AgentConfig).where(AgentConfig.org_id == org_id, AgentConfig.agent_id == agent_id)
+    await session.execute(stmt)
+    await session.commit()

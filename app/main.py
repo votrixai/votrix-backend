@@ -8,8 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 
 from app.config import get_settings
-from app.db.client import init_supabase
-from app.routers import agents, chat, conflicts, files
+from app.db.engine import dispose_engine, init_engine
+from app.routers import agents, chat, files
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +18,11 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
-    init_supabase(settings.supabase_url, settings.supabase_service_key)
-    logger.info("Supabase client initialized")
+    init_engine(settings.database_url)
+    logger.info("SQLAlchemy async engine initialized")
     yield
-    logger.info("Shutting down")
+    await dispose_engine()
+    logger.info("Database engine disposed")
 
 
 app = FastAPI(
@@ -29,7 +30,7 @@ app = FastAPI(
     description="Multi-tenant AI chat backend. Streams responses in Vercel AI SDK data stream protocol.",
     version="0.1.0",
     lifespan=lifespan,
-    redoc_url=None,  # replaced by Scalar
+    redoc_url=None,
 )
 
 app.add_middleware(
@@ -43,7 +44,6 @@ app.add_middleware(
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(agents.router, tags=["agents"])
 app.include_router(files.router, tags=["files"])
-app.include_router(conflicts.router, tags=["versioning"])
 
 
 @app.get("/reference", include_in_schema=False)

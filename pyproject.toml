@@ -7,8 +7,10 @@ dependencies = [
     # Web framework
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
-    # Supabase
-    "supabase>=2.0",
+    # Database (SQLAlchemy async + Postgres)
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
     # LangChain + LangGraph
     "langchain-core>=0.3",
     "langchain-google-genai>=2.0",

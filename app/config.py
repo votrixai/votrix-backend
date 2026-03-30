@@ -6,9 +6,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Supabase
-    supabase_url: str = ""
-    supabase_service_key: str = ""
+    # Database
+    database_url: str = ""
 
     # LLM
     openai_api_key: str = ""

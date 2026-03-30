@@ -2,83 +2,103 @@
 
 from typing import Any, Dict, List, Optional
 
-from app.db.client import get_supabase
+from sqlalchemy import select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.models.sessions import Session, SessionEvent
 
 
-async def get_session(session_id: str, events_limit: int = 150) -> Optional[Dict[str, Any]]:
+def _session_to_dict(row: Session) -> Dict[str, Any]:
+    return {c.key: getattr(row, c.key) for c in Session.__table__.columns}
+
+
+def _event_to_dict(row: SessionEvent) -> Dict[str, Any]:
+    return {c.key: getattr(row, c.key) for c in SessionEvent.__table__.columns}
+
+
+async def get_session(
+    session: AsyncSession, session_id: str, events_limit: int = 150
+) -> Optional[Dict[str, Any]]:
     """Fetch session with its most recent events."""
-    resp = (
-        get_supabase()
-        .table("sessions")
-        .select("*")
-        .eq("session_id", session_id)
-        .maybe_single()
-        .execute()
-    )
-    if not resp.data:
+    stmt = select(Session).where(Session.session_id == session_id)
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if not row:
         return None
-    session = resp.data
+    data = _session_to_dict(row)
 
-    events_resp = (
-        get_supabase()
-        .table("session_events")
-        .select("*")
-        .eq("session_id", session_id)
-        .order("seq")
+    events_stmt = (
+        select(SessionEvent)
+        .where(SessionEvent.session_id == session_id)
+        .order_by(SessionEvent.seq)
         .limit(events_limit)
-        .execute()
     )
-    session["events"] = events_resp.data or []
-    return session
+    events_result = await session.execute(events_stmt)
+    data["events"] = [_event_to_dict(e) for e in events_result.scalars()]
+    return data
 
 
 async def create_session(
+    session: AsyncSession,
     session_id: str, org_id: str, agent_id: str = "default", channel_type: str = "web"
 ) -> Dict[str, Any]:
-    row = {
+    values = {
         "session_id": session_id,
         "org_id": org_id,
         "agent_id": agent_id,
         "channel_type": channel_type,
     }
-    resp = get_supabase().table("sessions").upsert(row, on_conflict="session_id").execute()
-    return resp.data[0]
+    stmt = (
+        pg_insert(Session)
+        .values(**values)
+        .on_conflict_do_update(
+            index_elements=["session_id"],
+            set_={"channel_type": channel_type},
+        )
+        .returning(Session)
+    )
+    result = await session.execute(stmt)
+    await session.commit()
+    return _session_to_dict(result.scalar_one())
 
 
 async def log_event(
+    session: AsyncSession,
     session_id: str,
     seq: int,
     event_type: str,
     event_body: str,
     event_title: Optional[str] = None,
 ) -> Dict[str, Any]:
-    row = {
-        "session_id": session_id,
-        "seq": seq,
-        "event_type": event_type,
-        "event_body": event_body,
-    }
-    if event_title:
-        row["event_title"] = event_title
-    resp = get_supabase().table("session_events").insert(row).execute()
-    return resp.data[0]
-
-
-async def update_summary(session_id: str, summary: str) -> None:
-    (
-        get_supabase()
-        .table("sessions")
-        .update({"summary": summary, "updated_at": "now()"})
-        .eq("session_id", session_id)
-        .execute()
+    obj = SessionEvent(
+        session_id=session_id,
+        seq=seq,
+        event_type=event_type,
+        event_body=event_body,
+        event_title=event_title,
     )
+    session.add(obj)
+    await session.commit()
+    await session.refresh(obj)
+    return _event_to_dict(obj)
 
 
-async def update_labels(session_id: str, labels: List[str]) -> None:
-    (
-        get_supabase()
-        .table("sessions")
-        .update({"labels": labels, "updated_at": "now()"})
-        .eq("session_id", session_id)
-        .execute()
+async def update_summary(session: AsyncSession, session_id: str, summary: str) -> None:
+    stmt = (
+        update(Session)
+        .where(Session.session_id == session_id)
+        .values(summary=summary)
     )
+    await session.execute(stmt)
+    await session.commit()
+
+
+async def update_labels(session: AsyncSession, session_id: str, labels: List[str]) -> None:
+    stmt = (
+        update(Session)
+        .where(Session.session_id == session_id)
+        .values(labels=labels)
+    )
+    await session.execute(stmt)
+    await session.commit()

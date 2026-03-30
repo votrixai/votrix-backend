@@ -1,13 +1,14 @@
 """Chat tools — read, write, votrix_run as ToolStructure.
 
 Tools resolve org_id/agent_id from the tool context (set before each tool loop).
+The db session is retrieved from ctx.db_session.
 """
 
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
-from app.db.queries import agent_files, agents as agents_q
+from app.db.queries import blueprint_files, agents as agents_q
 from app.llm.types import OperationType, RecordFormat, RecordRule, ToolResponse, ToolStructure
 from app.tools.command_dispatcher import dispatch_command
 from app.tools.tool_context import get_tool_context
@@ -29,7 +30,6 @@ class VotrixRunSchema(BaseModel):
     command: str = Field(..., description="Command: booking.create ..., module.setup_complete <id>, etc.")
 
 
-# Top-level prompt file mapping
 _PROMPT_SECTION_MAP = {
     "IDENTITY.md": "identity",
     "SOUL.md": "soul",
@@ -41,27 +41,24 @@ _PROMPT_SECTION_MAP = {
 
 
 async def _read_impl(path: str) -> str:
-    """Read content by path from Supabase."""
     ctx = get_tool_context()
     if not ctx:
         return "Error: no context"
 
+    session = ctx.db_session
     org_id = ctx.org_id
     agent_id = ctx.agent_id
     name = path.strip().replace("\\", "/").split("/")[-1]
 
-    # Top-level prompt files → read from agents table
     section = _PROMPT_SECTION_MAP.get(name)
     if section and "/" not in path.strip().strip("/"):
-        sections = await agents_q.get_prompt_sections(org_id, agent_id)
+        sections = await agents_q.get_prompt_sections(session, org_id, agent_id)
         return sections.get(section, "")
 
-    # Everything else → agent_files
-    # Normalize path: ensure leading /
     normalized = path.strip()
     if not normalized.startswith("/"):
         normalized = "/" + normalized
-    file = await agent_files.read_file(org_id, agent_id, normalized)
+    file = await blueprint_files.read_file(session, org_id, agent_id, normalized)
     if file:
         return file.get("content", "")
 
@@ -69,26 +66,24 @@ async def _read_impl(path: str) -> str:
 
 
 async def _write_impl(path: str, content: str) -> str:
-    """Write content by path to Supabase."""
     ctx = get_tool_context()
     if not ctx:
         return "Error: no context"
 
+    session = ctx.db_session
     org_id = ctx.org_id
     agent_id = ctx.agent_id
     name = path.strip().replace("\\", "/").split("/")[-1]
 
-    # Top-level prompt files → write to agents table
     section = _PROMPT_SECTION_MAP.get(name)
     if section and "/" not in path.strip().strip("/"):
-        await agents_q.set_prompt_section(org_id, agent_id, section, content)
+        await agents_q.set_prompt_section(session, org_id, agent_id, section, content)
         return f"Written to {name}"
 
-    # Everything else → agent_files
     normalized = path.strip()
     if not normalized.startswith("/"):
         normalized = "/" + normalized
-    await agent_files.write_file(org_id, agent_id, normalized, content)
+    await blueprint_files.write_file(session, org_id, agent_id, normalized, content)
     return f"Written to {path}"
 
 

@@ -51,4 +51,6 @@ class AssistantContext(BaseModel):
 
     chat_manager: ChatManager = Field(default_factory=ChatManager)
 
+    db_session: Any = None
+
     model_config = ConfigDict(arbitrary_types_allowed=True)

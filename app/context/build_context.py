@@ -1,16 +1,15 @@
 """Build AssistantContext for chat stream.
 
-Loads agent prompts, skills, session history from Supabase.
-Replaces ai-core's build_chat_context.py — same logic, new data layer.
+Loads agent prompts, skills, session history from the database.
 """
 
 import asyncio
 import json
 import logging
-import re
 from typing import Dict, List, Optional
 
 import yaml
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.context.assistant_context import (
     AssistantContext,
@@ -23,22 +22,22 @@ from app.context.channel_config import (
     compute_enabled_skills,
     resolve_channel_config,
 )
-from app.db.queries import agent_files, agents, sessions
+from app.db.queries import blueprint_files, agents, sessions
 from app.utils.chat_manager import ChatManager
 
 logger = logging.getLogger(__name__)
 
 
-async def _fetch_enabled_skill_ids(org_id: str, agent_id: str) -> List[str]:
+async def _fetch_enabled_skill_ids(session: AsyncSession, org_id: str, agent_id: str) -> List[str]:
     """Read enabled skill IDs from registry.modules keys or from skills/ directory."""
-    reg = await agents.get_registry(org_id, agent_id)
+    reg = await agents.get_registry(session, org_id, agent_id)
     modules = reg.get("modules") or {}
     return list(modules.keys())
 
 
-async def _fetch_channel_configs(org_id: str, agent_id: str) -> List[Dict]:
+async def _fetch_channel_configs(session: AsyncSession, org_id: str, agent_id: str) -> List[Dict]:
     """Read channel configs from agent files (channel_configs.json)."""
-    file = await agent_files.read_file(org_id, agent_id, "/channel_configs.json")
+    file = await blueprint_files.read_file(session, org_id, agent_id, "/channel_configs.json")
     if not file or not file.get("content"):
         return []
     try:
@@ -47,21 +46,20 @@ async def _fetch_channel_configs(org_id: str, agent_id: str) -> List[Dict]:
         return []
 
 
-async def _fetch_module_setup_status(org_id: str, agent_id: str) -> Dict:
+async def _fetch_module_setup_status(session: AsyncSession, org_id: str, agent_id: str) -> Dict:
     """Read module setup status from registry."""
-    reg = await agents.get_registry(org_id, agent_id)
+    reg = await agents.get_registry(session, org_id, agent_id)
     return reg.get("modules") or {}
 
 
 async def _fetch_skills(
-    skill_ids: List[str], org_id: str, agent_id: str
+    session: AsyncSession, skill_ids: List[str], org_id: str, agent_id: str
 ) -> List[SkillDefinition]:
-    """Load skill definitions from agent_files."""
+    """Load skill definitions from blueprint_files."""
     skills = []
     for skill_id in skill_ids:
-        # Try skills/<skill_id>/SKILL.md
         path = f"/skills/{skill_id}/SKILL.md"
-        file = await agent_files.read_file(org_id, agent_id, path)
+        file = await blueprint_files.read_file(session, org_id, agent_id, path)
         if not file or not file.get("content"):
             continue
 
@@ -70,7 +68,6 @@ async def _fetch_skills(
         description_md = content
         audience = "both"
 
-        # Parse YAML frontmatter
         if content.strip().startswith("---"):
             parts = content.split("---", 2)
             if len(parts) >= 3:
@@ -94,6 +91,7 @@ async def _fetch_skills(
 
 
 async def build_assistant_context_for_stream(
+    session: AsyncSession,
     session_id: str,
     agent_id: str,
     org_id: str,
@@ -102,7 +100,7 @@ async def build_assistant_context_for_stream(
     user_name: Optional[str] = None,
     locale: Optional[str] = None,
 ) -> AssistantContext:
-    """Build AssistantContext for a chat session from Supabase."""
+    """Build AssistantContext for a chat session."""
 
     if not user_name:
         user_name = "Dashboard User"
@@ -116,11 +114,11 @@ async def build_assistant_context_for_stream(
         session_data,
         module_setup_status,
     ) = await asyncio.gather(
-        agents.get_prompt_sections(org_id, agent_id),
-        _fetch_enabled_skill_ids(org_id, agent_id),
-        _fetch_channel_configs(org_id, agent_id),
-        sessions.get_session(session_id, events_limit=150),
-        _fetch_module_setup_status(org_id, agent_id),
+        agents.get_prompt_sections(session, org_id, agent_id),
+        _fetch_enabled_skill_ids(session, org_id, agent_id),
+        _fetch_channel_configs(session, org_id, agent_id),
+        sessions.get_session(session, session_id, events_limit=150),
+        _fetch_module_setup_status(session, org_id, agent_id),
     )
 
     channel_cfg = resolve_channel_config(channel_type, channel_configs)
@@ -133,13 +131,12 @@ async def build_assistant_context_for_stream(
     skills = []
     if enabled_skill_ids:
         try:
-            skills = await _fetch_skills(enabled_skill_ids, org_id, agent_id)
+            skills = await _fetch_skills(session, enabled_skill_ids, org_id, agent_id)
         except Exception as e:
             logger.error("Failed to fetch skill definitions: %s", e)
     if not is_admin:
         skills = [s for s in skills if s.audience != "admin"]
 
-    # Parse session data
     session_events = []
     session_summary = None
     session_labels = []
@@ -150,7 +147,6 @@ async def build_assistant_context_for_stream(
         session_labels = session_data.get("labels") or []
         cust_id = session_data.get("cust_id", "")
 
-    # Find last COMPACTION event
     compaction_idx = None
     for i, ev in enumerate(session_events):
         if ev.get("event_type") == "compaction":
@@ -181,10 +177,10 @@ async def build_assistant_context_for_stream(
         session_summary=session_summary,
         session_labels=session_labels,
         module_setup_status=module_setup_status,
+        db_session=session,
     )
     ctx.chat_manager = ChatManager()
 
-    # Replay session events into ChatManager
     try:
         for ev in session_events:
             body = ev.get("event_body", "")

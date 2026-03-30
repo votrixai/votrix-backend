@@ -2,35 +2,39 @@
 
 from typing import Any, Dict, List, Optional
 
-from app.db.client import get_supabase
+from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
-TABLE = "guidelines"
+from app.db.models.guidelines import Guideline
 
 
-async def get(guideline_id: str) -> Optional[str]:
-    resp = (
-        get_supabase()
-        .table(TABLE)
-        .select("content")
-        .eq("guideline_id", guideline_id)
-        .maybe_single()
-        .execute()
+async def get(session: AsyncSession, guideline_id: str) -> Optional[str]:
+    stmt = select(Guideline.content).where(Guideline.guideline_id == guideline_id)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+async def get_all(session: AsyncSession) -> Dict[str, str]:
+    stmt = select(Guideline.guideline_id, Guideline.content)
+    result = await session.execute(stmt)
+    return {row["guideline_id"]: row["content"] for row in result.mappings()}
+
+
+async def upsert(session: AsyncSession, guideline_id: str, content: str) -> None:
+    stmt = (
+        pg_insert(Guideline)
+        .values(guideline_id=guideline_id, content=content)
+        .on_conflict_do_update(
+            index_elements=["guideline_id"],
+            set_={"content": content},
+        )
     )
-    if not resp.data:
-        return None
-    return resp.data["content"]
+    await session.execute(stmt)
+    await session.commit()
 
 
-async def get_all() -> Dict[str, str]:
-    resp = get_supabase().table(TABLE).select("guideline_id, content").execute()
-    return {row["guideline_id"]: row["content"] for row in (resp.data or [])}
-
-
-async def upsert(guideline_id: str, content: str) -> None:
-    row = {"guideline_id": guideline_id, "content": content}
-    get_supabase().table(TABLE).upsert(row, on_conflict="guideline_id").execute()
-
-
-async def list_all() -> List[Dict[str, Any]]:
-    resp = get_supabase().table(TABLE).select("guideline_id, updated_at").execute()
-    return resp.data or []
+async def list_all(session: AsyncSession) -> List[Dict[str, Any]]:
+    stmt = select(Guideline.guideline_id, Guideline.updated_at)
+    result = await session.execute(stmt)
+    return [dict(r) for r in result.mappings()]
