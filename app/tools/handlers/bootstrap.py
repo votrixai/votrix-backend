@@ -51,46 +51,47 @@ async def run(action: str, **kwargs) -> str:
     if not ctx:
         return "Error: no context"
 
+    session = ctx.db_session
     org_id = ctx.org_id
     agent_id = ctx.agent_id
 
     if action == "bootstrap_complete":
-        reg = await agents_q.get_registry(org_id, agent_id)
+        reg = await agents_q.get_registry(session, org_id, agent_id)
         reg["bootstrap_complete"] = True
-        await agents_q.set_registry(org_id, agent_id, reg)
+        await agents_q.set_registry(session, org_id, agent_id, reg)
         return "Bootstrap complete. Agent is now fully configured."
 
     if action == "module_setup_complete":
         module_id = kwargs["module_id"]
-        reg = await agents_q.get_registry(org_id, agent_id)
+        reg = await agents_q.get_registry(session, org_id, agent_id)
         modules = reg.setdefault("modules", {})
         modules[module_id] = True
-        await agents_q.set_registry(org_id, agent_id, reg)
+        await agents_q.set_registry(session, org_id, agent_id, reg)
         return f"Module '{module_id}' marked as set up."
 
     if action == "module_reset":
         module_id = kwargs["module_id"]
-        reg = await agents_q.get_registry(org_id, agent_id)
+        reg = await agents_q.get_registry(session, org_id, agent_id)
         modules = reg.get("modules", {})
         modules.pop(module_id, None)
-        await agents_q.set_registry(org_id, agent_id, reg)
+        await agents_q.set_registry(session, org_id, agent_id, reg)
         return f"Module '{module_id}' reset."
 
     if action == "connection_set":
         conn_id = kwargs["connection_id"]
         value = kwargs.get("value", "true")
-        reg = await agents_q.get_registry(org_id, agent_id)
+        reg = await agents_q.get_registry(session, org_id, agent_id)
         connections = reg.setdefault("connections", {})
         connections[conn_id] = value
-        await agents_q.set_registry(org_id, agent_id, reg)
+        await agents_q.set_registry(session, org_id, agent_id, reg)
         return f"Connection '{conn_id}' set."
 
     if action == "connection_reset":
         conn_id = kwargs["connection_id"]
-        reg = await agents_q.get_registry(org_id, agent_id)
+        reg = await agents_q.get_registry(session, org_id, agent_id)
         connections = reg.get("connections", {})
         connections.pop(conn_id, None)
-        await agents_q.set_registry(org_id, agent_id, reg)
+        await agents_q.set_registry(session, org_id, agent_id, reg)
         return f"Connection '{conn_id}' reset."
 
     return f"Error: unknown action '{action}'"

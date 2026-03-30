@@ -29,19 +29,20 @@ async def run(action: str, field: Optional[str] = None, value: Optional[str] = N
     org_id = ctx.org_id
     agent_id = ctx.agent_id
 
+    session = ctx.db_session
+
     if action == "get":
-        reg = await agents_q.get_registry(org_id, agent_id)
+        reg = await agents_q.get_registry(session, org_id, agent_id)
         if field:
             return json.dumps(reg.get(field, None), ensure_ascii=False, indent=2)
         return json.dumps(reg, ensure_ascii=False, indent=2)
 
     if action == "set":
-        # Try to parse value as JSON, fallback to string
         try:
             parsed_value = json.loads(value)
         except (json.JSONDecodeError, TypeError):
             parsed_value = value
-        await agents_q.set_registry_field(org_id, agent_id, field, parsed_value)
+        await agents_q.set_registry_field(session, org_id, agent_id, field, parsed_value)
         return f"registry.{field} = {value}"
 
     return f"Error: unknown action '{action}'"

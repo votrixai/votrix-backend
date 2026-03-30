@@ -197,7 +197,7 @@ class ChatConversationNode:
 
         # Refresh prompt sections before each turn
         try:
-            sections = await agents_q.get_prompt_sections(ctx.org_id, ctx.agent_id)
+            sections = await agents_q.get_prompt_sections(ctx.db_session, ctx.org_id, ctx.agent_id)
             if sections:
                 ctx.prompt_sections = sections
         except Exception as e:
@@ -252,7 +252,7 @@ class ChatConversationNode:
 
                 # Refresh system prompt if agent files were modified
                 if self._agent_prompt_modified(function_calls) or self._onboard_complete_ran(function_calls):
-                    new_sections = await agents_q.get_prompt_sections(ctx.org_id, ctx.agent_id)
+                    new_sections = await agents_q.get_prompt_sections(ctx.db_session, ctx.org_id, ctx.agent_id)
                     ctx.prompt_sections = new_sections
                     sys_state["system_messages"] = await build_system_messages(
                         ctx, channel_system_prompt_override=ctx.channel_system_prompt_override

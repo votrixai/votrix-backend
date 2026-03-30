@@ -9,7 +9,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from app.db.queries import blueprint_files, agents as agents_q
-from app.llm.types import OperationType, RecordFormat, RecordRule, ToolResponse, ToolStructure
+from app.llm.types import OperationType, ToolResponse, ToolStructure
 from app.tools.command_dispatcher import dispatch_command
 from app.tools.tool_context import get_tool_context
 

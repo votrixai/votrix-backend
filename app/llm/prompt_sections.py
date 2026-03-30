@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Tuple
 from langchain_core.messages import SystemMessage
 
 from app.context.assistant_context import AssistantContext, SkillDefinition
-from app.db.queries import agents as agents_q, guidelines as guidelines_q
+from app.db.queries import guidelines as guidelines_q
 from app.llm.skills_renderer import render_module_status, render_skills_list
 
 _SOUL_INTRO = (
@@ -23,12 +23,12 @@ _SOUL_INTRO = (
 _guidelines_cache: Dict[str, str] = {}
 
 
-async def _load_guidelines() -> Dict[str, str]:
-    """Load guidelines from Supabase. Cached after first call."""
+async def _load_guidelines(ctx: AssistantContext) -> Dict[str, str]:
+    """Load guidelines from DB. Cached after first call."""
     global _guidelines_cache
     if _guidelines_cache:
         return _guidelines_cache
-    _guidelines_cache = await guidelines_q.get_all()
+    _guidelines_cache = await guidelines_q.get_all(ctx.db_session)
     return _guidelines_cache
 
 
@@ -152,7 +152,7 @@ async def build_system_messages(
     channel_system_prompt_override: Optional[str] = None,
 ) -> List[SystemMessage]:
     """Build system prompt as a list of SystemMessage, one per section."""
-    guidelines = await _load_guidelines()
+    guidelines = await _load_guidelines(ctx)
     sections = _collect_sections(ctx, guidelines, channel_system_prompt_override)
     return [
         SystemMessage(content=f"## {header}\n\n{body}")
