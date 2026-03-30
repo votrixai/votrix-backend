@@ -18,7 +18,7 @@ class FileEntry(BaseModel):
 
     id: Optional[str] = None
     blueprint_agent_id: Optional[str] = None
-    end_user_id: Optional[str] = None
+    user_account_id: Optional[str] = None
     path: str
     name: str
     type: NodeType = NodeType.file
@@ -96,7 +96,7 @@ class FileListEntry(BaseModel):
     path: str
     name: str
     type: NodeType
-    end_user_id: Optional[str] = None
+    user_account_id: Optional[str] = None
     mime_type: Optional[str] = None
     size_bytes: int = 0
     file_class: str = "file"
@@ -108,7 +108,7 @@ class FileContent(BaseModel):
     path: str
     name: str
     type: NodeType
-    end_user_id: Optional[str] = None
+    user_account_id: Optional[str] = None
     content: str
     mime_type: str = "text/markdown"
     size_bytes: int = 0

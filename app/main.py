@@ -9,7 +9,7 @@ from scalar_fastapi import get_scalar_api_reference
 
 from app.config import get_settings
 from app.db.engine import dispose_engine, init_engine
-from app.routers import agents, files, orgs
+from app.routers import agents, end_user_accounts, files, orgs, user_files
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,9 @@ app.add_middleware(
 
 app.include_router(orgs.router, tags=["orgs"])
 app.include_router(agents.router, tags=["agents"])
-app.include_router(files.router, tags=["files"])
+app.include_router(end_user_accounts.router, tags=["users"])
+app.include_router(files.router, tags=["agent-files"])
+app.include_router(user_files.router, tags=["user-files"])
 
 
 @app.get("/reference", include_in_schema=False)

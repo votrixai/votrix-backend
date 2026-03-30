@@ -1,5 +1,7 @@
 """Router for org CRUD endpoints."""
 
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,7 +37,7 @@ async def list_orgs_endpoint(session: AsyncSession = Depends(get_session)):
 
 
 @router.get("/{org_id}", response_model=OrgDetail)
-async def get_org_endpoint(org_id: str, session: AsyncSession = Depends(get_session)):
+async def get_org_endpoint(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
     org = await get_org(session, org_id)
     if org is None:
         raise HTTPException(status_code=404, detail="Org not found")
@@ -43,7 +45,7 @@ async def get_org_endpoint(org_id: str, session: AsyncSession = Depends(get_sess
 
 
 @router.patch("/{org_id}", response_model=OrgDetail)
-async def update_org_endpoint(org_id: str, body: UpdateOrgRequest, session: AsyncSession = Depends(get_session)):
+async def update_org_endpoint(org_id: uuid.UUID, body: UpdateOrgRequest, session: AsyncSession = Depends(get_session)):
     updates = body.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -55,7 +57,7 @@ async def update_org_endpoint(org_id: str, body: UpdateOrgRequest, session: Asyn
 
 
 @router.delete("/{org_id}", status_code=204)
-async def delete_org_endpoint(org_id: str, session: AsyncSession = Depends(get_session)):
+async def delete_org_endpoint(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
     deleted = await delete_org(session, org_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Org not found")

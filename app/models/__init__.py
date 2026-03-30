@@ -5,12 +5,17 @@ from app.models.org import (
     UpdateOrgRequest,
 )
 from app.models.agent import (
-    Agent,
     AgentDetail,
     AgentIntegration,
     AgentSummary,
     CreateAgentRequest,
     UpdateAgentRequest,
+)
+from app.models.end_user_account import (
+    CreateEndUserAccountRequest,
+    EndUserAccountDetail,
+    EndUserAccountSummary,
+    UpdateEndUserAccountRequest,
 )
 from app.models.files import (
     EditFileRequest,
@@ -31,11 +36,14 @@ __all__ = [
     "OrgDetail",
     "OrgSummary",
     "UpdateOrgRequest",
-    "Agent",
     "AgentDetail",
     "AgentIntegration",
     "AgentSummary",
     "CreateAgentRequest",
+    "CreateEndUserAccountRequest",
+    "EndUserAccountDetail",
+    "EndUserAccountSummary",
+    "UpdateEndUserAccountRequest",
     "EditFileRequest",
     "FileContent",
     "FileEntry",

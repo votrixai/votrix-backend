@@ -20,16 +20,18 @@ from app.db.models.blueprint_files import NodeType
 class UserFile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "user_files"
     __table_args__ = (
-        UniqueConstraint("blueprint_agent_id", "end_user_id", "path"),
-        Index("idx_user_files_by_user", "blueprint_agent_id", "end_user_id"),
-        Index("idx_user_files_ls", "blueprint_agent_id", "end_user_id", "parent"),
+        UniqueConstraint("blueprint_agent_id", "user_account_id", "path"),
+        Index("idx_user_files_by_user", "blueprint_agent_id", "user_account_id"),
+        Index("idx_user_files_ls", "blueprint_agent_id", "user_account_id", "parent"),
         Index("idx_user_files_glob", "blueprint_agent_id", "path", postgresql_ops={"path": "text_pattern_ops"}),
     )
 
     blueprint_agent_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("blueprint_agents.id", ondelete="CASCADE"), nullable=False
     )
-    end_user_id: Mapped[str] = mapped_column(Text, nullable=False)
+    user_account_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("end_user_accounts.id", ondelete="CASCADE"), nullable=False
+    )
 
     path: Mapped[str] = mapped_column(Text, nullable=False)
     name: Mapped[str] = mapped_column(Text, nullable=False)

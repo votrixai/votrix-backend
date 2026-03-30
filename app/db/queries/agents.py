@@ -17,8 +17,8 @@ def _row_to_dict(row: BlueprintAgent) -> Dict[str, Any]:
     return {c.key: getattr(row, c.key) for c in BlueprintAgent.__table__.columns}
 
 
-async def get_agent(session: AsyncSession, org_id: uuid.UUID, slug: str = "default") -> Optional[Dict[str, Any]]:
-    stmt = select(BlueprintAgent).where(BlueprintAgent.org_id == org_id, BlueprintAgent.slug == slug)
+async def get_agent(session: AsyncSession, agent_id: uuid.UUID) -> Optional[Dict[str, Any]]:
+    stmt = select(BlueprintAgent).where(BlueprintAgent.id == agent_id)
     result = await session.execute(stmt)
     row = result.scalar_one_or_none()
     if not row:
@@ -28,9 +28,9 @@ async def get_agent(session: AsyncSession, org_id: uuid.UUID, slug: str = "defau
     return data
 
 
-async def create_agent(session: AsyncSession, org_id: uuid.UUID, slug: str = "default", **kwargs) -> Dict[str, Any]:
+async def create_agent(session: AsyncSession, org_id: uuid.UUID, **kwargs) -> Dict[str, Any]:
     integrations = kwargs.pop("integrations", None) or []
-    obj = BlueprintAgent(org_id=org_id, slug=slug, **kwargs)
+    obj = BlueprintAgent(org_id=org_id, **kwargs)
     session.add(obj)
     await session.commit()
     await session.refresh(obj)
@@ -50,8 +50,7 @@ async def get_agent_integrations(
     return [
         {
             "blueprint_agent_id": str(r.blueprint_agent_id),
-            "integration_id": r.integration_id,
-            "enabled_tool_ids": list(r.enabled_tool_ids or []),
+            "integration_slug": r.integration_slug,
         }
         for r in rows
     ]
@@ -68,38 +67,44 @@ async def set_agent_integrations(
             insert(AgentIntegration)
             .values(
                 blueprint_agent_id=blueprint_agent_id,
-                integration_id=item.get("integration_id", ""),
-                enabled_tool_ids=item.get("enabled_tool_ids", []) or [],
+                integration_slug=item.get("integration_slug", ""),
             )
-            .on_conflict_do_update(
-                index_elements=["blueprint_agent_id", "integration_id"],
-                set_={"enabled_tool_ids": item.get("enabled_tool_ids", []) or []},
+            .on_conflict_do_nothing(
+                index_elements=["blueprint_agent_id", "integration_slug"],
             )
         )
         await session.execute(stmt)
     await session.commit()
 
 
-async def set_agent_name(session: AsyncSession, org_id: uuid.UUID, slug: str, name: str) -> None:
+async def update_agent(session: AsyncSession, agent_id: uuid.UUID, **kwargs) -> Optional[Dict[str, Any]]:
     stmt = (
         update(BlueprintAgent)
-        .where(BlueprintAgent.org_id == org_id, BlueprintAgent.slug == slug)
-        .values(name=name)
+        .where(BlueprintAgent.id == agent_id)
+        .values(**kwargs)
+        .returning(BlueprintAgent)
     )
-    await session.execute(stmt)
+    result = await session.execute(stmt)
+    row = result.scalar_one_or_none()
+    if not row:
+        return None
     await session.commit()
+    data = _row_to_dict(row)
+    data["integrations"] = await get_agent_integrations(session, row.id)
+    return data
 
 
 async def list_agents(session: AsyncSession, org_id: uuid.UUID) -> List[Dict[str, Any]]:
     stmt = (
-        select(BlueprintAgent.id, BlueprintAgent.slug, BlueprintAgent.name, BlueprintAgent.created_at, BlueprintAgent.updated_at)
+        select(BlueprintAgent.id, BlueprintAgent.name, BlueprintAgent.created_at, BlueprintAgent.updated_at)
         .where(BlueprintAgent.org_id == org_id)
     )
     result = await session.execute(stmt)
     return [dict(r) for r in result.mappings()]
 
 
-async def delete_agent(session: AsyncSession, org_id: uuid.UUID, slug: str) -> None:
-    stmt = delete(BlueprintAgent).where(BlueprintAgent.org_id == org_id, BlueprintAgent.slug == slug)
-    await session.execute(stmt)
+async def delete_agent(session: AsyncSession, agent_id: uuid.UUID) -> bool:
+    stmt = delete(BlueprintAgent).where(BlueprintAgent.id == agent_id)
+    result = await session.execute(stmt)
     await session.commit()
+    return result.rowcount > 0

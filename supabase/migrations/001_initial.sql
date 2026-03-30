@@ -22,13 +22,10 @@ create table orgs (
 create table blueprint_agents (
   id           uuid primary key default gen_random_uuid(),
   org_id       uuid not null references orgs(id) on delete cascade,
-  slug         text not null default 'default',
   name         text not null default '',
 
   created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now(),
-
-  unique (org_id, slug)
+  updated_at   timestamptz not null default now()
 );
 
 -- ============================================================
@@ -37,11 +34,10 @@ create table blueprint_agents (
 create table agent_integrations (
   id                  uuid primary key default gen_random_uuid(),
   blueprint_agent_id  uuid not null references blueprint_agents(id) on delete cascade,
-  integration_id      text not null,
-  enabled_tool_ids    text[] not null default '{}',
+  integration_slug    text not null,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
-  unique (blueprint_agent_id, integration_id)
+  unique (blueprint_agent_id, integration_slug)
 );
 
 create index idx_agent_integrations_agent
@@ -99,12 +95,24 @@ create index idx_blueprint_fts
   on blueprint_files using gin (to_tsvector('english', content));
 
 -- ============================================================
--- 5. user_files — end-user's own independent files
+-- 5. end_user_accounts
+-- ============================================================
+create table end_user_accounts (
+  id           uuid primary key default gen_random_uuid(),
+  org_id       uuid not null references orgs(id) on delete cascade,
+  display_name text not null default '',
+  sandbox      boolean not null default false,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+-- ============================================================
+-- 6. user_files — end-user's own independent files
 -- ============================================================
 create table user_files (
   id                  uuid primary key default gen_random_uuid(),
   blueprint_agent_id  uuid not null references blueprint_agents(id) on delete cascade,
-  end_user_id         text not null,
+  user_account_id     uuid not null references end_user_accounts(id) on delete cascade,
 
   -- core identity
   path         text not null,
@@ -129,40 +137,45 @@ create table user_files (
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
 
-  unique (blueprint_agent_id, end_user_id, path)
+  unique (blueprint_agent_id, user_account_id, path)
 );
 
--- find all files for a specific end user
+-- find all files for a specific user
 create index idx_user_files_by_user
-  on user_files (blueprint_agent_id, end_user_id);
+  on user_files (blueprint_agent_id, user_account_id);
 
--- ls: list children of a directory for an end user
+-- ls: list children of a directory for a user
 create index idx_user_files_ls
-  on user_files (blueprint_agent_id, end_user_id, parent);
+  on user_files (blueprint_agent_id, user_account_id, parent);
 
 -- glob: prefix scan on path
 create index idx_user_files_glob
   on user_files (blueprint_agent_id, path text_pattern_ops);
 
 -- ============================================================
--- 6. end_user_accounts — persistent end user data
+-- 7. end_user_agent_links — many-to-many
 -- ============================================================
-create table end_user_accounts (
-  id           uuid primary key default gen_random_uuid(),
-  org_id       uuid not null references orgs(id) on delete cascade,
-  end_user_id  text not null,
-  display_name text not null default '',
-  sandbox      boolean not null default false,
-  created_at   timestamptz not null default now(),
-  updated_at   timestamptz not null default now(),
+create table end_user_agent_links (
+  id                    uuid primary key default gen_random_uuid(),
+  end_user_account_id   uuid not null references end_user_accounts(id) on delete cascade,
+  blueprint_agent_id    uuid not null references blueprint_agents(id) on delete cascade,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now(),
 
-  unique (org_id, end_user_id)
+  unique (end_user_account_id, blueprint_agent_id)
 );
+
+create index idx_end_user_agent_links_account
+  on end_user_agent_links (end_user_account_id);
+
+create index idx_end_user_agent_links_agent
+  on end_user_agent_links (blueprint_agent_id);
 
 -- Row Level Security
 -- ============================================================
-alter table blueprint_agents     enable row level security;
-alter table agent_integrations   enable row level security;
-alter table blueprint_files      enable row level security;
-alter table user_files           enable row level security;
-alter table end_user_accounts    enable row level security;
+alter table blueprint_agents       enable row level security;
+alter table agent_integrations     enable row level security;
+alter table blueprint_files        enable row level security;
+alter table end_user_accounts      enable row level security;
+alter table user_files             enable row level security;
+alter table end_user_agent_links   enable row level security;
