@@ -38,25 +38,32 @@ Vercel AI SDK data stream (text deltas, tool calls, tool results, finish)
 - **org_id, not host_id or workspace_id** — tenant identifier across all tables and code
 - **Supabase (Postgres), not MongoDB** — RLS for tenant isolation, `text_pattern_ops` for glob, native `regexp_replace` for sed, `ltree`-ready for future hierarchical queries
 - **Prompt sections as flat columns on `agents` table** — IDENTITY.md, SOUL.md, etc. are read every turn; a single-row select is faster than a file lookup
-- **Everything else in `agent_prompt_files`** — skills, configs, user-created files. Virtual filesystem with `path`, `parent`, `name`, `type`, `access_level`, `file_class`
+- **Everything else in `agent_prompt_files`** — skills, configs, user-created files. Virtual filesystem with `path`, `parent`, `name`, `type`, `end_user_perm`, `file_class`
 - **`file_class` enum** — `skill` (SKILL.md entry points), `skill_asset` (supporting files), `prompt` (top-level agent prompts), `file` (everything else). Frontend uses this to render icons and group skill assets
-- **`access_level` enum** — `owner` (only creator sees it), `org_read` (whole org can view), `org_write` (whole org can edit). NOT chmod — no Unix users/groups in a SaaS
+- **`end_user_perm`** — `'none'` (hidden from end user), `'r'` (read-only), `'rw'` (end user can personalize). Admin/member always has implicit rw on all files
+- **Override layer** — base files have `end_user_id IS NULL`, end user personalizations are stored as overrides with `end_user_id` set. Reads for end users merge base + overrides (override wins per path via `DISTINCT ON`). Writes by end users create overrides, not modify base files
+- **Versioning + conflict detection** — admin publishes a new version via `POST /publish`, which bumps `prompt_version` on agents table and `base_version` on base files. System detects conflicts where end user overrides are based on an older version than the new publish. Clean end users are auto-synced
+- **Conflict resolution** — three strategies: `force_admin` (delete overrides, keep admin version), `force_user` (keep overrides, bump their base_version), `drop_overrides` (nuke all overrides). All scoped optionally by end_user_id and/or path
+- **Supersede pattern** — `agent_conflicts` has unique on `(org_id, agent_id, end_user_id, path)`, not version. A new publish on the same file auto-replaces the stale conflict
 - **Guidelines loaded from DB, cached in-memory** — TOOL_CALLS.md and SKILLS.md are global singletons, rarely change
 - **No `votrix_schema` protobuf dependency** — ChatManager uses plain dicts internally, builds LangChain messages on demand
 - **Exec handlers are modular** — each handler exposes `parse(cmd) -> dict | None` and `run(**args) -> str`. Dispatcher does O(1) namespace lookup
 
 ## Database
 
-6 tables in `supabase/migrations/001_initial.sql`:
+9 tables in `supabase/migrations/001_initial.sql`:
 
 - `orgs` — tenant root
-- `agents` — prompt sections (flat columns) + registry (JSONB)
-- `agent_prompt_files` — virtual filesystem (the big one: ls, read, write, edit, grep, glob)
+- `agents` — prompt sections (flat columns) + registry (JSONB) + `prompt_version` for publish tracking
+- `agent_prompt_files` — virtual filesystem with override layer (`end_user_id` NULL = base, set = override). Unique on `(org_id, agent_id, coalesce(end_user_id, ''), path)`
+- `agent_version_log` — changelog per version bump (action + path + previous_content snapshot)
+- `agent_conflicts` — detected conflicts between admin publishes and end user overrides. Unique on `(org_id, agent_id, end_user_id, path)` for supersede pattern
+- `end_user_profiles` — persistent cross-session end user metadata
 - `sessions` — chat session metadata
 - `session_events` — append-only event log
 - `guidelines` — global prompt guidelines
 
-RLS is enabled on agents, agent_prompt_files, sessions, session_events. Backend uses service_role key (bypasses RLS). Future: JWT-based policies for direct frontend access.
+RLS is enabled on agents, agent_prompt_files, agent_conflicts, end_user_profiles, sessions, session_events. Backend uses service_role key (bypasses RLS). Future: JWT-based policies for direct frontend access.
 
 ## What's Migrated vs Not Yet
 
