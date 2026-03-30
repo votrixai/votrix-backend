@@ -25,8 +25,8 @@ build_assistant_context_for_stream()     ← loads prompts, skills, session hist
 ChatLangGraphHandler.ainvoke()           ← LangGraph: dispatcher → conversation → (tool loop) → reply
   ├── build_system_messages()            ← assembles prompt sections + guidelines + skills into SystemMessages
   ├── ChatConversationNode               ← Gemini Flash primary, Gemini 2.0 Flash backup
-  │   ├── read()                         ← reads from agents table (prompt sections) or agent_prompt_files
-  │   ├── write()                        ← writes to agents table or agent_prompt_files
+  │   ├── read()                         ← reads from agents table (prompt sections) or agent_files
+  │   ├── write()                        ← writes to agents table or agent_files
   │   └── votrix_run()                   ← command dispatch to handlers (bootstrap, registry, fs, search, fetch)
   └── ContextCompactor                   ← trims history when approaching token limits
   ↓
@@ -38,32 +38,30 @@ Vercel AI SDK data stream (text deltas, tool calls, tool results, finish)
 - **org_id, not host_id or workspace_id** — tenant identifier across all tables and code
 - **Supabase (Postgres), not MongoDB** — RLS for tenant isolation, `text_pattern_ops` for glob, native `regexp_replace` for sed, `ltree`-ready for future hierarchical queries
 - **Prompt sections as flat columns on `agents` table** — IDENTITY.md, SOUL.md, etc. are read every turn; a single-row select is faster than a file lookup
-- **Everything else in `agent_prompt_files`** — skills, configs, user-created files. Virtual filesystem with `path`, `parent`, `name`, `type`, `end_user_perm`, `file_class`
+- **Everything else in `agent_files`** — skills, configs, user-created files. Virtual filesystem with `path`, `parent`, `name`, `type`, `end_user_perm`, `file_class`
 - **`file_class` enum** — `skill` (SKILL.md entry points), `skill_asset` (supporting files), `prompt` (top-level agent prompts), `file` (everything else). Frontend uses this to render icons and group skill assets
 - **`end_user_perm`** — `'none'` (hidden from end user), `'r'` (read-only), `'rw'` (end user can personalize). Admin/member always has implicit rw on all files
 - **Override layer** — base files have `end_user_id IS NULL`, end user personalizations are stored as overrides with `end_user_id` set. Reads for end users merge base + overrides (override wins per path via `DISTINCT ON`). Writes by end users create overrides, not modify base files
 - **Versioning + conflict detection** — admin publishes a new version via `POST /publish`, which bumps `prompt_version` on agents table and `base_version` on base files. System detects conflicts where end user overrides are based on an older version than the new publish. Clean end users are auto-synced
 - **Conflict resolution** — three strategies: `force_admin` (delete overrides, keep admin version), `force_user` (keep overrides, bump their base_version), `drop_overrides` (nuke all overrides). All scoped optionally by end_user_id and/or path
-- **Supersede pattern** — `agent_conflicts` has unique on `(org_id, agent_id, end_user_id, path)`, not version. A new publish on the same file auto-replaces the stale conflict
+- **Supersede pattern** — `agent_conflicts` (disabled) has unique on `(org_id, agent_id, end_user_id, path)`, not version. A new publish on the same file auto-replaces the stale conflict
 - **Guidelines loaded from DB, cached in-memory** — TOOL_CALLS.md and SKILLS.md are global singletons, rarely change
 - **No `votrix_schema` protobuf dependency** — ChatManager uses plain dicts internally, builds LangChain messages on demand
 - **Exec handlers are modular** — each handler exposes `parse(cmd) -> dict | None` and `run(**args) -> str`. Dispatcher does O(1) namespace lookup
 
 ## Database
 
-9 tables in `supabase/migrations/001_initial.sql`:
+7 active tables in `supabase/migrations/001_initial.sql` (agent_version_log and agent_conflicts are commented out):
 
 - `orgs` — tenant root
 - `agents` — prompt sections (flat columns) + registry (JSONB) + `prompt_version` for publish tracking
-- `agent_prompt_files` — virtual filesystem with override layer (`end_user_id` NULL = base, set = override). Unique on `(org_id, agent_id, coalesce(end_user_id, ''), path)`
-- `agent_version_log` — changelog per version bump (action + path + previous_content snapshot)
-- `agent_conflicts` — detected conflicts between admin publishes and end user overrides. Unique on `(org_id, agent_id, end_user_id, path)` for supersede pattern
-- `end_user_profiles` — persistent cross-session end user metadata
+- `agent_files` — virtual filesystem with override layer (`end_user_id` NULL = base, set = override). Unique on `(org_id, agent_id, coalesce(end_user_id, ''), path)`
+- `end_user_account_info` — persistent cross-session end user metadata
 - `sessions` — chat session metadata
 - `session_events` — append-only event log
 - `guidelines` — global prompt guidelines
 
-RLS is enabled on agents, agent_prompt_files, agent_conflicts, end_user_profiles, sessions, session_events. Backend uses service_role key (bypasses RLS). Future: JWT-based policies for direct frontend access.
+RLS is enabled on agents, agent_files, end_user_account_info, sessions, session_events. Backend uses service_role key (bypasses RLS). Future: JWT-based policies for direct frontend access.
 
 ## What's Migrated vs Not Yet
 
@@ -91,7 +89,7 @@ Migrated from `votrix-ai-core`:
 - All DB access goes through `app/db/queries/*.py` — no direct `get_supabase().table(...)` calls in business logic
 - Tool context (org_id, agent_id) is passed via `ContextVar` in `app/tools/tool_context.py`, set before each tool execution loop
 - Prompt sections are identified by key: `identity`, `soul`, `agents`, `user`, `tools`, `bootstrap`
-- File paths in agent_prompt_files always start with `/` (e.g. `/skills/booking/SKILL.md`)
+- File paths in agent_files always start with `/` (e.g. `/skills/booking/SKILL.md`)
 - Handlers follow the `parse(cmd) -> Optional[Dict]` + `run(**args) -> str` pattern
 - `build_system_messages()` is async (loads guidelines from Supabase)
 

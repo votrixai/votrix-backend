@@ -56,7 +56,7 @@ async def _read_impl(path: str) -> str:
         sections = await agents_q.get_prompt_sections(org_id, agent_id)
         return sections.get(section, "")
 
-    # Everything else → agent_prompt_files
+    # Everything else → agent_files
     # Normalize path: ensure leading /
     normalized = path.strip()
     if not normalized.startswith("/"):
@@ -84,7 +84,7 @@ async def _write_impl(path: str, content: str) -> str:
         await agents_q.set_prompt_section(org_id, agent_id, section, content)
         return f"Written to {name}"
 
-    # Everything else → agent_prompt_files
+    # Everything else → agent_files
     normalized = path.strip()
     if not normalized.startswith("/"):
         normalized = "/" + normalized

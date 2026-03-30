@@ -174,7 +174,7 @@ async def get_end_user_overview(org_id: str, agent_id: str) -> List[Dict[str, An
     # Get override counts
     override_resp = (
         get_supabase()
-        .table("agent_prompt_files")
+        .table("agent_files")
         .select("end_user_id")
         .eq("org_id", org_id)
         .eq("agent_id", agent_id)

@@ -1,4 +1,4 @@
-"""Agent prompt file queries — virtual filesystem operations.
+"""Agent file queries — virtual filesystem operations.
 
 Core ops (fast path): ls, read_file, write_file, edit_file, grep, glob
 Supporting ops: mkdir, rm, rm_rf, mv, stat, tree
@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 from app.db.client import get_supabase
 from app.models.files import classify_file, default_end_user_perm
 
-TABLE = "agent_prompt_files"
+TABLE = "agent_files"
 
 
 def _base_query(org_id: str, agent_id: str):

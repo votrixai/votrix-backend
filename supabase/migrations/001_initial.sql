@@ -51,11 +51,11 @@ create table agents (
 );
 
 -- ============================================================
--- 3. agent_prompt_files — virtual filesystem
+-- 3. agent_files — virtual filesystem
 -- ============================================================
 create type node_type as enum ('file', 'directory');
 
-create table agent_prompt_files (
+create table agent_files (
   id           uuid primary key default gen_random_uuid(),
   org_id       text not null,
   agent_id     text not null default 'default',
@@ -97,79 +97,79 @@ create table agent_prompt_files (
 );
 
 -- ls: list children of a directory
-create index idx_prompt_files_ls
-  on agent_prompt_files (org_id, agent_id, parent)
+create index idx_agent_files_ls
+  on agent_files (org_id, agent_id, parent)
   where end_user_id is null;
 
 -- ls for end user (base + overrides merged)
-create index idx_prompt_files_ls_user
-  on agent_prompt_files (org_id, agent_id, parent, end_user_id);
+create index idx_agent_files_ls_user
+  on agent_files (org_id, agent_id, parent, end_user_id);
 
 -- glob: prefix scan on path
-create index idx_prompt_files_glob
-  on agent_prompt_files (org_id, agent_id, path text_pattern_ops);
+create index idx_agent_files_glob
+  on agent_files (org_id, agent_id, path text_pattern_ops);
 
 -- filter by file_class
-create index idx_prompt_files_class
-  on agent_prompt_files (org_id, agent_id, file_class);
+create index idx_agent_files_class
+  on agent_files (org_id, agent_id, file_class);
 
 -- grep: full-text search
-create index idx_prompt_files_fts
-  on agent_prompt_files using gin (to_tsvector('english', content));
+create index idx_agent_files_fts
+  on agent_files using gin (to_tsvector('english', content));
 
 -- find all overrides for a specific end user
-create index idx_prompt_files_end_user
-  on agent_prompt_files (org_id, agent_id, end_user_id)
+create index idx_agent_files_end_user
+  on agent_files (org_id, agent_id, end_user_id)
   where end_user_id is not null;
 
 -- ============================================================
--- 4. agent_version_log — changelog per version bump
+-- 4. agent_version_log — changelog per version bump (disabled)
 -- ============================================================
-create table agent_version_log (
-  id               uuid primary key default gen_random_uuid(),
-  org_id           text not null,
-  agent_id         text not null,
-  version          int not null,
-  action           text not null,         -- 'created' | 'updated' | 'deleted'
-  path             text not null,
-  previous_content text,                  -- snapshot before change (for diffing)
-  created_at       timestamptz not null default now(),
-
-  unique (org_id, agent_id, version, path)
-);
-
--- ============================================================
--- 5. agent_conflicts
--- ============================================================
-create table agent_conflicts (
-  id              uuid primary key default gen_random_uuid(),
-  org_id          text not null,
-  agent_id        text not null,
-  version         int not null,
-  end_user_id     text not null,
-  path            text not null,
-  conflict_type   text not null,          -- 'both_modified' | 'base_deleted'
-  base_content    text,                   -- base at the end user's base_version
-  end_user_content text,                  -- end user's current override
-  new_content     text,                   -- admin's new version (null if deleted)
-  status          text not null default 'unresolved',  -- 'unresolved' | 'resolved_keep_admin' | 'resolved_keep_user' | 'resolved_merged'
-  resolved_at     timestamptz,
-  created_at      timestamptz not null default now(),
-
-  unique (org_id, agent_id, end_user_id, path)
-);
-
-create index idx_conflicts_unresolved
-  on agent_conflicts (org_id, agent_id, status)
-  where status = 'unresolved';
-
-create index idx_conflicts_by_user
-  on agent_conflicts (org_id, agent_id, end_user_id);
+-- create table agent_version_log (
+--   id               uuid primary key default gen_random_uuid(),
+--   org_id           text not null,
+--   agent_id         text not null,
+--   version          int not null,
+--   action           text not null,         -- 'created' | 'updated' | 'deleted'
+--   path             text not null,
+--   previous_content text,                  -- snapshot before change (for diffing)
+--   created_at       timestamptz not null default now(),
+--
+--   unique (org_id, agent_id, version, path)
+-- );
 
 -- ============================================================
--- 6. end_user_profiles — persistent cross-session end user data
+-- 5. agent_conflicts (disabled)
 -- ============================================================
-create table end_user_profiles (
+-- create table agent_conflicts (
+--   id              uuid primary key default gen_random_uuid(),
+--   org_id          text not null,
+--   agent_id        text not null,
+--   version         int not null,
+--   end_user_id     text not null,
+--   path            text not null,
+--   conflict_type   text not null,          -- 'both_modified' | 'base_deleted'
+--   base_content    text,                   -- base at the end user's base_version
+--   end_user_content text,                  -- end user's current override
+--   new_content     text,                   -- admin's new version (null if deleted)
+--   status          text not null default 'unresolved',  -- 'unresolved' | 'resolved_keep_admin' | 'resolved_keep_user' | 'resolved_merged'
+--   resolved_at     timestamptz,
+--   created_at      timestamptz not null default now(),
+--
+--   unique (org_id, agent_id, end_user_id, path)
+-- );
+--
+-- create index idx_conflicts_unresolved
+--   on agent_conflicts (org_id, agent_id, status)
+--   where status = 'unresolved';
+--
+-- create index idx_conflicts_by_user
+--   on agent_conflicts (org_id, agent_id, end_user_id);
+
+-- ============================================================
+-- 6. end_user_account_info — persistent cross-session end user data
+-- ============================================================
+create table end_user_account_info (
   id           uuid primary key default gen_random_uuid(),
   org_id       text not null,
   agent_id     text not null default 'default',
@@ -233,8 +233,8 @@ create table guidelines (
 -- Row Level Security
 -- ============================================================
 alter table agents              enable row level security;
-alter table agent_prompt_files  enable row level security;
-alter table agent_conflicts     enable row level security;
-alter table end_user_profiles   enable row level security;
+alter table agent_files         enable row level security;
+-- alter table agent_conflicts     enable row level security;
+alter table end_user_account_info enable row level security;
 alter table sessions            enable row level security;
 alter table session_events      enable row level security;

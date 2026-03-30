@@ -7,7 +7,7 @@ AI chat backend for Votrix — multi-tenant agent platform with virtual filesyst
 ```
 POST /chat/stream (Vercel AI SDK data stream)
   → build_assistant_context (org_id, agent_id)
-    → Supabase: agents, agent_prompt_files, sessions
+    → Supabase: agents, agent_files, sessions
   → LangGraph (ChatConversationNode)
     → Tools: read, write, votrix_run
       → Supabase queries for file ops
@@ -86,21 +86,19 @@ print(json.dumps(app.openapi(), indent=2))
 
 ## Database Schema
 
-9 tables:
+7 active tables (agent_version_log and agent_conflicts are disabled):
 
 | Table | Purpose |
 |---|---|
 | `orgs` | Tenant root, keyed by `org_id` |
 | `agents` | Agent config + prompt sections (flat columns) + registry (JSONB) + `prompt_version` |
-| `agent_prompt_files` | Virtual filesystem with override layer (base + end user overrides) |
-| `agent_version_log` | Changelog per version bump |
-| `agent_conflicts` | Detected conflicts between publishes and end user overrides |
-| `end_user_profiles` | Persistent cross-session end user metadata |
+| `agent_files` | Virtual filesystem with override layer (base + end user overrides) |
+| `end_user_account_info` | Persistent cross-session end user metadata |
 | `sessions` | Chat session metadata |
 | `session_events` | Append-only event log (user messages, AI replies, tool results) |
 | `guidelines` | Global singleton prompt guidelines (TOOL_CALLS, SKILLS) |
 
-### agent_prompt_files — virtual filesystem
+### agent_files — virtual filesystem
 
 Each file node has:
 
@@ -121,13 +119,13 @@ Core filesystem operations and their index coverage:
 
 | Op | Index |
 |---|---|
-| `ls(parent)` | `idx_prompt_files_ls` — B-tree on `(org_id, agent_id, parent)` where base |
-| `ls(parent, end_user_id)` | `idx_prompt_files_ls_user` — includes end_user_id for merged view |
+| `ls(parent)` | `idx_agent_files_ls` — B-tree on `(org_id, agent_id, parent)` where base |
+| `ls(parent, end_user_id)` | `idx_agent_files_ls_user` — includes end_user_id for merged view |
 | `read_file(path)` | Unique index on `(org_id, agent_id, coalesce(end_user_id,''), path)` |
 | `write_file(path)` | Same unique index (upsert) |
 | `edit_file(path, old, new)` | Same unique index |
-| `grep(pattern)` | Seq scan on `(org_id, agent_id)` filtered set + `idx_prompt_files_fts` for FTS |
-| `glob(pattern)` | `idx_prompt_files_glob` — `text_pattern_ops` prefix scan |
+| `grep(pattern)` | Seq scan on `(org_id, agent_id)` filtered set + `idx_agent_files_fts` for FTS |
+| `glob(pattern)` | `idx_agent_files_glob` — `text_pattern_ops` prefix scan |
 
 ### Versioning + Conflict Resolution
 

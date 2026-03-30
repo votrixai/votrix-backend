@@ -56,7 +56,7 @@ async def _fetch_module_setup_status(org_id: str, agent_id: str) -> Dict:
 async def _fetch_skills(
     skill_ids: List[str], org_id: str, agent_id: str
 ) -> List[SkillDefinition]:
-    """Load skill definitions from agent_prompt_files."""
+    """Load skill definitions from agent_files."""
     skills = []
     for skill_id in skill_ids:
         # Try skills/<skill_id>/SKILL.md

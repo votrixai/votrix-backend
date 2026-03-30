@@ -68,7 +68,7 @@ async def seed_default_agent(org_id: str = "default", agent_id: str = "default")
 
 
 async def seed_agent_files(org_id: str = "default", agent_id: str = "default") -> None:
-    """Seed agent_prompt_files from disk skills/ directory."""
+    """Seed agent_files from disk skills/ directory."""
     skills_dir = DEFAULT_AGENT_DIR / "skills"
     if not skills_dir.exists():
         logger.info("No skills directory found, skipping file seed")

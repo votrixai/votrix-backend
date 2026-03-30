@@ -1,4 +1,4 @@
-"""fs handler — ls command via Supabase agent_prompt_files."""
+"""fs handler — ls command via Supabase agent_files."""
 
 import re
 from typing import Optional, Dict

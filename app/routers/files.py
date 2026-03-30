@@ -1,4 +1,4 @@
-"""Agent prompt files API — virtual filesystem CRUD.
+"""Agent files API — virtual filesystem CRUD.
 
 Routes:
   GET    /orgs/{org_id}/agents/{agent_id}/files              — ls (query: path, end_user_id)
