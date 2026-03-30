@@ -20,6 +20,8 @@ dependencies = [
     "pyyaml>=6.0",
     # HTTP client (fetch handler)
     "httpx>=0.27",
+    # API docs
+    "scalar-fastapi>=1.0",
 ]
 
 [project.optional-dependencies]

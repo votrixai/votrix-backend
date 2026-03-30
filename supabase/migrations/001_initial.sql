@@ -33,6 +33,9 @@ create table agents (
   prompt_tools     text not null default '',
   prompt_bootstrap text not null default '',
 
+  -- versioning
+  prompt_version   int not null default 1,
+
   -- registry (setup state)
   registry     jsonb not null default '{
     "bootstrap_complete": false,
@@ -51,18 +54,22 @@ create table agents (
 -- 3. agent_prompt_files — virtual filesystem
 -- ============================================================
 create type node_type as enum ('file', 'directory');
-create type access_level as enum ('owner', 'org_read', 'org_write');
 
 create table agent_prompt_files (
   id           uuid primary key default gen_random_uuid(),
   org_id       text not null,
   agent_id     text not null default 'default',
 
+  -- override layer: NULL = base (member-owned), set = end user override
+  end_user_id  text,
+
   -- core identity
   path         text not null,
   name         text not null,
   type         node_type not null default 'file',
-  access_level access_level not null default 'org_read',
+
+  -- permissions (admin/member is always rw implicitly)
+  end_user_perm text not null default 'r',    -- 'none' | 'r' | 'rw'
 
   -- content
   content      text not null default '',
@@ -71,6 +78,9 @@ create table agent_prompt_files (
 
   -- classification: 'skill' | 'skill_asset' | 'prompt' | 'file'
   file_class   text not null default 'file',
+
+  -- versioning: which base version this file/override was created against
+  base_version int not null default 1,
 
   -- derived (set by app on write)
   parent       text not null default '/',
@@ -83,12 +93,17 @@ create table agent_prompt_files (
   updated_at   timestamptz not null default now(),
 
   foreign key (org_id, agent_id) references agents(org_id, agent_id) on delete cascade,
-  unique (org_id, agent_id, path)
+  unique (org_id, agent_id, coalesce(end_user_id, ''), path)
 );
 
 -- ls: list children of a directory
 create index idx_prompt_files_ls
-  on agent_prompt_files (org_id, agent_id, parent);
+  on agent_prompt_files (org_id, agent_id, parent)
+  where end_user_id is null;
+
+-- ls for end user (base + overrides merged)
+create index idx_prompt_files_ls_user
+  on agent_prompt_files (org_id, agent_id, parent, end_user_id);
 
 -- glob: prefix scan on path
 create index idx_prompt_files_glob
@@ -102,15 +117,82 @@ create index idx_prompt_files_class
 create index idx_prompt_files_fts
   on agent_prompt_files using gin (to_tsvector('english', content));
 
+-- find all overrides for a specific end user
+create index idx_prompt_files_end_user
+  on agent_prompt_files (org_id, agent_id, end_user_id)
+  where end_user_id is not null;
+
 -- ============================================================
--- 4. sessions
+-- 4. agent_version_log — changelog per version bump
+-- ============================================================
+create table agent_version_log (
+  id               uuid primary key default gen_random_uuid(),
+  org_id           text not null,
+  agent_id         text not null,
+  version          int not null,
+  action           text not null,         -- 'created' | 'updated' | 'deleted'
+  path             text not null,
+  previous_content text,                  -- snapshot before change (for diffing)
+  created_at       timestamptz not null default now(),
+
+  unique (org_id, agent_id, version, path)
+);
+
+-- ============================================================
+-- 5. agent_conflicts
+-- ============================================================
+create table agent_conflicts (
+  id              uuid primary key default gen_random_uuid(),
+  org_id          text not null,
+  agent_id        text not null,
+  version         int not null,
+  end_user_id     text not null,
+  path            text not null,
+  conflict_type   text not null,          -- 'both_modified' | 'base_deleted'
+  base_content    text,                   -- base at the end user's base_version
+  end_user_content text,                  -- end user's current override
+  new_content     text,                   -- admin's new version (null if deleted)
+  status          text not null default 'unresolved',  -- 'unresolved' | 'resolved_keep_admin' | 'resolved_keep_user' | 'resolved_merged'
+  resolved_at     timestamptz,
+  created_at      timestamptz not null default now(),
+
+  unique (org_id, agent_id, end_user_id, path)
+);
+
+create index idx_conflicts_unresolved
+  on agent_conflicts (org_id, agent_id, status)
+  where status = 'unresolved';
+
+create index idx_conflicts_by_user
+  on agent_conflicts (org_id, agent_id, end_user_id);
+
+-- ============================================================
+-- 6. end_user_profiles — persistent cross-session end user data
+-- ============================================================
+create table end_user_profiles (
+  id           uuid primary key default gen_random_uuid(),
+  org_id       text not null,
+  agent_id     text not null default 'default',
+  end_user_id  text not null,
+  display_name text not null default '',
+  notes        text not null default '',
+  preferences  jsonb not null default '{}',
+  metadata     jsonb not null default '{}',
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+
+  unique (org_id, agent_id, end_user_id)
+);
+
+-- ============================================================
+-- 7. sessions
 -- ============================================================
 create table sessions (
   id           uuid primary key default gen_random_uuid(),
   session_id   text not null unique,
   org_id       text not null,
   agent_id     text not null default 'default',
-  cust_id      text not null default '',
+  end_user_id  text not null default '',
   channel_type text not null default 'web',
   labels       text[] not null default '{}',
   summary      text,
@@ -119,7 +201,7 @@ create table sessions (
 );
 
 -- ============================================================
--- 5. session_events — append-only log
+-- 8. session_events — append-only log
 -- ============================================================
 create table session_events (
   id           uuid primary key default gen_random_uuid(),
@@ -137,7 +219,7 @@ create index idx_session_events_lookup
   on session_events (session_id, seq);
 
 -- ============================================================
--- 6. guidelines — global singletons
+-- 9. guidelines — global singletons
 -- ============================================================
 create table guidelines (
   id            uuid primary key default gen_random_uuid(),
@@ -152,5 +234,7 @@ create table guidelines (
 -- ============================================================
 alter table agents              enable row level security;
 alter table agent_prompt_files  enable row level security;
+alter table agent_conflicts     enable row level security;
+alter table end_user_profiles   enable row level security;
 alter table sessions            enable row level security;
 alter table session_events      enable row level security;
