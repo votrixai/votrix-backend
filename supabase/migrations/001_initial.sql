@@ -24,34 +24,33 @@ create table agent_config (
   id           uuid primary key default gen_random_uuid(),
   org_id       text not null references orgs(org_id) on delete cascade,
   agent_id     text not null default 'default',
-
-  -- prompt sections (flat columns)
-  prompt_identity  text not null default '',
-  prompt_soul      text not null default '',
-  prompt_agents    text not null default '',
-  prompt_user      text not null default '',
-  prompt_tools     text not null default '',
-  prompt_bootstrap text not null default '',
-
-  -- versioning
-  prompt_version   int not null default 1,
-
-  -- registry (setup state)
-  registry     jsonb not null default '{
-    "bootstrap_complete": false,
-    "modules": {},
-    "connections": {},
-    "timezone": "UTC"
-  }',
+  agent_name   text not null default '',
 
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
 
-  unique (org_id, agent_id)
+  unique (org_id, agent_id),
+  unique (agent_id)
 );
 
 -- ============================================================
--- 3. blueprint_files — admin/member-owned base files
+-- 3. agent_tools_registry
+-- ============================================================
+create table agent_tools_registry (
+  id               uuid primary key default gen_random_uuid(),
+  agent_id         text not null references agent_config(agent_id) on delete cascade,
+  integration_id   text not null,
+  enabled_tool_ids text[] not null default '{}',
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now(),
+  unique (agent_id, integration_id)
+);
+
+create index idx_agent_tools_registry_agent
+  on agent_tools_registry (agent_id);
+
+-- ============================================================
+-- 4. blueprint_files — admin/member-owned base files
 -- ============================================================
 create type node_type as enum ('file', 'directory');
 
@@ -240,21 +239,10 @@ create table session_events (
 create index idx_session_events_lookup
   on session_events (session_id, seq);
 
--- ============================================================
--- 10. guidelines — global singletons
--- ============================================================
-create table guidelines (
-  id            uuid primary key default gen_random_uuid(),
-  guideline_id  text not null unique,
-  content       text not null default '',
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
-);
-
--- ============================================================
 -- Row Level Security
 -- ============================================================
 alter table agent_config         enable row level security;
+alter table agent_tools_registry enable row level security;
 alter table blueprint_files      enable row level security;
 alter table user_files           enable row level security;
 alter table end_user_account_info enable row level security;

@@ -1,39 +1,34 @@
 """ORM model for the agent_config table."""
 
-from sqlalchemy import ForeignKey, Integer, Text, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List
+
+from sqlalchemy import ForeignKey, Text, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
-_DEFAULT_REGISTRY = """{
-    "bootstrap_complete": false,
-    "modules": {},
-    "connections": {},
-    "timezone": "UTC"
-  }"""
+if TYPE_CHECKING:
+    from app.db.models.agent_integration import AgentIntegration
 
 
 class AgentConfig(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "agent_config"
     __table_args__ = (
         UniqueConstraint("org_id", "agent_id"),
+        UniqueConstraint("agent_id"),
     )
 
     org_id: Mapped[str] = mapped_column(
         Text, ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False
     )
     agent_id: Mapped[str] = mapped_column(Text, nullable=False, server_default="default")
+    agent_name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
 
-    prompt_identity: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-    prompt_soul: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-    prompt_agents: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-    prompt_user: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-    prompt_tools: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-    prompt_bootstrap: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-
-    prompt_version: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
-
-    registry: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, server_default=text(f"'{_DEFAULT_REGISTRY}'::jsonb")
+    integrations: Mapped[List["AgentIntegration"]] = relationship(
+        "AgentIntegration",
+        primaryjoin="AgentConfig.agent_id == foreign(AgentIntegration.agent_id)",
+        cascade="all, delete-orphan",
+        lazy="selectin",
     )

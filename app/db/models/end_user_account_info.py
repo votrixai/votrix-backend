@@ -16,7 +16,3 @@ class EndUserAccountInfo(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     org_id: Mapped[str] = mapped_column(Text, nullable=False)
     agent_id: Mapped[str] = mapped_column(Text, nullable=False, server_default="default")
     end_user_id: Mapped[str] = mapped_column(Text, nullable=False)
-    display_name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-    notes: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-    preferences: Mapped[dict] = mapped_column(JSONB, nullable=False, server_default="{}")
-    metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, server_default="{}")

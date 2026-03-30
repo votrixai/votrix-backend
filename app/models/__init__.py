@@ -1,12 +1,10 @@
 from app.models.agent import (
     Agent,
     AgentDetail,
-    AgentPrompts,
-    AgentRegistry,
+    AgentIntegration,
     AgentSummary,
     CreateAgentRequest,
     UpdateAgentRequest,
-    UpdatePromptSectionRequest,
 )
 from app.models.chat import ChatStreamMessage, ChatStreamRequest
 # conflicts models disabled — tables commented out in 001_initial.sql
@@ -38,8 +36,7 @@ from app.models.files import (
 __all__ = [
     "Agent",
     "AgentDetail",
-    "AgentPrompts",
-    "AgentRegistry",
+    "AgentIntegration",
     "AgentSummary",
     "ChatStreamMessage",
     "ChatStreamRequest",
@@ -54,7 +51,6 @@ __all__ = [
     "NodeType",
     "TreeEntry",
     "UpdateAgentRequest",
-    "UpdatePromptSectionRequest",
     "WriteFileRequest",
     "classify_file",
 ]

@@ -96,13 +96,12 @@ print(json.dumps(app.openapi(), indent=2))
 | Table | Purpose |
 |---|---|
 | `orgs` | Tenant root, keyed by `org_id` |
-| `agent_config` | Agent config + prompt sections (flat columns) + registry (JSONB) + `prompt_version` |
+| `agent_config` | Agent config + registry (JSONB) |
 | `blueprint_files` | Admin-owned virtual filesystem (base files) |
 | `user_files` | End-user independent files |
 | `end_user_account_info` | Persistent cross-session end user metadata |
 | `sessions` | Chat session metadata |
 | `session_events` | Append-only event log (user messages, AI replies, tool results) |
-| `guidelines` | Global singleton prompt guidelines (TOOL_CALLS, SKILLS) |
 
 ### blueprint_files — admin-owned virtual filesystem
 
@@ -141,7 +140,7 @@ Scalar API docs at `GET /reference` (interactive). OpenAPI schema at `GET /opena
 | Tag | Endpoints |
 |---|---|
 | **chat** | `POST /chat/stream` |
-| **agents** | Agent CRUD + prompt section get/put |
+| **agents** | Agent CRUD |
 | **files** | ls, read, write, edit, delete, mkdir, mv, grep, glob, tree (all support `end_user_id`) |
 
 ## Project Structure
@@ -172,13 +171,11 @@ app/
 │   │   ├── user_files.py
 │   │   ├── end_user_account_info.py
 │   │   ├── sessions.py
-│   │   └── guidelines.py
 │   ├── queries/             # DAO layer (SQLAlchemy queries)
 │   │   ├── agents.py        # agent_config table queries
 │   │   ├── blueprint_files.py # Blueprint filesystem ops
 │   │   ├── user_files.py    # User file ops
 │   │   ├── sessions.py      # Session + event queries
-│   │   └── guidelines.py    # Global guidelines
 │   └── seed.py              # First-run seeder
 └── utils/                   # ChatManager, logger
 
