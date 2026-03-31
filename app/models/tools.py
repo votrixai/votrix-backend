@@ -60,3 +60,45 @@ class Integration(BaseModel):
 
     def effective_provider_config(self, tool: Tool) -> Dict[str, Any]:
         return tool.provider_config if tool.provider_config is not None else self.provider_config
+
+
+# ---------------------------------------------------------------------------
+# Public API response models (strip internal routing fields)
+# ---------------------------------------------------------------------------
+
+class ToolSchema(BaseModel):
+    """Single tool as seen by the frontend — no internal provider routing."""
+    id: str
+    name: str
+    description: str
+    input_schema: Optional[Dict[str, Any]] = None
+
+
+class IntegrationSummary(BaseModel):
+    """Lightweight integration row for list endpoints."""
+    id: str
+    display_name: str
+    description: str
+    provider_type: ProviderType
+    deferred: bool
+    tool_count: int
+
+
+class IntegrationDetail(BaseModel):
+    """Full integration with tool list for single-integration endpoints."""
+    id: str
+    display_name: str
+    description: str
+    provider_type: ProviderType
+    deferred: bool
+    tools: List[ToolSchema]
+
+
+class OrgIntegrationItem(BaseModel):
+    """One integration entry in an org's activated list."""
+    slug: str
+    display_name: str
+    description: str
+    provider_type: ProviderType
+    tool_count: int
+    categories: List[str] = []

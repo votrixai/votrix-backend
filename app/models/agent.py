@@ -7,7 +7,14 @@ from pydantic import BaseModel, Field
 
 
 class AgentIntegration(BaseModel):
-    integration_slug: str
+    integration_id: str
+    deferred: bool
+    enabled_tool_ids: List[str] = []
+
+
+class UpsertAgentIntegrationRequest(BaseModel):
+    deferred: bool
+    enabled_tool_ids: List[str] = []
 
 
 class CreateAgentRequest(BaseModel):

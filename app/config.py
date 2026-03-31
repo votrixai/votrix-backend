@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     anthropic_api_key: str = ""
 
+    # Composio
+    composio_api_key: str = ""
+
     # App
     app_env: str = "development"
     log_level: str = "INFO"

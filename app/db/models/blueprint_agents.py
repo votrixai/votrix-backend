@@ -1,18 +1,12 @@
 """ORM model for the blueprint_agents table."""
 
-from __future__ import annotations
-
 import uuid
-from typing import TYPE_CHECKING, List
 
 from sqlalchemy import ForeignKey, Text
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
-
-if TYPE_CHECKING:
-    from app.db.models.agent_integrations import AgentIntegration
 
 
 class BlueprintAgent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -22,9 +16,4 @@ class BlueprintAgent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-
-    integrations: Mapped[List["AgentIntegration"]] = relationship(
-        "AgentIntegration",
-        cascade="all, delete-orphan",
-        lazy="selectin",
-    )
+    integrations: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")

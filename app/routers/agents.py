@@ -106,21 +106,21 @@ async def update_agent(
     session: AsyncSession = Depends(get_session),
 ):
     """Update agent name and/or integrations."""
-    existing = await agents_q.get_agent(session, agent_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Agent not found")
-
     updates = {}
     if body.name is not None:
         updates["name"] = body.name
-    if updates:
-        await agents_q.update_agent(session, agent_id, **updates)
     if body.integrations is not None:
-        await agents_q.set_agent_integrations(
-            session, agent_id, [i.model_dump() for i in body.integrations]
-        )
+        updates["integrations"] = [i.model_dump() for i in body.integrations]
 
-    row = await agents_q.get_agent(session, agent_id)
+    if updates:
+        row = await agents_q.update_agent(session, agent_id, **updates)
+        if not row:
+            raise HTTPException(status_code=404, detail="Agent not found")
+    else:
+        row = await agents_q.get_agent(session, agent_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="Agent not found")
+
     return _to_detail(row)
 
 
