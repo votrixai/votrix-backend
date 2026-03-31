@@ -63,7 +63,7 @@ async def read_file(
     file = await user_files.read_file(session, blueprint_agent_id, user_id, path)
     if not file:
         raise HTTPException(status_code=404, detail=f"File not found: {path}")
-    return FileContent(path=path, **file)
+    return FileContent(**file)
 
 
 @router.post(PREFIX, response_model=FileListEntry, status_code=201, summary="Create or overwrite file")
@@ -94,7 +94,7 @@ async def edit_file(
     if not result:
         raise HTTPException(status_code=404, detail=f"File not found or old_str not present: {body.path}")
     file = await user_files.read_file(session, blueprint_agent_id, user_id, body.path)
-    return FileContent(path=body.path, **file)
+    return FileContent(**file)
 
 
 @router.delete(PREFIX, status_code=204, summary="Delete file or directory")

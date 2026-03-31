@@ -1,185 +1,117 @@
 # votrix-backend
 
-AI chat backend for Votrix — multi-tenant agent platform with virtual filesystem on Postgres.
-
-## Architecture
-
-```
-POST /chat/stream (Vercel AI SDK data stream)
-  → build_assistant_context (org_id, agent_id)
-    → Postgres: agent_config, blueprint_files, sessions
-  → LangGraph (ChatConversationNode)
-    → Tools: read, write, votrix_run
-      → SQLAlchemy async queries for file ops
-    → Gemini Flash (primary) / Gemini 2.0 Flash (backup)
-  → Stream response (text deltas, tool calls, tool results)
-```
+Multi-tenant agentic filesystem backend — blueprint agents with virtual file systems, user instantiation, and file replication.
 
 ## Setup
 
 ```bash
-# 1. Install dependencies
 pip install -e ".[dev]"
+cp .env.example .env  # fill in DATABASE_URL
 
-# 2. Copy env
-cp .env.example .env
-# Fill in DATABASE_URL, GOOGLE_API_KEY
-
-# 3. Apply schema (fresh database)
+# Apply schema (fresh database)
 psql $DATABASE_URL -f supabase/migrations/001_initial.sql
-alembic stamp head  # tell Alembic the DB matches current models
+alembic stamp head
 
-# 4. Seed default data
-python -c "
-import asyncio
-from app.db.engine import init_engine
-from app.config import get_settings
-from app.db.seed import seed_all
+# Or run Alembic migrations
+alembic upgrade head
 
-init_engine(get_settings().database_url)
-asyncio.run(seed_all())
-"
-
-# 5. Run
+# Run
 uvicorn app.main:app --reload --port 8000
 ```
 
-## Migrations
+## API Reference
 
-Schema is managed via **Alembic** with async support. ORM models live in `app/db/models/`.
+Scalar API docs at `GET /reference`. OpenAPI schema at `GET /openapi.json`.
 
-```bash
-# Generate a new migration after changing ORM models
-alembic revision --autogenerate -m "description of change"
+### Routes
 
-# Apply migrations
-alembic upgrade head
-
-# Check current revision
-alembic current
-```
-
-## OpenAPI → TypeScript Client Generation
-
-FastAPI auto-generates the OpenAPI schema at `/openapi.json`. To generate a TypeScript client:
-
-```bash
-# 1. Start the server (or export schema statically)
-uvicorn app.main:app --port 8000 &
-
-# 2. Fetch the schema
-curl http://localhost:8000/openapi.json -o openapi.json
-
-# 3. Generate TypeScript client (pick one)
-
-# Option A: openapi-typescript + openapi-fetch (recommended, lightweight)
-npx openapi-typescript openapi.json -o src/api/schema.d.ts
-
-# Option B: orval (generates axios/fetch hooks for React)
-npx orval --input openapi.json --output src/api/client.ts
-```
-
-For CI, export the schema without running the server:
-
-```bash
-python -c "
-import json
-from app.main import app
-print(json.dumps(app.openapi(), indent=2))
-" > openapi.json
-```
+| Tag | Route | Description |
+|-----|-------|-------------|
+| **orgs** | `POST /orgs` | Create org |
+| | `GET /orgs` | List orgs |
+| | `GET /orgs/{org_id}` | Get org |
+| | `PATCH /orgs/{org_id}` | Update org |
+| | `DELETE /orgs/{org_id}` | Delete org |
+| **agents** | `POST /orgs/{org_id}/agents` | Create blueprint agent |
+| | `GET /orgs/{org_id}/agents` | List agents in org |
+| | `GET /agents/{agent_id}` | Get agent detail |
+| | `PATCH /agents/{agent_id}` | Update agent |
+| | `DELETE /agents/{agent_id}` | Delete agent |
+| **agent-files** | `GET /agents/{agent_id}/files` | List directory |
+| | `GET /agents/{agent_id}/files/read` | Read file |
+| | `POST /agents/{agent_id}/files` | Write file |
+| | `PATCH /agents/{agent_id}/files` | Edit file |
+| | `DELETE /agents/{agent_id}/files` | Delete file |
+| | `POST /agents/{agent_id}/files/mkdir` | Create directory |
+| | `POST /agents/{agent_id}/files/mv` | Move/rename |
+| | `GET /agents/{agent_id}/files/grep` | Regex search |
+| | `GET /agents/{agent_id}/files/glob` | Glob match |
+| | `GET /agents/{agent_id}/files/tree` | Full tree |
+| **users** | `POST /orgs/{org_id}/users` | Create end user |
+| | `GET /orgs/{org_id}/users` | List users in org |
+| | `GET /users/{user_id}` | Get user detail |
+| | `PATCH /users/{user_id}` | Update user |
+| | `DELETE /users/{user_id}` | Delete user |
+| | `POST /users/{user_id}/agents` | Instantiate agent (link + replicate files) |
+| | `GET /users/{user_id}/agents` | List user's agents |
+| | `DELETE /users/{user_id}/agents/{id}` | Unlink agent |
+| **user-files** | `/users/{user_id}/agents/{id}/files/...` | Same 10 file ops as agent-files |
 
 ## Database Schema
 
-8 active tables (agent_version_log and agent_conflicts are commented out):
+7 tables with UUID primary keys and FK cascades:
 
 | Table | Purpose |
-|---|---|
-| `orgs` | Tenant root, keyed by `org_id` |
-| `agent_config` | Agent config + registry (JSONB) |
-| `blueprint_files` | Admin-owned virtual filesystem (base files) |
-| `user_files` | End-user independent files |
-| `end_user_account_info` | Persistent cross-session end user metadata |
-| `sessions` | Chat session metadata |
-| `session_events` | Append-only event log (user messages, AI replies, tool results) |
-
-### blueprint_files — admin-owned virtual filesystem
-
-Each file node has:
-
-| Field | Description |
-|---|---|
-| `path` | Full path, e.g. `/skills/booking/SKILL.md` |
-| `name` | Filename, e.g. `SKILL.md` |
-| `type` | `file` or `directory` |
-| `mime_type` | e.g. `text/markdown`, `application/json` |
-| `file_class` | `skill` / `skill_asset` / `prompt` / `file` |
-
-### user_files — end-user independent files
-
-| Field | Description |
-|---|---|
-| `end_user_id` | Always set — identifies the end user |
-| `path` | Independent path namespace per end user |
-| `content`, `name`, `type`, etc. | Same structure as blueprint_files |
-
-Core filesystem operations and their index coverage:
-
-| Op | Index |
-|---|---|
-| `ls(parent)` | `idx_blueprint_ls` — B-tree on `(org_id, agent_id, parent)` |
-| `read_file(path)` | Unique index on `(org_id, agent_id, path)` |
-| `write_file(path)` | Same unique index (upsert) |
-| `grep(pattern)` | `idx_blueprint_fts` — GIN full-text search |
-| `glob(pattern)` | `idx_blueprint_glob` — `text_pattern_ops` prefix scan |
-
-## API Reference
-
-Scalar API docs at `GET /reference` (interactive). OpenAPI schema at `GET /openapi.json`.
-
-| Tag | Endpoints |
-|---|---|
-| **chat** | `POST /chat/stream` |
-| **agents** | Agent CRUD |
-| **files** | ls, read, write, edit, delete, mkdir, mv, grep, glob, tree (all support `end_user_id`) |
+|-------|---------|
+| `orgs` | Tenant root |
+| `blueprint_agents` | Agent templates (name, org_id) |
+| `agent_integrations` | Per-agent integration slugs |
+| `blueprint_files` | Admin-owned virtual filesystem |
+| `end_user_accounts` | End user accounts (display_name, sandbox) |
+| `user_files` | End-user file copies (FK to blueprint_agent + user_account) |
+| `end_user_agent_links` | Many-to-many user ↔ agent |
 
 ## Project Structure
 
 ```
 app/
-├── main.py                  # FastAPI app + lifespan + Scalar docs
-├── config.py                # Pydantic settings (DATABASE_URL, API keys)
-├── deps.py                  # FastAPI dependencies (get_session)
-├── models/                  # Pydantic request/response schemas
-│   ├── agent.py             # Agent CRUD schemas
-│   ├── chat.py              # ChatStreamRequest/Message
-│   └── files.py             # FileEntry, WriteFileRequest, etc.
+├── main.py                    # FastAPI app + lifespan + Scalar docs
+├── config.py                  # Pydantic settings (DATABASE_URL)
+├── models/                    # Pydantic request/response schemas
+│   ├── agent.py
+│   ├── end_user_account.py
+│   ├── files.py
+│   └── org.py
 ├── routers/
-│   ├── chat.py              # POST /chat/stream
-│   ├── agents.py            # Agent CRUD + prompt sections
-│   └── files.py             # Virtual filesystem CRUD
-├── context/                 # AssistantContext (org_id, agent_id, db_session)
-├── llm/                     # LangGraph, prompt builder, model manager
-├── tools/                   # read/write/votrix_run + exec handlers
+│   ├── orgs.py                # Org CRUD
+│   ├── agents.py              # Blueprint agent CRUD
+│   ├── files.py               # Blueprint file ops
+│   ├── end_user_accounts.py   # User CRUD + agent instantiation
+│   └── user_files.py          # User file ops
 ├── db/
-│   ├── engine.py            # SQLAlchemy async engine + session factory
-│   ├── models/              # ORM models (one per table)
-│   │   ├── base.py          # DeclarativeBase + common mixins
-│   │   ├── orgs.py
-│   │   ├── agent_config.py
-│   │   ├── blueprint_files.py
-│   │   ├── user_files.py
-│   │   ├── end_user_account_info.py
-│   │   ├── sessions.py
-│   ├── queries/             # DAO layer (SQLAlchemy queries)
-│   │   ├── agents.py        # agent_config table queries
-│   │   ├── blueprint_files.py # Blueprint filesystem ops
-│   │   ├── user_files.py    # User file ops
-│   │   ├── sessions.py      # Session + event queries
-│   └── seed.py              # First-run seeder
-└── utils/                   # ChatManager, logger
+│   ├── engine.py              # SQLAlchemy async engine + session factory
+│   ├── models/                # ORM models (one per table)
+│   └── queries/               # DAO layer (SQLAlchemy queries)
+└── tools/platform/            # Tool declarations + stub handlers
 
-alembic/                     # Alembic migration config + versions
-supabase/migrations/         # Reference SQL schema
-prompts/                     # Seed data (disk → DB on first boot)
+supabase/migrations/           # Reference SQL schema
+alembic/                       # Alembic migration config
+```
+
+## Migrations
+
+```bash
+alembic revision --autogenerate -m "description"
+alembic upgrade head
+alembic current
+```
+
+## TypeScript Client Generation
+
+```bash
+# Export schema
+python -c "import json; from app.main import app; print(json.dumps(app.openapi(), indent=2))" > openapi.json
+
+# Generate types
+npx openapi-typescript openapi.json -o src/api/schema.d.ts
 ```
