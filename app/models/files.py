@@ -22,9 +22,10 @@ class FileEntry(BaseModel):
     path: str
     name: str
     type: NodeType = NodeType.file
-    content: str = ""
+    content: Optional[str] = ""
     mime_type: str = "text/markdown"
     size_bytes: int = 0
+    storage_path: Optional[str] = None
     file_class: str = "file"
     parent: str = "/"
     ext: str = ""
@@ -47,7 +48,7 @@ class FileEntry(BaseModel):
                     values["ext"] = name.rsplit(".", 1)[-1]
             if "depth" not in values:
                 values["depth"] = path.strip("/").count("/") + 1 if path.strip("/") else 0
-            content = values.get("content", "")
+            content = values.get("content") or ""
             if "size_bytes" not in values or not values["size_bytes"]:
                 values["size_bytes"] = len(content.encode("utf-8")) if content else 0
             if "file_class" not in values or values["file_class"] == "file":
@@ -70,7 +71,7 @@ def classify_file(path: str, name: str) -> str:
 
 class WriteFileRequest(BaseModel):
     path: str = Field(..., description="File path, e.g. /skills/booking/SKILL.md")
-    content: str = Field(..., description="File content")
+    content: Optional[str] = Field(None, description="File content (for text files)")
     mime_type: str = Field("text/markdown", description="MIME type")
 
 
@@ -109,10 +110,12 @@ class FileContent(BaseModel):
     name: str
     type: NodeType
     user_account_id: Optional[str] = None
-    content: str
+    content: Optional[str] = None
     mime_type: str = "text/markdown"
     size_bytes: int = 0
     file_class: str = "file"
+    storage_path: Optional[str] = None
+    download_url: Optional[str] = None
 
 
 class GrepMatch(BaseModel):

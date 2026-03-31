@@ -2,6 +2,7 @@
 
 import enum
 import uuid
+from typing import Optional
 
 from sqlalchemy import (
     Enum as SAEnum,
@@ -43,9 +44,10 @@ class BlueprintFile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         server_default="file",
     )
 
-    content: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    content: Mapped[Optional[str]] = mapped_column(Text, nullable=True, server_default="")
     mime_type: Mapped[str] = mapped_column(Text, nullable=False, server_default="text/markdown")
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    storage_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     file_class: Mapped[str] = mapped_column(Text, nullable=False, server_default="file")
 

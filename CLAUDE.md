@@ -66,7 +66,7 @@ RLS enabled on all tables. Backend connects as `postgres` superuser (bypasses RL
 
 ```bash
 pip install -e ".[dev]"
-cp .env.example .env  # fill in DATABASE_URL
+cp .env.example .env  # fill in DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_KEY
 # Apply schema (if fresh DB):
 #   psql $DATABASE_URL -f supabase/migrations/001_initial.sql
 #   alembic stamp head
@@ -74,3 +74,17 @@ cp .env.example .env  # fill in DATABASE_URL
 #   alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
+
+### Supabase Storage (binary files)
+
+Binary files (images, PDFs, sqlite, etc.) are stored in Supabase Storage. Text files stay in Postgres.
+
+1. In the Supabase dashboard → Storage → create a **private** bucket named `files`
+2. Add to `.env`:
+   ```
+   SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+   SUPABASE_SERVICE_KEY=your_service_role_key
+   ```
+3. Run `alembic upgrade head` to add the `storage_path` column
+
+Upload binary files via `POST /agents/{id}/files/upload` (multipart). Read returns a signed download URL.

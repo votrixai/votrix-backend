@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.end_user_agent_links import EndUserAgentLink
 from app.db.queries import blueprint_files, user_files
+from app.storage import BUCKET, download_file
 
 
 async def link_agent(
@@ -91,10 +92,20 @@ async def replicate_blueprint_to_user(
         else:
             content_row = await blueprint_files.read_file(session, blueprint_agent_id, node["path"])
             if content_row:
-                await user_files.write_file(
-                    session, blueprint_agent_id, user_account_id,
-                    node["path"], content_row.get("content", ""),
-                    mime_type=content_row.get("mime_type", "text/markdown"),
-                )
+                if content_row.get("storage_path"):
+                    # Binary file — download from blueprint storage, re-upload for user
+                    data = await download_file(BUCKET, content_row["storage_path"])
+                    await user_files.write_file(
+                        session, blueprint_agent_id, user_account_id,
+                        node["path"],
+                        mime_type=content_row.get("mime_type", "application/octet-stream"),
+                        binary_data=data,
+                    )
+                else:
+                    await user_files.write_file(
+                        session, blueprint_agent_id, user_account_id,
+                        node["path"], content_row.get("content") or "",
+                        mime_type=content_row.get("mime_type", "text/markdown"),
+                    )
                 count += 1
     return count

@@ -9,6 +9,9 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.blueprint_agents import BlueprintAgent
+from app.db.models.blueprint_files import BlueprintFile
+from app.db.models.user_files import UserFile
+from app.storage import BUCKET, delete_file as storage_delete
 
 
 def _row_to_dict(row: BlueprintAgent) -> Dict[str, Any]:
@@ -58,6 +61,16 @@ async def list_agents(session: AsyncSession, org_id: uuid.UUID) -> List[Dict[str
 
 
 async def delete_agent(session: AsyncSession, agent_id: uuid.UUID) -> bool:
+    """Delete an agent and clean up any Storage objects before DB cascade."""
+    # Clean up storage objects from blueprint_files and user_files before cascade
+    for model in (BlueprintFile, UserFile):
+        storage_stmt = (
+            select(model.storage_path)
+            .where(model.blueprint_agent_id == agent_id, model.storage_path.is_not(None))
+        )
+        for sp in (await session.execute(storage_stmt)).scalars().all():
+            await storage_delete(BUCKET, sp)
+
     stmt = delete(BlueprintAgent).where(BlueprintAgent.id == agent_id)
     result = await session.execute(stmt)
     await session.commit()

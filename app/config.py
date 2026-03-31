@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     # Composio
     composio_api_key: str = ""
 
+    # Supabase Storage
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+
     # App
     app_env: str = "development"
     log_level: str = "INFO"

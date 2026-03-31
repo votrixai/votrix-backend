@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session
 from app.db.queries import agents as agents_q, blueprint_files
+from app.storage import BUCKET, download_file
 from app.models.agent import (
     AgentDetail,
     AgentSummary,
@@ -79,11 +80,19 @@ async def create_agent(
             else:
                 content_row = await blueprint_files.read_file(session, source_id, f["path"])
                 if content_row:
-                    await blueprint_files.write_file(
-                        session, new_id, f["path"],
-                        content_row.get("content", ""),
-                        mime_type=content_row.get("mime_type", "text/markdown"),
-                    )
+                    if content_row.get("storage_path"):
+                        data = await download_file(BUCKET, content_row["storage_path"])
+                        await blueprint_files.write_file(
+                            session, new_id, f["path"],
+                            mime_type=content_row.get("mime_type", "application/octet-stream"),
+                            binary_data=data,
+                        )
+                    else:
+                        await blueprint_files.write_file(
+                            session, new_id, f["path"],
+                            content_row.get("content") or "",
+                            mime_type=content_row.get("mime_type", "text/markdown"),
+                        )
 
     return _to_detail(row)
 

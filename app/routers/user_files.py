@@ -17,9 +17,9 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session
@@ -34,6 +34,7 @@ from app.models.files import (
     TreeEntry,
     WriteFileRequest,
 )
+from app.storage import BUCKET, get_signed_url, is_text_mime
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,10 @@ async def read_file(
     file = await user_files.read_file(session, blueprint_agent_id, user_id, path)
     if not file:
         raise HTTPException(status_code=404, detail=f"File not found: {path}")
-    return FileContent(**file)
+    result = dict(file)
+    if result.get("storage_path"):
+        result["download_url"] = get_signed_url(BUCKET, result["storage_path"])
+    return FileContent(**result)
 
 
 @router.post(PREFIX, response_model=FileListEntry, status_code=201, summary="Create or overwrite file")
@@ -77,10 +81,30 @@ async def write_file(
     body: WriteFileRequest,
     session: AsyncSession = Depends(get_session),
 ):
-    """Create a new file or overwrite an existing one at the given path."""
+    """Create a new file or overwrite an existing one at the given path (text content)."""
     row = await user_files.write_file(
-        session, blueprint_agent_id, user_id, body.path, body.content,
+        session, blueprint_agent_id, user_id, body.path, body.content or "",
         mime_type=body.mime_type,
+    )
+    return FileListEntry(**row)
+
+
+@router.post(f"{PREFIX}/upload", response_model=FileListEntry, status_code=201, summary="Upload binary file")
+async def upload_file(
+    user_id: uuid.UUID,
+    blueprint_agent_id: uuid.UUID,
+    path: str = Form(..., description="File path, e.g. /assets/logo.png"),
+    mime_type: str = Form("application/octet-stream", description="MIME type"),
+    file: UploadFile = File(..., description="Binary file to upload"),
+    session: AsyncSession = Depends(get_session),
+):
+    """Upload a binary file via multipart form data."""
+    data = await file.read()
+    actual_mime = mime_type or file.content_type or "application/octet-stream"
+    row = await user_files.write_file(
+        session, blueprint_agent_id, user_id, path,
+        mime_type=actual_mime,
+        binary_data=data,
     )
     return FileListEntry(**row)
 

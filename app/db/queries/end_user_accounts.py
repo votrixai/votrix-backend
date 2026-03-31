@@ -9,6 +9,8 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.end_user_accounts import EndUserAccount
+from app.db.models.user_files import UserFile
+from app.storage import BUCKET, delete_file as storage_delete
 
 
 async def create_end_user_account(
@@ -65,6 +67,14 @@ async def update_end_user_account(
 async def delete_end_user_account(
     session: AsyncSession, user_id: uuid.UUID
 ) -> bool:
+    """Delete a user account and clean up any Storage objects before DB cascade."""
+    storage_stmt = (
+        select(UserFile.storage_path)
+        .where(UserFile.user_account_id == user_id, UserFile.storage_path.is_not(None))
+    )
+    for sp in (await session.execute(storage_stmt)).scalars().all():
+        await storage_delete(BUCKET, sp)
+
     stmt = delete(EndUserAccount).where(EndUserAccount.id == user_id)
     result = await session.execute(stmt)
     return result.rowcount > 0

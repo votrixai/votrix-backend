@@ -12,7 +12,6 @@ from app.db.models.base import Base
 # Import all models so Base.metadata knows about every table.
 import app.db.models.orgs  # noqa: F401
 import app.db.models.blueprint_agents  # noqa: F401
-import app.db.models.agent_integrations  # noqa: F401
 import app.db.models.blueprint_files  # noqa: F401
 import app.db.models.end_user_accounts  # noqa: F401
 import app.db.models.end_user_agent_links  # noqa: F401
@@ -44,6 +43,8 @@ def _patch_columns_for_sqlite():
                 col.type = _UUIDAsString()
             elif type_name in ("Enum", "SAEnum"):
                 col.type = Text()
+            elif type_name == "ARRAY":
+                col.type = JSON()  # store arrays as JSON in SQLite
 
         # Remove Postgres-specific indexes (text_pattern_ops etc.)
         pg_indexes = [
