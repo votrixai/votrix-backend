@@ -10,7 +10,10 @@ from app.db.queries.orgs import create_org, delete_org, get_org, list_orgs, upda
 from app.models.org import CreateOrgRequest, OrgDetail, OrgSummary, UpdateOrgRequest
 from app.tools.registry import DEFAULT_ORG_INTEGRATIONS
 
-router = APIRouter(prefix="/orgs")
+router = APIRouter(prefix="/orgs", tags=["orgs"])
+
+_404 = {404: {"description": "Org not found"}}
+_400 = {400: {"description": "Bad request"}}
 
 
 def _org_detail(org) -> OrgDetail:
@@ -24,8 +27,9 @@ def _org_detail(org) -> OrgDetail:
     )
 
 
-@router.post("", response_model=OrgDetail, status_code=201)
+@router.post("", response_model=OrgDetail, status_code=201, summary="Create org")
 async def create_org_endpoint(body: CreateOrgRequest, session: AsyncSession = Depends(get_session)):
+    """Create a new org. Default integrations are pre-activated."""
     org = await create_org(
         session,
         display_name=body.display_name,
@@ -37,22 +41,25 @@ async def create_org_endpoint(body: CreateOrgRequest, session: AsyncSession = De
     return _org_detail(org)
 
 
-@router.get("", response_model=list[OrgSummary])
+@router.get("", response_model=list[OrgSummary], summary="List orgs")
 async def list_orgs_endpoint(session: AsyncSession = Depends(get_session)):
+    """Return all orgs (id, display_name, created_at)."""
     orgs = await list_orgs(session)
     return [OrgSummary(id=str(o.id), display_name=o.display_name, created_at=o.created_at) for o in orgs]
 
 
-@router.get("/{org_id}", response_model=OrgDetail)
+@router.get("/{org_id}", response_model=OrgDetail, summary="Get org", responses=_404)
 async def get_org_endpoint(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    """Return full org detail including metadata and timestamps."""
     org = await get_org(session, org_id)
     if org is None:
         raise HTTPException(status_code=404, detail="Org not found")
     return _org_detail(org)
 
 
-@router.patch("/{org_id}", response_model=OrgDetail)
+@router.patch("/{org_id}", response_model=OrgDetail, summary="Update org", responses={**_404, **_400})
 async def update_org_endpoint(org_id: uuid.UUID, body: UpdateOrgRequest, session: AsyncSession = Depends(get_session)):
+    """Partial update — only provided fields are changed."""
     updates = body.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -63,8 +70,9 @@ async def update_org_endpoint(org_id: uuid.UUID, body: UpdateOrgRequest, session
     return _org_detail(org)
 
 
-@router.delete("/{org_id}", status_code=204)
+@router.delete("/{org_id}", status_code=204, summary="Delete org", responses=_404)
 async def delete_org_endpoint(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    """Delete org and all associated data (cascade)."""
     deleted = await delete_org(session, org_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Org not found")

@@ -1,46 +1,43 @@
-"""LangGraph agent graph — demo implementation.
+"""Build and compile the LangGraph agent graph.
 
-Two-node graph:  agent (LLM) ↔ tools
-The LLM model and tools are injected at call time — graph is generic.
+Called once at app startup (inside ChatService.initialize()).
+Tools and model are injected per-invocation via config["configurable"] —
+the compiled graph itself is model/tool-agnostic.
+
+Topology:
+    START → llm_call ─┬─→ END            (no tool calls / loop limit)
+                       └─→ tool_executor
+                               └─→ summarize → llm_call  (loop)
 """
 
-from typing import List
+from langgraph.graph import END, START, StateGraph
 
-from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import AIMessage, BaseMessage
-from langgraph.graph import END, MessagesState, StateGraph
-from langgraph.prebuilt import ToolNode
-
-
-def build_graph(tools: List, model: str = "claude-sonnet-4-6"):
-    llm = ChatAnthropic(model=model)
-    llm_with_tools = llm.bind_tools(tools)
-
-    def call_agent(state: MessagesState):
-        response = llm_with_tools.invoke(state["messages"])
-        return {"messages": [response]}
-
-    def should_continue(state: MessagesState):
-        if state["messages"][-1].tool_calls:
-            return "tools"
-        return END
-
-    graph = StateGraph(MessagesState)
-    graph.add_node("agent", call_agent)
-    graph.add_node("tools", ToolNode(tools))
-    graph.set_entry_point("agent")
-    graph.add_conditional_edges("agent", should_continue)
-    graph.add_edge("tools", "agent")
-
-    return graph.compile()
+from app.llm.edges import route_after_llm
+from app.llm.nodes.llm_node import llm_call
+from app.llm.nodes.summarize_node import maybe_summarize
+from app.llm.nodes.tool_node import tool_executor
+from app.llm.state import AgentState
 
 
-async def run(
-    messages: List[BaseMessage],
-    tools: List,
-    model: str = "claude-sonnet-4-6",
-) -> List[BaseMessage]:
-    """Run one conversation turn. Returns the full updated message list."""
-    graph = build_graph(tools, model)
-    result = await graph.ainvoke({"messages": messages})
-    return result["messages"]
+def build_graph(checkpointer=None, store=None):
+    """Build and compile the agent StateGraph.
+
+    Args:
+        checkpointer: AsyncPostgresSaver (or MemorySaver) for per-thread session persistence.
+        store: AsyncPostgresStore (or InMemoryStore) for cross-session long-term memory.
+
+    Returns:
+        CompiledStateGraph — use .ainvoke() or .astream_events() per request.
+    """
+    builder = StateGraph(AgentState)
+
+    builder.add_node("llm_call", llm_call)
+    builder.add_node("tool_executor", tool_executor)
+    builder.add_node("summarize", maybe_summarize)
+
+    builder.add_edge(START, "llm_call")
+    builder.add_conditional_edges("llm_call", route_after_llm, ["tool_executor", END])
+    builder.add_edge("tool_executor", "summarize")
+    builder.add_edge("summarize", "llm_call")
+
+    return builder.compile(checkpointer=checkpointer, store=store)

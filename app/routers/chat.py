@@ -15,7 +15,7 @@ from app.config import get_settings
 from app.db.engine import get_session
 from app.db.queries import agents as agents_q
 from app.llm import graph as llm_graph
-from app.tools import composio_session
+from app.tools.context import ToolContext
 
 router = APIRouter(prefix="/agents", tags=["chat"])
 
@@ -36,7 +36,9 @@ class ChatResponse(BaseModel):
     messages: List[ChatMessage]
 
 
-@router.post("/{agent_id}/chat", response_model=ChatResponse)
+@router.post("/{agent_id}/chat", response_model=ChatResponse,
+             summary="Chat with agent",
+             responses={404: {"description": "Agent not found"}})
 async def chat(
     agent_id: uuid.UUID,
     body: ChatRequest,
@@ -48,15 +50,12 @@ async def chat(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Collect toolkit slugs configured on this agent
-    toolkits = [i["integration_id"] for i in (agent.get("integrations") or [])]
-
-    # Get Composio Tool Router meta-tools for this end user
-    tools = await composio_session.get_tools(
-        api_key=settings.composio_api_key,
+    ctx = ToolContext(api_key=settings.composio_api_key)
+    await ctx.initialize(
+        agent_integrations=agent.get("integrations") or [],
         user_id=str(body.user_id),
-        toolkits=toolkits,
     )
+    tools = ctx.get_active_tools()
 
     # Convert to LangChain message format
     lc_messages = []

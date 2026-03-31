@@ -26,7 +26,10 @@ from app.models.agent import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["agents"])
+
+_404 = {404: {"description": "Agent not found"}}
+_400 = {400: {"description": "Bad request"}}
 
 
 def _to_detail(row: dict) -> AgentDetail:
@@ -40,7 +43,9 @@ def _to_detail(row: dict) -> AgentDetail:
     )
 
 
-@router.post("/orgs/{org_id}/agents", response_model=AgentDetail, status_code=201)
+@router.post("/orgs/{org_id}/agents", response_model=AgentDetail, status_code=201,
+             summary="Create agent",
+             responses={404: {"description": "Seed source agent not found"}})
 async def create_agent(
     org_id: uuid.UUID,
     body: CreateAgentRequest,
@@ -83,29 +88,30 @@ async def create_agent(
     return _to_detail(row)
 
 
-@router.get("/orgs/{org_id}/agents", response_model=List[AgentSummary])
+@router.get("/orgs/{org_id}/agents", response_model=List[AgentSummary], summary="List agents")
 async def list_agents(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
     """List all blueprint agents in an org."""
     rows = await agents_q.list_agents(session, org_id)
     return [AgentSummary(id=str(r["id"]), name=r["name"], created_at=r["created_at"], updated_at=r["updated_at"]) for r in rows]
 
 
-@router.get("/agents/{agent_id}", response_model=AgentDetail)
+@router.get("/agents/{agent_id}", response_model=AgentDetail, summary="Get agent", responses=_404)
 async def get_agent(agent_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
-    """Get full agent detail."""
+    """Return full agent detail including integrations."""
     row = await agents_q.get_agent(session, agent_id)
     if not row:
         raise HTTPException(status_code=404, detail="Agent not found")
     return _to_detail(row)
 
 
-@router.patch("/agents/{agent_id}", response_model=AgentDetail)
+@router.patch("/agents/{agent_id}", response_model=AgentDetail, summary="Update agent",
+              responses={**_404, **_400})
 async def update_agent(
     agent_id: uuid.UUID,
     body: UpdateAgentRequest,
     session: AsyncSession = Depends(get_session),
 ):
-    """Update agent name and/or integrations."""
+    """Partial update — name and/or integrations."""
     updates = {}
     if body.name is not None:
         updates["name"] = body.name
@@ -124,7 +130,7 @@ async def update_agent(
     return _to_detail(row)
 
 
-@router.delete("/agents/{agent_id}", status_code=204)
+@router.delete("/agents/{agent_id}", status_code=204, summary="Delete agent", responses=_404)
 async def delete_agent(agent_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
     """Delete a blueprint agent and all its files (cascade)."""
     deleted = await agents_q.delete_agent(session, agent_id)

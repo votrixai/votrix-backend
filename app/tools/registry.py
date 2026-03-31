@@ -11,7 +11,8 @@ REGISTRY is read-only at runtime; no DB required.
 from typing import Dict, List, Optional
 
 from app.models.tools import Integration, Provider
-from app.tools.platform.schemas import PLATFORM_INTEGRATION, PROVIDERS as _PLATFORM_PROVIDERS
+from app.tools.definitions.platform_tools import PLATFORM_INTEGRATION
+from app.tools.definitions.providers import PROVIDERS
 
 # ---------------------------------------------------------------------------
 # Default integrations pre-activated for every new org.
@@ -41,11 +42,6 @@ DEFAULT_ORG_INTEGRATIONS: List[str] = [
     "stripe",
     "shopify",
 ]
-
-# ---------------------------------------------------------------------------
-# All known providers (imported from platform schemas, extended here)
-# ---------------------------------------------------------------------------
-PROVIDERS: Dict[str, Provider] = dict(_PLATFORM_PROVIDERS)
 
 # ---------------------------------------------------------------------------
 # All known integrations

@@ -12,11 +12,9 @@ Routes:
 """
 
 import uuid
-from datetime import datetime
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session
@@ -35,28 +33,19 @@ from app.db.queries.end_user_agent_links import (
 )
 from app.models.end_user_account import (
     CreateEndUserAccountRequest,
+    CreateEndUserAgentRequest,
     EndUserAccountDetail,
     EndUserAccountSummary,
+    EndUserAgentLink,
     UpdateEndUserAccountRequest,
 )
 
-router = APIRouter()
+router = APIRouter(tags=["users"])
 
+_404_user = {404: {"description": "End user account not found"}}
+_404_link = {404: {"description": "Agent link not found"}}
+_400 = {400: {"description": "Bad request"}}
 
-# ── Pydantic models for agent instantiation ──────────────────
-
-class CreateEndUserAgentRequest(BaseModel):
-    blueprint_agent_id: str
-
-
-class EndUserAgentLink(BaseModel):
-    id: str
-    end_user_account_id: str
-    blueprint_agent_id: str
-    created_at: datetime
-
-
-# ── Helpers ──────────────────────────────────────────────────
 
 def _to_detail(row) -> EndUserAccountDetail:
     return EndUserAccountDetail(
@@ -71,12 +60,14 @@ def _to_detail(row) -> EndUserAccountDetail:
 
 # ── Account CRUD (org-scoped: list, create) ──────────────────
 
-@router.post("/orgs/{org_id}/users", response_model=EndUserAccountDetail, status_code=201)
+@router.post("/orgs/{org_id}/users", response_model=EndUserAccountDetail, status_code=201,
+             summary="Create end user account")
 async def create_end_user(
     org_id: uuid.UUID,
     body: CreateEndUserAccountRequest,
     session: AsyncSession = Depends(get_session),
 ):
+    """Create a new end user account under an org."""
     account = await create_end_user_account(
         session, org_id,
         display_name=body.display_name,
@@ -86,8 +77,10 @@ async def create_end_user(
     return _to_detail(account)
 
 
-@router.get("/orgs/{org_id}/users", response_model=List[EndUserAccountSummary])
+@router.get("/orgs/{org_id}/users", response_model=List[EndUserAccountSummary],
+            summary="List end user accounts")
 async def list_end_users(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    """List all end user accounts in an org."""
     accounts = await list_end_user_accounts(session, org_id)
     return [
         EndUserAccountSummary(
@@ -102,20 +95,24 @@ async def list_end_users(org_id: uuid.UUID, session: AsyncSession = Depends(get_
 
 # ── Account CRUD (flat: get, update, delete) ─────────────────
 
-@router.get("/users/{user_id}", response_model=EndUserAccountDetail)
+@router.get("/users/{user_id}", response_model=EndUserAccountDetail,
+            summary="Get end user account", responses=_404_user)
 async def get_end_user(user_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    """Return full end user account detail."""
     account = await get_end_user_account(session, user_id)
     if account is None:
         raise HTTPException(status_code=404, detail="End user account not found")
     return _to_detail(account)
 
 
-@router.patch("/users/{user_id}", response_model=EndUserAccountDetail)
+@router.patch("/users/{user_id}", response_model=EndUserAccountDetail,
+              summary="Update end user account", responses={**_404_user, **_400})
 async def update_end_user(
     user_id: uuid.UUID,
     body: UpdateEndUserAccountRequest,
     session: AsyncSession = Depends(get_session),
 ):
+    """Partial update — display_name and/or sandbox flag."""
     updates = body.model_dump(exclude_unset=True)
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -126,8 +123,10 @@ async def update_end_user(
     return _to_detail(account)
 
 
-@router.delete("/users/{user_id}", status_code=204)
+@router.delete("/users/{user_id}", status_code=204,
+               summary="Delete end user account", responses=_404_user)
 async def delete_end_user(user_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    """Delete the end user account and all associated data."""
     deleted = await delete_end_user_account(session, user_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="End user account not found")
@@ -140,7 +139,8 @@ async def delete_end_user(user_id: uuid.UUID, session: AsyncSession = Depends(ge
     "/users/{user_id}/agents",
     response_model=EndUserAgentLink,
     status_code=201,
-    summary="Instantiate a blueprint agent for an end user",
+    summary="Instantiate agent for user",
+    responses=_404_user,
 )
 async def create_end_user_agent(
     user_id: uuid.UUID,
@@ -167,12 +167,14 @@ async def create_end_user_agent(
 @router.get(
     "/users/{user_id}/agents",
     response_model=List[EndUserAgentLink],
-    summary="List user's linked agents",
+    summary="List user's agents",
+    responses=_404_user,
 )
 async def list_end_user_agents(
     user_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
 ):
+    """List all blueprint agents linked to this user."""
     account = await get_end_user_account(session, user_id)
     if account is None:
         raise HTTPException(status_code=404, detail="End user account not found")
@@ -192,13 +194,15 @@ async def list_end_user_agents(
 @router.delete(
     "/users/{user_id}/agents/{blueprint_agent_id}",
     status_code=204,
-    summary="Unlink an agent from a user",
+    summary="Unlink agent from user",
+    responses={**_404_user, **_404_link},
 )
 async def delete_end_user_agent(
     user_id: uuid.UUID,
     blueprint_agent_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
 ):
+    """Remove the link between a user and a blueprint agent."""
     account = await get_end_user_account(session, user_id)
     if account is None:
         raise HTTPException(status_code=404, detail="End user account not found")

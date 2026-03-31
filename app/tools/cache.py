@@ -4,11 +4,13 @@ Composio toolkit catalog cache.
 Fetches all available toolkits from the Composio API on startup and keeps them
 in a module-level dict. Falls back gracefully when no API key is set.
 
+Used exclusively by management-side API endpoints (browsing), NOT by the runtime.
+
 Usage:
-    await composio_cache.refresh(api_key)   # call once at startup
-    items = composio_cache.get_all(search="gmail", category="productivity")
-    item  = composio_cache.get_by_slug("gmail")
-    exists = composio_cache.slug_exists("gmail")
+    await cache.refresh(api_key)   # call once at startup
+    items = cache.get_all(search="gmail", category="productivity")
+    item  = cache.get_by_slug("gmail")
+    exists = cache.slug_exists("gmail")
 """
 
 import logging

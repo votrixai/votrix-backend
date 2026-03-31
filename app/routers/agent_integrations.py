@@ -19,7 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session
 from app.db.queries import agents as agents_q, orgs as orgs_q
 from app.models.agent import AgentIntegration, UpsertAgentIntegrationRequest
-from app.tools import composio_cache
+from app.tools import cache as composio_cache
 from app.tools.registry import get_integration
 
 router = APIRouter(prefix="/agents", tags=["agent-integrations"])
@@ -54,7 +54,9 @@ async def _validate_integration(
         )
 
 
-@router.get("/{agent_id}/integrations", response_model=List[AgentIntegration])
+@router.get("/{agent_id}/integrations", response_model=List[AgentIntegration],
+            summary="List agent integrations",
+            responses={404: {"description": "Agent not found"}})
 async def list_agent_integrations(
     agent_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
@@ -66,7 +68,10 @@ async def list_agent_integrations(
     return row.get("integrations", [])
 
 
-@router.put("/{agent_id}/integrations/{integration_id}", response_model=AgentIntegration)
+@router.put("/{agent_id}/integrations/{integration_id}", response_model=AgentIntegration,
+            summary="Add or update agent integration",
+            responses={404: {"description": "Agent or integration not found"},
+                       403: {"description": "Integration not activated for org"}})
 async def upsert_agent_integration(
     agent_id: uuid.UUID,
     integration_id: str,
@@ -84,7 +89,9 @@ async def upsert_agent_integration(
     return item
 
 
-@router.delete("/{agent_id}/integrations/{integration_id}", status_code=204)
+@router.delete("/{agent_id}/integrations/{integration_id}", status_code=204,
+               summary="Remove agent integration",
+               responses={404: {"description": "Agent or integration not found"}})
 async def delete_agent_integration(
     agent_id: uuid.UUID,
     integration_id: str,

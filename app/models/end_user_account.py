@@ -32,3 +32,14 @@ class EndUserAccountDetail(BaseModel):
     sandbox: bool
     created_at: datetime
     updated_at: datetime
+
+
+class CreateEndUserAgentRequest(BaseModel):
+    blueprint_agent_id: str
+
+
+class EndUserAgentLink(BaseModel):
+    id: str
+    end_user_account_id: str
+    blueprint_agent_id: str
+    created_at: datetime

@@ -11,7 +11,7 @@ from scalar_fastapi import get_scalar_api_reference
 from app.config import get_settings
 from app.db.engine import dispose_engine, init_engine
 from app.routers import agent_integrations, agents, chat, end_user_accounts, files, org_integrations, orgs, tools, user_files
-from app.tools import composio_cache
+from app.tools import cache as composio_cache
 
 logger = logging.getLogger(__name__)
 

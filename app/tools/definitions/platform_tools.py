@@ -1,27 +1,13 @@
 """
 Platform integration static data — tool declarations and input schemas.
 
-Defines what tools the platform integration provides: their names,
-descriptions, input_schema, and routing config. No execution logic here.
+Pure data, no execution logic, no SDK imports.
 
-docs/tools.md §3 — Platform Integration
+web_search, web_fetch, bash_tool route through Composio (provider_id="composio").
+create_file, str_replace, view run locally via handlers/.
 """
 
-from app.models.tools import Integration, Provider, ProviderType, Tool
-
-# ---------------------------------------------------------------------------
-# Providers
-# ---------------------------------------------------------------------------
-
-PROVIDERS = {
-    "platform": Provider(id="platform", name="Platform", type=ProviderType.PLATFORM),
-    "composio": Provider(id="composio", name="Composio", type=ProviderType.COMPOSIO),
-}
-
-# ---------------------------------------------------------------------------
-# Platform tool declarations (deferred: false)
-# native tools inherit provider "platform"; composio-backed tools override
-# ---------------------------------------------------------------------------
+from app.models.tools import Integration, Tool
 
 _PLATFORM_TOOLS = [
     Tool(
@@ -152,8 +138,8 @@ PLATFORM_INTEGRATION = Integration(
     tools=_PLATFORM_TOOLS,
 )
 
-# tool_search is auto-injected by context_builder when any deferred integration
-# is enabled. It has no integration owner and is not listed under PLATFORM_INTEGRATION.
+# tool_search is auto-injected by ToolContext when any deferred integration is enabled.
+# Not listed under PLATFORM_INTEGRATION.
 TOOL_SEARCH = Tool(
     id="tool_search",
     name="tool_search",

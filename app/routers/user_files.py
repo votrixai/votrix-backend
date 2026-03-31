@@ -37,9 +37,11 @@ from app.models.files import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(tags=["user-files"])
 
 PREFIX = "/users/{user_id}/agents/{blueprint_agent_id}/files"
+
+_404 = {404: {"description": "File or path not found"}}
 
 
 @router.get(PREFIX, response_model=List[FileListEntry], summary="List directory contents")
@@ -49,17 +51,19 @@ async def ls(
     path: str = Query("/", description="Directory path to list"),
     session: AsyncSession = Depends(get_session),
 ):
+    """List files and subdirectories at the given path."""
     entries = await user_files.ls(session, blueprint_agent_id, user_id, path)
     return [FileListEntry(**e) for e in entries]
 
 
-@router.get(f"{PREFIX}/read", response_model=FileContent, summary="Read file content")
+@router.get(f"{PREFIX}/read", response_model=FileContent, summary="Read file content", responses=_404)
 async def read_file(
     user_id: uuid.UUID,
     blueprint_agent_id: uuid.UUID,
     path: str = Query(..., description="File path to read"),
     session: AsyncSession = Depends(get_session),
 ):
+    """Return the full content and metadata of a single file."""
     file = await user_files.read_file(session, blueprint_agent_id, user_id, path)
     if not file:
         raise HTTPException(status_code=404, detail=f"File not found: {path}")
@@ -73,6 +77,7 @@ async def write_file(
     body: WriteFileRequest,
     session: AsyncSession = Depends(get_session),
 ):
+    """Create a new file or overwrite an existing one at the given path."""
     row = await user_files.write_file(
         session, blueprint_agent_id, user_id, body.path, body.content,
         mime_type=body.mime_type,
@@ -80,13 +85,14 @@ async def write_file(
     return FileListEntry(**row)
 
 
-@router.patch(PREFIX, response_model=FileContent, summary="Edit file (surgical replace)")
+@router.patch(PREFIX, response_model=FileContent, summary="Edit file (surgical replace)", responses=_404)
 async def edit_file(
     user_id: uuid.UUID,
     blueprint_agent_id: uuid.UUID,
     body: EditFileRequest,
     session: AsyncSession = Depends(get_session),
 ):
+    """Replace a unique string in a file. old_str must appear exactly once."""
     result = await user_files.edit_file(
         session, blueprint_agent_id, user_id,
         body.path, body.old_str, body.new_str,
@@ -97,7 +103,7 @@ async def edit_file(
     return FileContent(**file)
 
 
-@router.delete(PREFIX, status_code=204, summary="Delete file or directory")
+@router.delete(PREFIX, status_code=204, summary="Delete file or directory", responses=_404)
 async def delete_file(
     user_id: uuid.UUID,
     blueprint_agent_id: uuid.UUID,
@@ -105,6 +111,7 @@ async def delete_file(
     recursive: bool = Query(False, description="If true, delete directory and all contents"),
     session: AsyncSession = Depends(get_session),
 ):
+    """Delete a file. Pass recursive=true to delete a directory tree."""
     if recursive:
         count = await user_files.rm_rf(session, blueprint_agent_id, user_id, path)
         if count == 0:
@@ -123,17 +130,19 @@ async def mkdir(
     body: MkdirRequest,
     session: AsyncSession = Depends(get_session),
 ):
+    """Create a directory entry at the given path."""
     row = await user_files.mkdir(session, blueprint_agent_id, user_id, body.path)
     return FileListEntry(**row)
 
 
-@router.post(f"{PREFIX}/mv", status_code=200, summary="Move or rename")
+@router.post(f"{PREFIX}/mv", status_code=200, summary="Move or rename", responses=_404)
 async def move(
     user_id: uuid.UUID,
     blueprint_agent_id: uuid.UUID,
     body: MoveRequest,
     session: AsyncSession = Depends(get_session),
 ):
+    """Move or rename a file or directory."""
     file_exists = await user_files.exists(session, blueprint_agent_id, user_id, body.old_path)
     if not file_exists:
         raise HTTPException(status_code=404, detail=f"Source not found: {body.old_path}")
@@ -149,6 +158,7 @@ async def grep(
     case_insensitive: bool = Query(False, description="Case insensitive search"),
     session: AsyncSession = Depends(get_session),
 ):
+    """Search file contents with a regex pattern. Returns matching lines with context."""
     results = await user_files.grep(
         session, blueprint_agent_id, user_id, pattern,
         case_insensitive=case_insensitive,
@@ -163,6 +173,7 @@ async def glob(
     pattern: str = Query(..., description="Glob pattern, e.g. skills/**/*.md or *.json"),
     session: AsyncSession = Depends(get_session),
 ):
+    """Find files matching a glob pattern."""
     results = await user_files.glob(session, blueprint_agent_id, user_id, pattern)
     return [FileListEntry(**r) for r in results]
 
@@ -174,5 +185,6 @@ async def tree(
     root: str = Query("/", description="Root path for tree"),
     session: AsyncSession = Depends(get_session),
 ):
+    """Return the full directory tree as a flat list of entries."""
     entries = await user_files.tree(session, blueprint_agent_id, user_id, root)
     return [TreeEntry(**e) for e in entries]

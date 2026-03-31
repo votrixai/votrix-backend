@@ -10,7 +10,7 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 
 from app.models.tools import IntegrationDetail, IntegrationSummary, ProviderType, ToolSchema
-from app.tools import composio_cache
+from app.tools import cache as composio_cache
 from app.tools.registry import PROVIDERS, get_integration, list_integrations
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
@@ -43,7 +43,7 @@ def _summary_from_cache(item: dict) -> IntegrationSummary:
     )
 
 
-@router.get("", response_model=List[IntegrationSummary])
+@router.get("", response_model=List[IntegrationSummary], summary="List integrations")
 async def list_integrations_endpoint(
     search: Optional[str] = Query(None, description="Filter by name or slug"),
     category: Optional[str] = Query(None, description="Filter by category"),
@@ -76,7 +76,8 @@ async def list_integrations_endpoint(
     return results[offset : offset + limit]
 
 
-@router.get("/{slug}", response_model=IntegrationDetail)
+@router.get("/{slug}", response_model=IntegrationDetail, summary="Get integration detail",
+            responses={404: {"description": "Integration not found"}})
 async def get_integration_endpoint(slug: str):
     """Get integration detail. Returns full tool schemas for platform integrations,
     tool names/descriptions for Composio-backed integrations."""

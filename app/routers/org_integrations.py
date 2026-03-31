@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session
 from app.db.queries import orgs as orgs_q
 from app.models.tools import OrgIntegrationItem, ProviderType
-from app.tools import composio_cache
+from app.tools import cache as composio_cache
 from app.tools.registry import PROVIDERS, get_integration
 
 router = APIRouter(prefix="/orgs", tags=["org-integrations"])
@@ -62,7 +62,9 @@ def _slug_to_item(slug: str) -> OrgIntegrationItem | None:
     return None
 
 
-@router.get("/{org_id}/integrations", response_model=List[OrgIntegrationItem])
+@router.get("/{org_id}/integrations", response_model=List[OrgIntegrationItem],
+            summary="List org integrations",
+            responses={404: {"description": "Org not found"}})
 async def list_org_integrations(
     org_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
@@ -83,7 +85,10 @@ async def list_org_integrations(
     return items
 
 
-@router.post("/{org_id}/integrations", response_model=OrgIntegrationItem, status_code=201)
+@router.post("/{org_id}/integrations", response_model=OrgIntegrationItem, status_code=201,
+             summary="Activate integration for org",
+             responses={400: {"description": "platform integration is always available"},
+                        404: {"description": "Org or integration not found"}})
 async def add_org_integration(
     org_id: uuid.UUID,
     body: AddIntegrationRequest,
@@ -107,7 +112,10 @@ async def add_org_integration(
     return _slug_to_item(slug)
 
 
-@router.delete("/{org_id}/integrations/{slug}", status_code=204)
+@router.delete("/{org_id}/integrations/{slug}", status_code=204,
+               summary="Deactivate integration for org",
+               responses={400: {"description": "platform integration cannot be removed"},
+                          404: {"description": "Org or integration not found"}})
 async def remove_org_integration(
     org_id: uuid.UUID,
     slug: str,
