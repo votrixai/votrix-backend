@@ -16,11 +16,13 @@ async def create_org(
     display_name: str = "",
     timezone: str = "UTC",
     metadata: dict | None = None,
+    integrations: list[str] | None = None,
 ) -> Org:
     obj = Org(
         display_name=display_name,
         timezone=timezone,
         metadata_=metadata or {},
+        integrations=integrations or [],
     )
     session.add(obj)
     await session.flush()

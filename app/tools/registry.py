@@ -14,6 +14,35 @@ from app.models.tools import Integration, Provider
 from app.tools.platform.schemas import PLATFORM_INTEGRATION, PROVIDERS as _PLATFORM_PROVIDERS
 
 # ---------------------------------------------------------------------------
+# Default integrations pre-activated for every new org.
+# platform is always available and not included here.
+# ---------------------------------------------------------------------------
+DEFAULT_ORG_INTEGRATIONS: List[str] = [
+    # Google (all verified on composio.dev/toolkits/*)
+    "gmail",
+    "googlecalendar",
+    "googlesheets",
+    "googledocs",
+    "googledrive",
+    "googleads",
+    "googlemeet",
+    # Google My Business — slug unconfirmed, TODO verify
+    # "googlemybusiness",
+    # Meta (facebook slug is "facebook", covers Pages; instagram & whatsapp verified)
+    "facebook",
+    "instagram",
+    "whatsapp",
+    # Social (both verified)
+    "twitter",
+    "reddit",
+    # SMB (all verified)
+    "yelp",
+    "notion",
+    "stripe",
+    "shopify",
+]
+
+# ---------------------------------------------------------------------------
 # All known providers (imported from platform schemas, extended here)
 # ---------------------------------------------------------------------------
 PROVIDERS: Dict[str, Provider] = dict(_PLATFORM_PROVIDERS)

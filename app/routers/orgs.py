@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session
 from app.db.queries.orgs import create_org, delete_org, get_org, list_orgs, update_org
 from app.models.org import CreateOrgRequest, OrgDetail, OrgSummary, UpdateOrgRequest
+from app.tools.registry import DEFAULT_ORG_INTEGRATIONS
 
 router = APIRouter(prefix="/orgs")
 
@@ -25,7 +26,13 @@ def _org_detail(org) -> OrgDetail:
 
 @router.post("", response_model=OrgDetail, status_code=201)
 async def create_org_endpoint(body: CreateOrgRequest, session: AsyncSession = Depends(get_session)):
-    org = await create_org(session, display_name=body.display_name, timezone=body.timezone, metadata=body.metadata)
+    org = await create_org(
+        session,
+        display_name=body.display_name,
+        timezone=body.timezone,
+        metadata=body.metadata,
+        integrations=DEFAULT_ORG_INTEGRATIONS,
+    )
     await session.commit()
     return _org_detail(org)
 
