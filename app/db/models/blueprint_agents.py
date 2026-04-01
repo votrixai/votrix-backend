@@ -16,4 +16,5 @@ class BlueprintAgent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    model: Mapped[str] = mapped_column(Text, nullable=False, server_default="claude-sonnet-4-6")
     integrations: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")

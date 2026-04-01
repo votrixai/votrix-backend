@@ -19,8 +19,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session
 from app.db.queries import agents as agents_q, orgs as orgs_q
 from app.models.agent import AgentIntegration, UpsertAgentIntegrationRequest
-from app.tools import cache as composio_cache
-from app.tools.registry import get_integration
+from app.config import get_settings
+from app.integrations.providers.composio import toolkit_exists
+from app.integrations.registry import get_integration
 
 router = APIRouter(prefix="/agents", tags=["agent-integrations"])
 
@@ -33,8 +34,8 @@ async def _validate_integration(
     integration_id: str,
 ) -> None:
     """Raise 404/403 if the integration can't be used by this agent."""
-    # 1. Slug must exist
-    if not get_integration(integration_id) and not composio_cache.slug_exists(integration_id):
+    # 1. Slug must exist (registry or live Composio SDK check)
+    if not get_integration(integration_id) and not await toolkit_exists(get_settings().composio_api_key, integration_id):
         raise HTTPException(status_code=404, detail=f"Integration '{integration_id}' not found")
 
     # 2. platform is always allowed — skip org check

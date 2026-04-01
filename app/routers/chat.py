@@ -1,84 +1,85 @@
-"""Chat endpoint — demo AI runtime.
+"""
+Chat endpoint — SSE streaming.
 
 POST /agents/{agent_id}/chat
-"""
+Response: text/event-stream
 
+SSE event format:
+    data: {"type": "token", "content": "..."}
+    data: {"type": "tool_start", "tool_call_id": "...", "name": "..."}
+    data: {"type": "tool_end", "tool_call_id": "..."}
+    data: {"type": "done"}
+    data: {"type": "error", "message": "..."}
+"""
+import json
 import uuid
-from typing import List, Optional
+from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
-from langchain_core.messages import AIMessage, HumanMessage
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import get_settings
 from app.db.engine import get_session
 from app.db.queries import agents as agents_q
-from app.llm import graph as llm_graph
-from app.tools.context import ToolContext
+from app.llm.engine.agent_engine import AgentEngine
 
 router = APIRouter(prefix="/agents", tags=["chat"])
 
 
-class ChatMessage(BaseModel):
-    role: str  # "user" | "assistant"
-    content: str
-
-
 class ChatRequest(BaseModel):
     user_id: uuid.UUID
-    messages: List[ChatMessage]
-    model: Optional[str] = "claude-sonnet-4-6"
+    session_id: uuid.UUID
+    message: str
 
 
-class ChatResponse(BaseModel):
-    reply: str
-    messages: List[ChatMessage]
+def _sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
 
 
-@router.post("/{agent_id}/chat", response_model=ChatResponse,
-             summary="Chat with agent",
-             responses={404: {"description": "Agent not found"}})
+@router.post("/{agent_id}/chat")
 async def chat(
     agent_id: uuid.UUID,
     body: ChatRequest,
-    session: AsyncSession = Depends(get_session),
+    db_session: AsyncSession = Depends(get_session),
 ):
-    settings = get_settings()
-
-    agent = await agents_q.get_agent(session, agent_id)
+    agent = await agents_q.get_agent(db_session, agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    ctx = ToolContext(api_key=settings.composio_api_key)
-    await ctx.initialize(
-        agent_integrations=agent.get("integrations") or [],
-        user_id=str(body.user_id),
+    engine = AgentEngine(agent_id, body.user_id, body.session_id, db_session)
+    await engine.setup(agent)
+
+    async def event_stream() -> AsyncGenerator[str, None]:
+        try:
+            async for event in engine.astream(body.message):
+                kind = event["event"]
+
+                if kind == "on_chat_model_stream":
+                    token = event["data"]["chunk"].content
+                    if token and isinstance(token, str):
+                        yield _sse({"type": "token", "content": token})
+
+                elif kind == "on_tool_start":
+                    yield _sse({
+                        "type": "tool_start",
+                        "tool_call_id": event.get("run_id", ""),
+                        "name": event["name"],
+                    })
+
+                elif kind == "on_tool_end":
+                    yield _sse({
+                        "type": "tool_end",
+                        "tool_call_id": event.get("run_id", ""),
+                    })
+
+            yield _sse({"type": "done"})
+
+        except Exception as e:
+            yield _sse({"type": "error", "message": str(e)})
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
-    tools = ctx.get_active_tools()
-
-    # Convert to LangChain message format
-    lc_messages = []
-    for m in body.messages:
-        if m.role == "user":
-            lc_messages.append(HumanMessage(content=m.content))
-        else:
-            lc_messages.append(AIMessage(content=m.content))
-
-    # Run LangGraph
-    result_messages = await llm_graph.run(lc_messages, tools, model=body.model)
-
-    # Convert back to response format (skip ToolMessages)
-    response_messages = [
-        ChatMessage(
-            role="assistant" if isinstance(m, AIMessage) else "user",
-            content=m.content if isinstance(m.content, str) else "",
-        )
-        for m in result_messages
-        if isinstance(m, (HumanMessage, AIMessage)) and isinstance(m.content, str)
-    ]
-
-    last_ai = next((m for m in reversed(result_messages) if isinstance(m, AIMessage)), None)
-    reply = last_ai.content if last_ai and isinstance(last_ai.content, str) else ""
-
-    return ChatResponse(reply=reply, messages=response_messages)

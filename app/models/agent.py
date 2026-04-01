@@ -20,6 +20,7 @@ class UpsertAgentIntegrationRequest(BaseModel):
 class CreateAgentRequest(BaseModel):
     """Create a new blueprint agent within an org."""
     name: str = Field("", description="Human-friendly agent name")
+    model: str = Field("claude-sonnet-4-6", description="LLM model identifier")
     integrations: Optional[List[AgentIntegration]] = Field(
         None, description="Integrations to enable"
     )
@@ -29,6 +30,7 @@ class CreateAgentRequest(BaseModel):
 class UpdateAgentRequest(BaseModel):
     """Update agent profile/integrations."""
     name: Optional[str] = Field(None, description="Agent display name")
+    model: Optional[str] = Field(None, description="LLM model identifier")
     integrations: Optional[List[AgentIntegration]] = Field(
         None, description="Full integrations replacement"
     )
@@ -47,6 +49,7 @@ class AgentDetail(BaseModel):
     id: str
     org_id: str
     name: str = ""
+    model: str = "claude-sonnet-4-6"
     integrations: List[AgentIntegration] = Field(default_factory=list)
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

@@ -20,8 +20,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session
 from app.db.queries import orgs as orgs_q
 from app.models.tools import OrgIntegrationItem, ProviderType
-from app.tools import cache as composio_cache
-from app.tools.registry import PROVIDERS, get_integration
+from app.config import get_settings
+from app.integrations import cache as composio_cache
+from app.integrations.providers.composio import toolkit_exists
+from app.integrations.registry import PROVIDERS, get_integration
 
 router = APIRouter(prefix="/orgs", tags=["org-integrations"])
 
@@ -100,8 +102,8 @@ async def add_org_integration(
     if slug == _PLATFORM_SLUG:
         raise HTTPException(status_code=400, detail="platform integration is always available")
 
-    # Validate slug exists (registry or Composio cache)
-    if not get_integration(slug) and not composio_cache.slug_exists(slug):
+    # Validate slug exists (registry or live Composio SDK check)
+    if not get_integration(slug) and not await toolkit_exists(get_settings().composio_api_key, slug):
         raise HTTPException(status_code=404, detail=f"Integration '{slug}' not found")
 
     org = await orgs_q.add_org_integration(session, org_id, slug)

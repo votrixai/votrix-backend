@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     # Database
     database_url: str = ""
+    langgraph_database_url: str = ""  # psycopg3 DSN for LangGraph checkpointer (postgresql://...)
 
     # LLM
     openai_api_key: str = ""
