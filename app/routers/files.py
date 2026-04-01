@@ -8,6 +8,9 @@ Routes:
   DELETE /agents/{agent_id}/files               — delete file
   POST   /agents/{agent_id}/files/mkdir         — create directory
   POST   /agents/{agent_id}/files/mv            — move/rename
+  POST   /agents/{agent_id}/files/cp            — copy file or directory
+  POST   /agents/{agent_id}/files/bulk-delete   — delete multiple paths
+  POST   /agents/{agent_id}/files/bulk-mv       — move/rename multiple paths
   GET    /agents/{agent_id}/files/grep          — regex search
   GET    /agents/{agent_id}/files/glob          — glob match
   GET    /agents/{agent_id}/files/tree          — full tree
@@ -25,6 +28,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session
 from app.db.queries import blueprint_files
 from app.models.files import (
+    BulkDeleteRequest,
+    BulkMoveRequest,
+    CopyRequest,
     EditFileRequest,
     FileContent,
     FileListEntry,
@@ -163,6 +169,48 @@ async def move(
         raise HTTPException(status_code=404, detail=f"Source not found: {body.old_path}")
     await blueprint_files.mv(session, agent_id, body.old_path, body.new_path)
     return {"old_path": body.old_path, "new_path": body.new_path}
+
+
+@router.post(f"{PREFIX}/cp", response_model=List[FileListEntry], status_code=201, summary="Copy file or directory")
+async def copy(
+    agent_id: uuid.UUID,
+    body: CopyRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Copy a file or directory (including children) to a new path."""
+    source_exists = await blueprint_files.exists(session, agent_id, body.source_path)
+    if not source_exists:
+        raise HTTPException(status_code=404, detail=f"Source not found: {body.source_path}")
+    rows = await blueprint_files.cp(session, agent_id, body.source_path, body.dest_path)
+    return [FileListEntry(**r) for r in rows]
+
+
+@router.post(f"{PREFIX}/bulk-delete", status_code=200, summary="Delete multiple files/directories")
+async def bulk_delete(
+    agent_id: uuid.UUID,
+    body: BulkDeleteRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Delete multiple paths in a single request."""
+    count = await blueprint_files.bulk_delete(session, agent_id, body.paths, recursive=body.recursive)
+    return {"deleted": count}
+
+
+@router.post(f"{PREFIX}/bulk-mv", status_code=200, summary="Move/rename multiple files")
+async def bulk_move(
+    agent_id: uuid.UUID,
+    body: BulkMoveRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Move/rename multiple files or directories in a single request."""
+    results = []
+    for move in body.moves:
+        file_exists = await blueprint_files.exists(session, agent_id, move.old_path)
+        if not file_exists:
+            raise HTTPException(status_code=404, detail=f"Source not found: {move.old_path}")
+        await blueprint_files.mv(session, agent_id, move.old_path, move.new_path)
+        results.append({"old_path": move.old_path, "new_path": move.new_path})
+    return results
 
 
 @router.get(f"{PREFIX}/grep", response_model=List[GrepMatch], summary="Regex search across files")

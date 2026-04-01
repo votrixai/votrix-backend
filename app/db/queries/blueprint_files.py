@@ -33,8 +33,14 @@ def _derive_fields(path: str, name: str, content: str = "", size_bytes: int = 0)
 
 def _row_to_dict(row) -> Dict[str, Any]:
     if hasattr(row, "__table__"):
-        return {c.key: getattr(row, c.key) for c in row.__table__.columns}
-    return dict(row)
+        d = {c.key: getattr(row, c.key) for c in row.__table__.columns}
+    else:
+        d = dict(row)
+    # Ensure UUID fields are serialised as strings for Pydantic
+    for k, v in d.items():
+        if isinstance(v, uuid.UUID):
+            d[k] = str(v)
+    return d
 
 
 async def _ensure_ancestors(
@@ -465,6 +471,129 @@ async def tree(
     stmt = stmt.order_by(BlueprintFile.path)
     result = await session.execute(stmt)
     return [dict(r) for r in result.mappings()]
+
+
+async def bulk_insert(
+    session: AsyncSession,
+    rows: List[Dict[str, Any]],
+) -> None:
+    """Insert many file/directory rows in a single round-trip (upsert, no-op on conflict)."""
+    if not rows:
+        return
+    stmt = pg_insert(BlueprintFile).values(rows).on_conflict_do_nothing(
+        index_elements=["blueprint_agent_id", "path"],
+    )
+    await session.execute(stmt)
+    await session.commit()
+
+
+async def bulk_delete(
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
+    paths: List[str], recursive: bool = False,
+) -> int:
+    """Delete multiple files/directories in a single request. Returns count of deleted rows."""
+    if not paths:
+        return 0
+
+    # Collect storage paths to clean up
+    conditions = [BlueprintFile.path.in_(paths)]
+    if recursive:
+        for p in paths:
+            conditions.append(BlueprintFile.path.like(f"{p}/%"))
+
+    from sqlalchemy import or_
+    where_clause = or_(*conditions)
+
+    storage_stmt = (
+        select(BlueprintFile.storage_path)
+        .where(
+            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
+            where_clause,
+            BlueprintFile.storage_path.is_not(None),
+        )
+    )
+    storage_rows = (await session.execute(storage_stmt)).scalars().all()
+    for sp in storage_rows:
+        await storage_delete(BUCKET, sp)
+
+    stmt = (
+        delete(BlueprintFile)
+        .where(
+            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
+            where_clause,
+        )
+        .returning(BlueprintFile.id)
+    )
+    result = await session.execute(stmt)
+    count = len(result.all())
+    await session.commit()
+    return count
+
+
+async def cp(
+    session: AsyncSession, blueprint_agent_id: uuid.UUID,
+    source_path: str, dest_path: str,
+) -> List[Dict[str, Any]]:
+    """Copy a file or directory to a new path. Returns list of created rows."""
+    # Read the source node
+    source = await read_file(session, blueprint_agent_id, source_path)
+    if not source:
+        return []
+
+    created: List[Dict[str, Any]] = []
+
+    if source["type"] == "directory":
+        # Copy the directory itself
+        row = await mkdir(session, blueprint_agent_id, dest_path)
+        created.append(row)
+        # Copy all children
+        children_stmt = (
+            select(BlueprintFile)
+            .where(
+                BlueprintFile.blueprint_agent_id == blueprint_agent_id,
+                BlueprintFile.path.like(f"{source_path}/%"),
+            )
+            .order_by(BlueprintFile.depth, BlueprintFile.path)
+        )
+        children = (await session.execute(children_stmt)).scalars().all()
+        for child in children:
+            child_dest = dest_path + child.path[len(source_path):]
+            if child.type == "directory":
+                row = await mkdir(session, blueprint_agent_id, child_dest)
+            elif child.storage_path:
+                from app.storage import download_file
+                data = await download_file(BUCKET, child.storage_path)
+                row = await write_file(
+                    session, blueprint_agent_id, child_dest,
+                    mime_type=child.mime_type or "application/octet-stream",
+                    binary_data=data,
+                )
+            else:
+                row = await write_file(
+                    session, blueprint_agent_id, child_dest,
+                    child.content or "",
+                    mime_type=child.mime_type or "text/markdown",
+                )
+            created.append(row)
+    else:
+        # Single file copy
+        if source.get("storage_path"):
+            from app.storage import download_file
+            data = await download_file(BUCKET, source["storage_path"])
+            row = await write_file(
+                session, blueprint_agent_id, dest_path,
+                mime_type=source.get("mime_type", "application/octet-stream"),
+                binary_data=data,
+            )
+        else:
+            row = await write_file(
+                session, blueprint_agent_id, dest_path,
+                source.get("content") or "",
+                mime_type=source.get("mime_type", "text/markdown"),
+            )
+        created.append(row)
+
+    return created
 
 
 async def get_all_files(session: AsyncSession, blueprint_agent_id: uuid.UUID) -> List[Dict[str, Any]]:

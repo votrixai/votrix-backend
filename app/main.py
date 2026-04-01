@@ -42,6 +42,7 @@ app = FastAPI(
     redoc_url=None,
 )
 
+app.add_middleware(ShortIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -49,7 +50,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.add_middleware(ShortIdMiddleware)
 
 app.include_router(orgs.router)
 app.include_router(org_integrations.router)

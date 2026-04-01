@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session
 from app.db.queries import agents as agents_q, blueprint_files
+from app.db.queries.blueprint_files import _derive_fields
 from app.storage import BUCKET, download_file
 from app.models.agent import (
     AgentDetail,
@@ -94,22 +95,39 @@ async def create_agent(
                         )
     elif not body.skip_defaults and _DEFAULT_BLUEPRINT_FILES_DIR.is_dir():
         new_id = row["id"]
-        # Collect directories and files, sorted so parents come first
-        dirs: list[str] = []
-        files: list[tuple[str, Path]] = []
+        bulk_rows: list[dict] = []
         for disk_path in sorted(_DEFAULT_BLUEPRINT_FILES_DIR.rglob("*")):
             virtual = "/" + str(disk_path.relative_to(_DEFAULT_BLUEPRINT_FILES_DIR))
+            name = disk_path.name
             if disk_path.is_dir():
-                dirs.append(virtual)
+                bulk_rows.append({
+                    "blueprint_agent_id": new_id,
+                    "path": virtual,
+                    "name": name,
+                    "type": "directory",
+                    "content": "",
+                    "storage_path": None,
+                    "mime_type": "",
+                    "created_by": "system",
+                    **_derive_fields(virtual, name),
+                })
             elif disk_path.is_file():
-                files.append((virtual, disk_path))
-        for d in dirs:
-            await blueprint_files.mkdir(session, new_id, d)
-        for virtual, disk_path in files:
-            content = disk_path.read_text(encoding="utf-8")
-            suffix = disk_path.suffix.lower()
-            mime = "application/json" if suffix == ".json" else "text/markdown"
-            await blueprint_files.write_file(session, new_id, virtual, content, mime_type=mime)
+                from app.db.queries.blueprint_files import _derive_fields
+                content = disk_path.read_text(encoding="utf-8")
+                suffix = disk_path.suffix.lower()
+                mime = "application/json" if suffix == ".json" else "text/markdown"
+                bulk_rows.append({
+                    "blueprint_agent_id": new_id,
+                    "path": virtual,
+                    "name": name,
+                    "type": "file",
+                    "content": content,
+                    "storage_path": None,
+                    "mime_type": mime,
+                    "created_by": "system",
+                    **_derive_fields(virtual, name, content),
+                })
+        await blueprint_files.bulk_insert(session, bulk_rows)
 
     return _to_detail(row)
 
