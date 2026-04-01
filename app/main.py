@@ -11,6 +11,7 @@ from scalar_fastapi import get_scalar_api_reference
 from app.config import get_settings
 from app.db.engine import dispose_engine, init_engine
 from app.routers import agent_integrations, agents, chat, end_user_accounts, files, org_integrations, orgs, tools, user_files
+from app.routers.agents import load_default_blueprint_files
 from app.short_id import ShortIdMiddleware, patch_openapi
 from app.tools import cache as composio_cache
 
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI):
     logging.basicConfig(level=settings.log_level)
     init_engine(settings.database_url)
     logger.info("SQLAlchemy async engine initialized")
+
+    load_default_blueprint_files()
 
     # Kick off Composio catalog refresh in the background so startup isn't blocked.
     # GET /integrations returns only platform items until the cache is ready.
