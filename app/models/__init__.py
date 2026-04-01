@@ -6,7 +6,6 @@ from app.models.org import (
 )
 from app.models.agent import (
     AgentDetail,
-    AgentIntegration,
     AgentSummary,
     CreateAgentRequest,
     UpdateAgentRequest,
@@ -37,7 +36,6 @@ __all__ = [
     "OrgSummary",
     "UpdateOrgRequest",
     "AgentDetail",
-    "AgentIntegration",
     "AgentSummary",
     "CreateAgentRequest",
     "CreateEndUserAccountRequest",

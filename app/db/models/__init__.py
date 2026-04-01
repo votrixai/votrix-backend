@@ -6,7 +6,11 @@ from app.db.models.blueprint_agents import BlueprintAgent
 from app.db.models.blueprint_files import BlueprintFile, NodeType
 from app.db.models.user_files import UserFile
 from app.db.models.end_user_accounts import EndUserAccount
-from app.db.models.end_user_agent_links import EndUserAgentLink
+from app.db.models.end_user_agents import EndUserAgent
+from app.db.models.agent_integrations import AgentIntegration
+from app.db.models.agent_integration_tools import AgentIntegrationTool
+from app.db.models.blueprint_agent_integrations import BlueprintAgentIntegration
+from app.db.models.blueprint_agent_integration_tools import BlueprintAgentIntegrationTool
 
 __all__ = [
     "Base",
@@ -16,5 +20,9 @@ __all__ = [
     "NodeType",
     "UserFile",
     "EndUserAccount",
-    "EndUserAgentLink",
+    "EndUserAgent",
+    "AgentIntegration",
+    "AgentIntegrationTool",
+    "BlueprintAgentIntegration",
+    "BlueprintAgentIntegrationTool",
 ]

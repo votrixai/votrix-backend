@@ -7,7 +7,7 @@ from app.db.queries.agents import create_agent
 from app.db.queries.end_user_accounts import create_end_user_account
 from app.db.queries import blueprint_files as bf
 from app.db.queries import user_files as uf
-from app.db.queries.end_user_agent_links import (
+from app.db.queries.end_user_agents import (
     link_agent,
     get_link,
     unlink_agent,
@@ -20,7 +20,7 @@ async def setup(session):
     """Return (agent_id, user_id)."""
     org = await create_org(session, display_name="O")
     await session.commit()
-    agent = await create_agent(session, org.id, name="A")
+    agent = await create_agent(session, org.id, display_name="A")
     user = await create_end_user_account(session, org.id, display_name="U")
     await session.commit()
     return agent["id"], user.id

@@ -25,7 +25,7 @@ from app.db.queries.end_user_accounts import (
     list_end_user_accounts,
     update_end_user_account,
 )
-from app.db.queries.end_user_agent_links import (
+from app.db.queries.end_user_agents import (
     link_agent,
     list_links_for_account,
     replicate_blueprint_to_user,
@@ -36,7 +36,7 @@ from app.models.end_user_account import (
     CreateEndUserAgentRequest,
     EndUserAccountDetail,
     EndUserAccountSummary,
-    EndUserAgentLink,
+    EndUserAgentDetail,
     UpdateEndUserAccountRequest,
 )
 
@@ -137,7 +137,7 @@ async def delete_end_user(user_id: uuid.UUID, session: AsyncSession = Depends(ge
 
 @router.post(
     "/users/{user_id}/agents",
-    response_model=EndUserAgentLink,
+    response_model=EndUserAgentDetail,
     status_code=201,
     summary="Instantiate agent for user",
     responses=_404_user,
@@ -156,7 +156,7 @@ async def create_end_user_agent(
     await replicate_blueprint_to_user(session, link.blueprint_agent_id, account.id)
     await session.commit()
 
-    return EndUserAgentLink(
+    return EndUserAgentDetail(
         id=str(link.id),
         end_user_account_id=str(link.end_user_account_id),
         blueprint_agent_id=str(link.blueprint_agent_id),
@@ -166,7 +166,7 @@ async def create_end_user_agent(
 
 @router.get(
     "/users/{user_id}/agents",
-    response_model=List[EndUserAgentLink],
+    response_model=List[EndUserAgentDetail],
     summary="List user's agents",
     responses=_404_user,
 )
@@ -181,7 +181,7 @@ async def list_end_user_agents(
 
     links = await list_links_for_account(session, account.id)
     return [
-        EndUserAgentLink(
+        EndUserAgentDetail(
             id=str(l.id),
             end_user_account_id=str(l.end_user_account_id),
             blueprint_agent_id=str(l.blueprint_agent_id),

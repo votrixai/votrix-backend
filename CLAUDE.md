@@ -38,19 +38,24 @@ SQLAlchemy async ORM → Postgres (asyncpg)
 - **SQLAlchemy ORM + Alembic** — ORM models in `app/db/models/`, schema reference in `supabase/migrations/001_initial.sql`
 - **Two-table filesystem** — `blueprint_files` for agent templates, `user_files` for end-user copies. Completely decoupled
 - **Agent instantiation** — `POST /users/{user_id}/agents` creates a link and replicates blueprint_files → user_files
+- **Default blueprint files** — creating an agent auto-populates files from `prompts/agents/default/` on disk. Opt out with `skip_defaults: true`. If `seed_from` is set, defaults are skipped (clone takes priority)
+- **Soft delete** — `DELETE /agents/{id}?soft=true` sets `deleted_at`, hides from list but agent remains GET-able with files intact. A subsequent hard `DELETE /agents/{id}` fully removes it with cascade
 - **Session injection** — all DAO functions accept `AsyncSession` as first parameter. Routers inject via `Depends(get_session)`
 
 ## Database
 
-7 tables defined as ORM models in `app/db/models/`:
+11 tables defined as ORM models in `app/db/models/`:
 
-- `orgs` — tenant root (UUID `id`, display_name, timezone, metadata)
-- `blueprint_agents` — agent templates. UUID `id`, FK `org_id` → `orgs.id`, `name` display name
-- `agent_integrations` — per-agent integrations. FK `blueprint_agent_id` → `blueprint_agents.id`, `integration_slug`
+- `orgs` — tenant root (UUID `id`, display_name, timezone, metadata, integrations)
+- `blueprint_agents` — agent templates. UUID `id`, FK `org_id` → `orgs.id`, `display_name`, nullable `deleted_at` for soft delete
+- `agent_integrations` — global integration catalog. UUID `id`, unique `slug`, `display_name`, `provider_slug`, `provider_config`
+- `agent_integration_tools` — tools per integration. FK `agent_integration_id`, unique `(agent_integration_id, slug)`
+- `blueprint_agent_integrations` — agent ↔ integration join. FKs to `blueprint_agents` and `agent_integrations`, unique on pair
+- `blueprint_agent_integration_tools` — enabled tools per agent-integration link. FKs to `blueprint_agent_integrations` and `agent_integration_tools`, unique on pair
 - `blueprint_files` — admin-owned virtual filesystem. FK `blueprint_agent_id`, unique on `(blueprint_agent_id, path)`
 - `end_user_accounts` — end user accounts. FK `org_id` → `orgs.id`, `display_name`, `sandbox`
 - `user_files` — end-user files. FKs to `blueprint_agents.id` and `end_user_accounts.id`, unique on `(blueprint_agent_id, user_account_id, path)`
-- `end_user_agent_links` — many-to-many linking users to agents. FKs to both, unique on pair
+- `end_user_agents` — many-to-many linking users to agents. FKs to both, unique on pair
 
 RLS enabled on all tables. Backend connects as `postgres` superuser (bypasses RLS).
 

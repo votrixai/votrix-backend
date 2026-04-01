@@ -14,7 +14,7 @@ import app.db.models.orgs  # noqa: F401
 import app.db.models.blueprint_agents  # noqa: F401
 import app.db.models.blueprint_files  # noqa: F401
 import app.db.models.end_user_accounts  # noqa: F401
-import app.db.models.end_user_agent_links  # noqa: F401
+import app.db.models.end_user_agents  # noqa: F401
 import app.db.models.user_files  # noqa: F401
 
 

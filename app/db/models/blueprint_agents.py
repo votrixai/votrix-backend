@@ -1,9 +1,11 @@
 """ORM model for the blueprint_agents table."""
 
 import uuid
+from datetime import datetime
+from typing import Optional
 
-from sqlalchemy import ForeignKey, Text
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import DateTime, ForeignKey, Text
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -15,6 +17,7 @@ class BlueprintAgent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     org_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False
     )
-    name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-    model: Mapped[str] = mapped_column(Text, nullable=False, server_default="claude-sonnet-4-6")
-    integrations: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")
+    display_name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )
