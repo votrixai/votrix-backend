@@ -9,6 +9,7 @@ from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class AgentIntegration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "agent_integrations"
+    _short_id_prefix = "integ"
 
     slug: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     display_name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")

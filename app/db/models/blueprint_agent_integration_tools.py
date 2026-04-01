@@ -11,6 +11,7 @@ from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class BlueprintAgentIntegrationTool(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "blueprint_agent_integration_tools"
+    _short_id_prefix = "bat"
     __table_args__ = (
         UniqueConstraint(
             "blueprint_agent_integration_id", "agent_integration_tool_id",

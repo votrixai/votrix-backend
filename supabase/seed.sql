@@ -11,9 +11,3 @@ VALUES (
     '{}'
 );
 
-INSERT INTO blueprint_agents (id, org_id, display_name)
-VALUES (
-    'b0000000-0000-0000-0000-000000000001',
-    'a0000000-0000-0000-0000-000000000001',
-    'Marketing Agent'
-);

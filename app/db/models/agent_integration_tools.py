@@ -11,6 +11,7 @@ from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class AgentIntegrationTool(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "agent_integration_tools"
+    _short_id_prefix = "tool"
     __table_args__ = (
         UniqueConstraint("agent_integration_id", "slug", name="uq_integration_tool_slug"),
     )

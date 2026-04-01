@@ -11,6 +11,7 @@ from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class EndUserAgent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "end_user_agents"
+    _short_id_prefix = "link"
     __table_args__ = (
         UniqueConstraint("end_user_account_id", "blueprint_agent_id"),
     )

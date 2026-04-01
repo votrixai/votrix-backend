@@ -25,6 +25,7 @@ class NodeType(str, enum.Enum):
 
 class BlueprintFile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "blueprint_files"
+    _short_id_prefix = "file"
     __table_args__ = (
         UniqueConstraint("blueprint_agent_id", "path"),
         Index("idx_blueprint_ls", "blueprint_agent_id", "parent"),

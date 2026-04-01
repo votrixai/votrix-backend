@@ -5,6 +5,7 @@ from datetime import datetime
 
 from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -26,6 +27,13 @@ class TimestampMixin:
 class UUIDPrimaryKeyMixin:
     """UUID primary key with server-side default."""
 
+    _short_id_prefix: str = ""  # override in subclasses
+
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, server_default=func.gen_random_uuid()
     )
+
+    @hybrid_property
+    def short_id(self) -> str:
+        from app.short_id import encode_prefixed
+        return encode_prefixed(self.id, self._short_id_prefix)
