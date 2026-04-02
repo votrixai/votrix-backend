@@ -11,12 +11,10 @@ from scalar_fastapi import get_scalar_api_reference
 
 from app.config import get_settings
 from app.db.engine import dispose_engine, init_engine
-from app.routers import agent_integrations, agents, chat, end_user_accounts, files, org_integrations, orgs, tools, user_files
-from app.routers.agents import load_default_blueprint_files
-from app.short_id import ShortIdMiddleware, patch_openapi
-from app.tools import cache as composio_cache
 from app.llm.engine import AgentEngine
 from app.routers import agent_integrations, agents, chat, end_user_accounts, files, integrations, org_integrations, orgs, user_files
+from app.routers.agents import load_default_blueprint_files
+from app.short_id import ShortIdMiddleware, patch_openapi
 from app.ws import router as ws_router
 from app.integrations import cache as composio_cache
 
@@ -77,7 +75,6 @@ app.include_router(agent_integrations.router)
 app.include_router(end_user_accounts.router)
 app.include_router(files.router)
 app.include_router(user_files.router)
-app.include_router(tools.router)
 app.include_router(integrations.router)
 app.include_router(chat.router)
 app.include_router(ws_router.router)

@@ -37,7 +37,29 @@ class AgentEngine:
         Called once at app startup (lifespan).
         """
         checkpointer = AsyncPostgresSaver(pool)
-        await checkpointer.setup()
+        # setup() migrations include CREATE INDEX CONCURRENTLY which
+        # cannot run inside a transaction. Run each migration with autocommit.
+        async with pool.connection() as conn:
+            await conn.set_autocommit(True)
+            cur = conn.cursor()
+            await cur.execute(checkpointer.MIGRATIONS[0])
+            try:
+                results = await cur.execute(
+                    "SELECT v FROM checkpoint_migrations ORDER BY v DESC LIMIT 1"
+                )
+                row = await results.fetchone()
+                version = -1 if row is None else row["v"]
+            except Exception:
+                version = -1
+            for v, migration in zip(
+                range(version + 1, len(checkpointer.MIGRATIONS)),
+                checkpointer.MIGRATIONS[version + 1:],
+                strict=False,
+            ):
+                await cur.execute(migration)
+                await cur.execute(
+                    "INSERT INTO checkpoint_migrations (v) VALUES (%s)", (v,)
+                )
         cls._graph = build_graph(checkpointer)
 
     def __init__(
