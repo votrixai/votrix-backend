@@ -7,14 +7,14 @@ from pydantic import BaseModel, Field
 
 
 class AgentIntegration(BaseModel):
-    integration_id: str
+    integration_slug: str
     deferred: bool
-    enabled_tool_ids: List[str] = []
+    enabled_tool_slugs: List[str] = []
 
 
 class UpsertAgentIntegrationRequest(BaseModel):
     deferred: bool
-    enabled_tool_ids: List[str] = []
+    enabled_tool_slugs: List[str] = []
 
 
 class CreateAgentRequest(BaseModel):
@@ -24,8 +24,6 @@ class CreateAgentRequest(BaseModel):
     integrations: Optional[List[AgentIntegration]] = Field(
         None, description="Integrations to enable"
     )
-    seed_from: Optional[str] = Field(None, description="Copy integrations and files from this agent ID")
-    skip_defaults: bool = Field(False, description="Skip populating default template files")
 
 
 class UpdateAgentRequest(BaseModel):
@@ -37,7 +35,7 @@ class UpdateAgentRequest(BaseModel):
     )
 
 
-class AgentSummary(BaseModel):
+class AgentSummaryResponse(BaseModel):
     """Lightweight agent info for list responses."""
     id: str
     display_name: str = ""
@@ -45,7 +43,7 @@ class AgentSummary(BaseModel):
     updated_at: Optional[datetime] = None
 
 
-class AgentDetail(BaseModel):
+class AgentDetailResponse(BaseModel):
     """Full agent detail."""
     id: str
     org_id: str

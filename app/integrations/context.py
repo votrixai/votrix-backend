@@ -19,7 +19,7 @@ from typing import Dict, List, Optional, Union
 from langchain_core.tools import BaseTool
 
 from app.models.agent import AgentIntegration
-from app.models.tools import Integration
+from app.models.integration import Integration
 from app.integrations.registry import REGISTRY
 from app.integrations.providers.platform import PlatformProvider
 from app.integrations.providers.composio import ComposioProvider
@@ -53,17 +53,17 @@ class ToolContext:
         for item in agent_integrations:
             ai = AgentIntegration(**item) if isinstance(item, dict) else item
 
-            integration = self._resolve_integration(ai.integration_id, REGISTRY)
-            provider = providers.get(integration.provider_id)
+            integration = self._resolve_integration(ai.integration_slug, REGISTRY)
+            provider = providers.get(integration.provider_slug)
             if provider is None:
                 logger.warning("Unknown provider '%s' for integration '%s' — skipping",
-                               integration.provider_id, ai.integration_id)
+                               integration.provider_slug, ai.integration_slug)
                 continue
 
-            enabled = ai.enabled_tool_ids if ai.enabled_tool_ids else None
+            enabled = ai.enabled_tool_slugs if ai.enabled_tool_slugs else None
             tools = await provider.load_tools(
                 integration=integration,
-                enabled_tool_ids=enabled,
+                enabled_tool_slugs=enabled,
                 user_id=user_id,
             )
 
@@ -91,16 +91,16 @@ class ToolContext:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _resolve_integration(integration_id: str, registry: Dict[str, Integration]) -> Integration:
+    def _resolve_integration(integration_slug: str, registry: Dict[str, Integration]) -> Integration:
         """Return from static registry, or build a dynamic composio Integration."""
-        if integration_id in registry:
-            return registry[integration_id]
+        if integration_slug in registry:
+            return registry[integration_slug]
 
         # Unknown slug → assume it's a Composio-backed toolkit
         return Integration(
-            id=integration_id,
-            display_name=integration_id.replace("_", " ").title(),
+            slug=integration_slug,
+            display_name=integration_slug.replace("_", " ").title(),
             description="",
-            provider_id="composio",
+            provider_slug="composio",
             provider_config={},
         )

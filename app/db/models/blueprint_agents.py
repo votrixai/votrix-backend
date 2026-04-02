@@ -2,12 +2,14 @@
 
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import TYPE_CHECKING, List, Optional
+
+if TYPE_CHECKING:
+    from app.db.models.blueprint_agent_integrations import BlueprintAgentIntegration
 
 from sqlalchemy import DateTime, ForeignKey, Text
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
@@ -21,7 +23,13 @@ class BlueprintAgent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     display_name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
     model: Mapped[str] = mapped_column(Text, nullable=False, server_default="claude-sonnet-4-6")
-    integrations: Mapped[list] = mapped_column(JSONB, nullable=False, server_default="[]")
+
+    enabled_integrations: Mapped[List["BlueprintAgentIntegration"]] = relationship(
+        "BlueprintAgentIntegration",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
     deleted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True, default=None
     )

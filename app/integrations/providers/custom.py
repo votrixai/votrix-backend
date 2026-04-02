@@ -10,7 +10,7 @@ from typing import List, Optional
 
 from langchain_core.tools import BaseTool
 
-from app.models.tools import Integration
+from app.models.integration import Integration
 from app.integrations.providers import ToolProvider
 
 logger = logging.getLogger(__name__)
@@ -20,8 +20,8 @@ class CustomProvider(ToolProvider):
     async def load_tools(
         self,
         integration: Integration,
-        enabled_tool_ids: Optional[List[str]],
+        enabled_tool_slugs: Optional[List[str]],
         user_id: str,
     ) -> List[BaseTool]:
-        logger.warning("CustomProvider is not yet implemented (integration: %s)", integration.id)
+        logger.warning("CustomProvider is not yet implemented (integration: %s)", integration.slug)
         return []

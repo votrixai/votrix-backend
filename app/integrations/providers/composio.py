@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 
 from langchain_core.tools import BaseTool
 
-from app.models.tools import Integration
+from app.models.integration import Integration
 from app.integrations.providers import ToolProvider
 
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ async def get_toolkit_detail(api_key: str, slug: str) -> Optional[Dict[str, Any]
         meta = getattr(item, "meta", None)
         categories = []
         if meta and getattr(meta, "categories", None):
-            categories = [getattr(c, "id", "") for c in meta.categories]
+            categories = [getattr(c, "slug", "") for c in meta.categories]
         return {
             "slug":         getattr(item, "slug", "") or "",
             "name":         getattr(item, "name", "") or "",
@@ -109,7 +109,7 @@ async def get_tool_schemas(api_key: str, toolkit_slug: str) -> List[Dict[str, An
         )
         schemas = [
             {
-                "id":           getattr(t, "slug", ""),
+                "slug":         getattr(t, "slug", ""),
                 "name":         getattr(t, "slug", ""),
                 "description":  getattr(t, "description", ""),
                 "input_schema": getattr(t, "input_parameters", None),
@@ -150,27 +150,27 @@ class ComposioProvider(ToolProvider):
     async def load_tools(
         self,
         integration: Integration,
-        enabled_tool_ids: Optional[List[str]],
+        enabled_tool_slugs: Optional[List[str]],
         user_id: str,
     ) -> List[BaseTool]:
         if not self._api_key:
-            logger.warning("No Composio API key — skipping integration: %s", integration.id)
+            logger.warning("No Composio API key — skipping integration: %s", integration.slug)
             return []
         try:
             composio = await _get_composio(self._api_key)
-            if enabled_tool_ids:
+            if enabled_tool_slugs:
                 return await asyncio.to_thread(
                     composio.tools.get,
                     user_id=user_id,
-                    tools=enabled_tool_ids,
+                    tools=enabled_tool_slugs,
                 )
             else:
                 # v3 SDK accepts lowercase slugs directly — no .upper() needed
                 return await asyncio.to_thread(
                     composio.tools.get,
                     user_id=user_id,
-                    toolkits=[integration.id],
+                    toolkits=[integration.slug],
                 )
         except Exception as exc:
-            logger.error("ComposioProvider.load_tools failed (%s): %s", integration.id, exc)
+            logger.error("ComposioProvider.load_tools failed (%s): %s", integration.slug, exc)
             return []

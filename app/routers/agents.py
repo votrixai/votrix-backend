@@ -17,12 +17,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session
-from app.db.queries import agents as agents_q, blueprint_files
+from app.db.queries import agents as agents_q, blueprint_files, orgs as orgs_q
 from app.db.queries.blueprint_files import _derive_fields
-from app.storage import BUCKET, download_file
+from app.db.models.blueprint_agents import BlueprintAgent
 from app.models.agent import (
-    AgentDetail,
-    AgentSummary,
+    AgentDetailResponse,
+    AgentIntegration,
+    AgentSummaryResponse,
     CreateAgentRequest,
     UpdateAgentRequest,
 )
@@ -80,97 +81,93 @@ def load_default_blueprint_files() -> None:
     logger.info("Loaded %d default blueprint files from disk", len(rows))
 
 
-def _to_detail(row: dict) -> AgentDetail:
-    return AgentDetail(
-        id=str(row.get("id", "")),
-        org_id=str(row.get("org_id", "")),
-        display_name=row.get("display_name", ""),
-        deleted_at=row.get("deleted_at"),
-        created_at=row.get("created_at"),
-        updated_at=row.get("updated_at"),
+async def _to_detail(session: AsyncSession, agent: BlueprintAgent) -> AgentDetailResponse:
+    integs = await agents_q.get_agent_integrations(session, agent.id)
+    return AgentDetailResponse(
+        id=str(agent.id),
+        org_id=str(agent.org_id),
+        display_name=agent.display_name,
+        model=agent.model,
+        integrations=[
+            AgentIntegration(
+                integration_slug=i.integration_slug,
+                deferred=i.deferred,
+                enabled_tool_slugs=list(i.enabled_tool_slugs or []),
+            )
+            for i in integs
+        ],
+        deleted_at=agent.deleted_at,
+        created_at=agent.created_at,
+        updated_at=agent.updated_at,
     )
 
 
-@router.post("/orgs/{org_id}/agents", response_model=AgentDetail, status_code=201,
-             summary="Create agent",
-             responses={404: {"description": "Seed source agent not found"}})
+@router.post("/orgs/{org_id}/agents", response_model=AgentDetailResponse, status_code=201,
+             summary="Create agent")
 async def create_agent(
     org_id: uuid.UUID,
     body: CreateAgentRequest,
     session: AsyncSession = Depends(get_session),
 ):
-    """Create a new blueprint agent. Optionally seed from an existing agent."""
-    kwargs = {}
+    """Create a new blueprint agent; copy all files from the prompts/ tree into its folder."""
+    kwargs: dict = {}
     if body.display_name:
         kwargs["display_name"] = body.display_name
+    if body.model:
+        kwargs["model"] = body.model
+    if body.integrations is not None:
+        kwargs["integrations"] = body.integrations
 
-    if body.seed_from:
-        source = await agents_q.get_agent(session, body.seed_from)
-        if not source:
-            raise HTTPException(status_code=404, detail=f"Seed source agent '{body.seed_from}' not found")
-        if "display_name" not in kwargs:
-            kwargs["display_name"] = source.get("display_name", "")
+    if not await orgs_q.get_org(session, org_id):
+        raise HTTPException(status_code=404, detail="Org not found")
 
     row = await agents_q.create_agent(session, org_id, **kwargs)
 
-    if body.seed_from:
-        source_id = uuid.UUID(body.seed_from)
-        new_id = row["id"]
-        source_files = await blueprint_files.tree(session, source_id)
-        for f in source_files:
-            if f["type"] == "directory":
-                await blueprint_files.mkdir(session, new_id, f["path"])
-            else:
-                content_row = await blueprint_files.read_file(session, source_id, f["path"])
-                if content_row:
-                    if content_row.get("storage_path"):
-                        data = await download_file(BUCKET, content_row["storage_path"])
-                        await blueprint_files.write_file(
-                            session, new_id, f["path"],
-                            mime_type=content_row.get("mime_type", "application/octet-stream"),
-                            binary_data=data,
-                        )
-                    else:
-                        await blueprint_files.write_file(
-                            session, new_id, f["path"],
-                            content_row.get("content") or "",
-                            mime_type=content_row.get("mime_type", "text/markdown"),
-                        )
-    elif not body.skip_defaults and _default_blueprint_cache:
-        new_id = row["id"]
+    if _default_blueprint_cache:
+        new_id = row.id
         bulk_rows = [{"blueprint_agent_id": new_id, **entry} for entry in _default_blueprint_cache]
         await blueprint_files.bulk_insert(session, bulk_rows)
 
-    return _to_detail(row)
+    return await _to_detail(session, row)
 
 
-@router.get("/orgs/{org_id}/agents", response_model=List[AgentSummary], summary="List agents")
+@router.get("/orgs/{org_id}/agents", response_model=List[AgentSummaryResponse], summary="List agents")
 async def list_agents(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
     """List all blueprint agents in an org."""
     rows = await agents_q.list_agents(session, org_id)
-    return [AgentSummary(id=str(r["id"]), display_name=r["display_name"], created_at=r["created_at"], updated_at=r["updated_at"]) for r in rows]
+    return [
+        AgentSummaryResponse(
+            id=str(r.id),
+            display_name=r.display_name,
+            created_at=r.created_at,
+            updated_at=r.updated_at,
+        )
+        for r in rows
+    ]
 
 
-@router.get("/agents/{agent_id}", response_model=AgentDetail, summary="Get agent", responses=_404)
+@router.get("/agents/{agent_id}", response_model=AgentDetailResponse, summary="Get agent", responses=_404)
 async def get_agent(agent_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
     """Return full agent detail including integrations."""
     row = await agents_q.get_agent(session, agent_id)
     if not row:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return _to_detail(row)
+    return await _to_detail(session, row)
 
 
-@router.patch("/agents/{agent_id}", response_model=AgentDetail, summary="Update agent",
+@router.patch("/agents/{agent_id}", response_model=AgentDetailResponse, summary="Update agent",
               responses={**_404, **_400})
 async def update_agent(
     agent_id: uuid.UUID,
     body: UpdateAgentRequest,
     session: AsyncSession = Depends(get_session),
 ):
-    """Partial update — display_name."""
+    """Partial update — display_name, model, integrations (full replacement)."""
     updates = {}
     if body.display_name is not None:
         updates["display_name"] = body.display_name
+    if body.model is not None:
+        updates["model"] = body.model
 
     if updates:
         row = await agents_q.update_agent(session, agent_id, **updates)
@@ -181,7 +178,10 @@ async def update_agent(
         if not row:
             raise HTTPException(status_code=404, detail="Agent not found")
 
-    return _to_detail(row)
+    if body.integrations is not None:
+        await agents_q.replace_agent_integrations(session, agent_id, body.integrations)
+
+    return await _to_detail(session, row)
 
 
 @router.delete("/agents/{agent_id}", status_code=204, summary="Delete agent", responses=_404)

@@ -1,4 +1,18 @@
-"""DAO functions for end_user_agents + replication."""
+"""DAO functions for end_user_agents + replication.
+
+Return shapes (DAO; HTTP layer uses ``app.models.end_user_account`` link types):
+
+    ``link_agent``, ``get_link``, ``list_links_for_account``
+        → :class:`app.db.models.end_user_agents.EndUserAgent`
+        OR ``None`` for ``get_link`` only.
+
+    ``unlink_agent``
+        → ``bool`` — whether a link row was removed.
+
+    ``replicate_blueprint_to_user``
+        → ``int`` — number of filesystem nodes (dirs + files) written
+        to ``user_files`` for that user/agent pair.
+"""
 
 from __future__ import annotations
 
@@ -9,6 +23,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.blueprint_files import NodeType
 from app.db.models.end_user_agents import EndUserAgent
 from app.db.queries import blueprint_files, user_files
 from app.storage import BUCKET, download_file
@@ -86,26 +101,25 @@ async def replicate_blueprint_to_user(
     all_nodes = await blueprint_files.tree(session, blueprint_agent_id)
     count = 0
     for node in all_nodes:
-        if node["type"] == "directory":
-            await user_files.mkdir(session, blueprint_agent_id, user_account_id, node["path"])
+        if node.type == NodeType.directory:
+            await user_files.mkdir(session, blueprint_agent_id, user_account_id, node.path)
             count += 1
         else:
-            content_row = await blueprint_files.read_file(session, blueprint_agent_id, node["path"])
+            content_row = await blueprint_files.read_file(session, blueprint_agent_id, node.path)
             if content_row:
-                if content_row.get("storage_path"):
-                    # Binary file — download from blueprint storage, re-upload for user
-                    data = await download_file(BUCKET, content_row["storage_path"])
+                if content_row.storage_path:
+                    data = await download_file(BUCKET, content_row.storage_path)
                     await user_files.write_file(
                         session, blueprint_agent_id, user_account_id,
-                        node["path"],
-                        mime_type=content_row.get("mime_type", "application/octet-stream"),
+                        node.path,
+                        mime_type=content_row.mime_type or "application/octet-stream",
                         binary_data=data,
                     )
                 else:
                     await user_files.write_file(
                         session, blueprint_agent_id, user_account_id,
-                        node["path"], content_row.get("content") or "",
-                        mime_type=content_row.get("mime_type", "text/markdown"),
+                        node.path, content_row.content or "",
+                        mime_type=content_row.mime_type or "text/markdown",
                     )
                 count += 1
     return count

@@ -34,9 +34,9 @@ from app.db.queries.end_user_agents import (
 from app.models.end_user_account import (
     CreateEndUserAccountRequest,
     CreateEndUserAgentRequest,
-    EndUserAccountDetail,
-    EndUserAccountSummary,
-    EndUserAgentDetail,
+    EndUserAccountDetailResponse,
+    EndUserAccountSummaryResponse,
+    EndUserAgentDetailResponse,
     UpdateEndUserAccountRequest,
 )
 
@@ -47,8 +47,8 @@ _404_link = {404: {"description": "Agent link not found"}}
 _400 = {400: {"description": "Bad request"}}
 
 
-def _to_detail(row) -> EndUserAccountDetail:
-    return EndUserAccountDetail(
+def _to_detail(row) -> EndUserAccountDetailResponse:
+    return EndUserAccountDetailResponse(
         id=str(row.id),
         org_id=str(row.org_id),
         display_name=row.display_name,
@@ -60,7 +60,7 @@ def _to_detail(row) -> EndUserAccountDetail:
 
 # ── Account CRUD (org-scoped: list, create) ──────────────────
 
-@router.post("/orgs/{org_id}/users", response_model=EndUserAccountDetail, status_code=201,
+@router.post("/orgs/{org_id}/users", response_model=EndUserAccountDetailResponse, status_code=201,
              summary="Create end user account")
 async def create_end_user(
     org_id: uuid.UUID,
@@ -77,13 +77,13 @@ async def create_end_user(
     return _to_detail(account)
 
 
-@router.get("/orgs/{org_id}/users", response_model=List[EndUserAccountSummary],
+@router.get("/orgs/{org_id}/users", response_model=List[EndUserAccountSummaryResponse],
             summary="List end user accounts")
 async def list_end_users(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
     """List all end user accounts in an org."""
     accounts = await list_end_user_accounts(session, org_id)
     return [
-        EndUserAccountSummary(
+        EndUserAccountSummaryResponse(
             id=str(a.id),
             display_name=a.display_name,
             sandbox=a.sandbox,
@@ -95,7 +95,7 @@ async def list_end_users(org_id: uuid.UUID, session: AsyncSession = Depends(get_
 
 # ── Account CRUD (flat: get, update, delete) ─────────────────
 
-@router.get("/users/{user_id}", response_model=EndUserAccountDetail,
+@router.get("/users/{user_id}", response_model=EndUserAccountDetailResponse,
             summary="Get end user account", responses=_404_user)
 async def get_end_user(user_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
     """Return full end user account detail."""
@@ -105,7 +105,7 @@ async def get_end_user(user_id: uuid.UUID, session: AsyncSession = Depends(get_s
     return _to_detail(account)
 
 
-@router.patch("/users/{user_id}", response_model=EndUserAccountDetail,
+@router.patch("/users/{user_id}", response_model=EndUserAccountDetailResponse,
               summary="Update end user account", responses={**_404_user, **_400})
 async def update_end_user(
     user_id: uuid.UUID,
@@ -137,7 +137,7 @@ async def delete_end_user(user_id: uuid.UUID, session: AsyncSession = Depends(ge
 
 @router.post(
     "/users/{user_id}/agents",
-    response_model=EndUserAgentDetail,
+    response_model=EndUserAgentDetailResponse,
     status_code=201,
     summary="Instantiate agent for user",
     responses=_404_user,
@@ -156,7 +156,7 @@ async def create_end_user_agent(
     await replicate_blueprint_to_user(session, link.blueprint_agent_id, account.id)
     await session.commit()
 
-    return EndUserAgentDetail(
+    return EndUserAgentDetailResponse(
         id=str(link.id),
         end_user_account_id=str(link.end_user_account_id),
         blueprint_agent_id=str(link.blueprint_agent_id),
@@ -166,7 +166,7 @@ async def create_end_user_agent(
 
 @router.get(
     "/users/{user_id}/agents",
-    response_model=List[EndUserAgentDetail],
+    response_model=List[EndUserAgentDetailResponse],
     summary="List user's agents",
     responses=_404_user,
 )
@@ -181,7 +181,7 @@ async def list_end_user_agents(
 
     links = await list_links_for_account(session, account.id)
     return [
-        EndUserAgentDetail(
+        EndUserAgentDetailResponse(
             id=str(l.id),
             end_user_account_id=str(l.end_user_account_id),
             blueprint_agent_id=str(l.blueprint_agent_id),

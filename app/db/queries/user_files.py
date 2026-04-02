@@ -1,7 +1,8 @@
 """User file queries — end-user's own independent files.
 
-Pure CRUD scoped by (blueprint_agent_id, user_account_id).
-Mirrors blueprint_files.py in API shape.
+Pure CRUD scoped by ``(blueprint_agent_id, user_account_id)``.
+Row-shaped results use ORM :class:`UserFile` (same philosophy as ``blueprint_files``).
+``grep`` returns ``FileGrepRow`` dicts. Routers map ORM → ``app.models.files``.
 """
 
 from __future__ import annotations
@@ -9,13 +10,15 @@ from __future__ import annotations
 import posixpath
 import re
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db.models.blueprint_files import NodeType
 from app.db.models.user_files import UserFile
+from app.db.schemas.fs import FileGrepRow
 from app.models.files import classify_file
 from app.storage import BUCKET, is_text_mime, upload_file as storage_upload, delete_file as storage_delete
 
@@ -29,12 +32,6 @@ def _derive_fields(path: str, name: str, content: str = "", size_bytes: int = 0)
         "size_bytes": size_bytes or (len(content.encode("utf-8")) if content else 0),
         "file_class": classify_file(path, name),
     }
-
-
-def _row_to_dict(row) -> Dict[str, Any]:
-    if hasattr(row, "__table__"):
-        return {c.key: getattr(row, c.key) for c in row.__table__.columns}
-    return dict(row)
 
 
 async def _ensure_ancestors(
@@ -74,14 +71,10 @@ async def _ensure_ancestors(
 async def ls(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     user_account_id: uuid.UUID, parent: str = "/"
-) -> List[Dict[str, Any]]:
+) -> List[UserFile]:
     """List directory contents for an end user."""
     stmt = (
-        select(
-            UserFile.id, UserFile.path, UserFile.name, UserFile.type,
-            UserFile.mime_type, UserFile.size_bytes, UserFile.file_class,
-            UserFile.created_by, UserFile.updated_at,
-        )
+        select(UserFile)
         .where(
             UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.user_account_id == user_account_id,
@@ -90,29 +83,21 @@ async def ls(
         .order_by(UserFile.type.desc(), UserFile.name)
     )
     result = await session.execute(stmt)
-    return [dict(r) for r in result.mappings()]
+    return list(result.scalars().all())
 
 
 async def read_file(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     user_account_id: uuid.UUID, path: str
-) -> Optional[Dict[str, Any]]:
-    """Read a user file by path."""
-    stmt = (
-        select(
-            UserFile.content, UserFile.mime_type, UserFile.size_bytes,
-            UserFile.file_class, UserFile.name, UserFile.type, UserFile.path,
-            UserFile.storage_path,
-        )
-        .where(
-            UserFile.blueprint_agent_id == blueprint_agent_id,
-            UserFile.user_account_id == user_account_id,
-            UserFile.path == path,
-        )
+) -> Optional[UserFile]:
+    """Load full user node row (file or directory) by path."""
+    stmt = select(UserFile).where(
+        UserFile.blueprint_agent_id == blueprint_agent_id,
+        UserFile.user_account_id == user_account_id,
+        UserFile.path == path,
     )
     result = await session.execute(stmt)
-    row = result.mappings().first()
-    return dict(row) if row else None
+    return result.scalar_one_or_none()
 
 
 async def write_file(
@@ -124,7 +109,7 @@ async def write_file(
     mime_type: str = "text/markdown",
     created_by: str = "system",
     binary_data: Optional[bytes] = None,
-) -> Dict[str, Any]:
+) -> UserFile:
     """Write or upsert a user file. Text content goes to Postgres, binary to Storage."""
     name = posixpath.basename(path)
     await _ensure_ancestors(session, blueprint_agent_id, user_account_id, path, created_by)
@@ -184,28 +169,28 @@ async def write_file(
     )
     result = await session.execute(stmt)
     await session.commit()
-    return _row_to_dict(result.scalar_one())
+    return result.scalar_one()
 
 
 async def edit_file(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     user_account_id: uuid.UUID, path: str, old_str: str, new_str: str
-) -> Optional[Dict[str, Any]]:
+) -> Optional[UserFile]:
     """Replace first occurrence of old_str with new_str in file content."""
     file = await read_file(session, blueprint_agent_id, user_account_id, path)
-    if not file or not file.get("content") or old_str not in file["content"]:
+    if not file or not file.content or old_str not in file.content:
         return None
-    updated_content = file["content"].replace(old_str, new_str, 1)
+    updated_content = file.content.replace(old_str, new_str, 1)
     return await write_file(
         session, blueprint_agent_id, user_account_id, path, updated_content,
-        file.get("mime_type", "text/markdown"),
+        file.mime_type,
     )
 
 
 async def grep(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     user_account_id: uuid.UUID, pattern: str, case_insensitive: bool = False
-) -> List[Dict[str, Any]]:
+) -> List[FileGrepRow]:
     """Regex search across all user files."""
     stmt = (
         select(
@@ -215,7 +200,7 @@ async def grep(
         .where(
             UserFile.blueprint_agent_id == blueprint_agent_id,
             UserFile.user_account_id == user_account_id,
-            UserFile.type == "file",
+            UserFile.type == NodeType.file,
         )
     )
     result = await session.execute(stmt)
@@ -225,30 +210,40 @@ async def grep(
     for row in result.mappings():
         if row["storage_path"] is not None:
             if compiled.search(row["name"]) or compiled.search(row["path"]):
-                results.append({
-                    "path": row["path"],
-                    "name": row["name"],
-                    "file_class": row["file_class"],
-                    "matches": ["[binary file]"],
-                })
+                results.append(
+                    cast(
+                        FileGrepRow,
+                        {
+                            "path": row["path"],
+                            "name": row["name"],
+                            "file_class": row["file_class"],
+                            "matches": ["[binary file]"],
+                        },
+                    )
+                )
         else:
             content = row["content"] or ""
             lines = content.split("\n")
             matching = [line for line in lines if compiled.search(line)]
             if matching:
-                results.append({
-                    "path": row["path"],
-                    "name": row["name"],
-                    "file_class": row["file_class"],
-                    "matches": matching,
-                })
+                results.append(
+                    cast(
+                        FileGrepRow,
+                        {
+                            "path": row["path"],
+                            "name": row["name"],
+                            "file_class": row["file_class"],
+                            "matches": matching,
+                        },
+                    )
+                )
     return results
 
 
 async def glob(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     user_account_id: uuid.UUID, pattern: str
-) -> List[Dict[str, Any]]:
+) -> List[UserFile]:
     """Match user files by glob pattern."""
     if "**" in pattern:
         prefix = pattern.split("**")[0].rstrip("/")
@@ -262,15 +257,9 @@ async def glob(
 
     name_like = name_part.replace("*", "%").replace("?", "_") if name_part else "%"
 
-    stmt = (
-        select(
-            UserFile.path, UserFile.name, UserFile.type,
-            UserFile.file_class, UserFile.size_bytes, UserFile.updated_at,
-        )
-        .where(
-            UserFile.blueprint_agent_id == blueprint_agent_id,
-            UserFile.user_account_id == user_account_id,
-        )
+    stmt = select(UserFile).where(
+        UserFile.blueprint_agent_id == blueprint_agent_id,
+        UserFile.user_account_id == user_account_id,
     )
     if prefix:
         stmt = stmt.where(UserFile.path.like(f"{prefix}/%"))
@@ -279,7 +268,7 @@ async def glob(
 
     stmt = stmt.order_by(UserFile.updated_at.desc())
     result = await session.execute(stmt)
-    return [dict(r) for r in result.mappings()]
+    return list(result.scalars().all())
 
 
 # ── Supporting ops ───────────────────────────────────────────
@@ -288,7 +277,7 @@ async def glob(
 async def mkdir(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     user_account_id: uuid.UUID, path: str, created_by: str = "system"
-) -> Dict[str, Any]:
+) -> UserFile:
     name = posixpath.basename(path)
     await _ensure_ancestors(session, blueprint_agent_id, user_account_id, path, created_by)
 
@@ -331,7 +320,7 @@ async def mkdir(
     )
     result = await session.execute(stmt)
     await session.commit()
-    return _row_to_dict(result.scalar_one())
+    return result.scalar_one()
 
 
 async def rm(
@@ -475,21 +464,14 @@ async def _move_storage_object(old_storage_path: str, new_storage_path: str, mim
 async def stat(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     user_account_id: uuid.UUID, path: str
-) -> Optional[Dict[str, Any]]:
-    stmt = (
-        select(
-            UserFile.id, UserFile.path, UserFile.name, UserFile.type,
-            UserFile.mime_type, UserFile.size_bytes, UserFile.file_class,
-            UserFile.created_by, UserFile.created_at, UserFile.updated_at,
-        )
-        .where(
-            UserFile.blueprint_agent_id == blueprint_agent_id,
-            UserFile.user_account_id == user_account_id, UserFile.path == path,
-        )
+) -> Optional[UserFile]:
+    stmt = select(UserFile).where(
+        UserFile.blueprint_agent_id == blueprint_agent_id,
+        UserFile.user_account_id == user_account_id,
+        UserFile.path == path,
     )
     result = await session.execute(stmt)
-    row = result.mappings().first()
-    return dict(row) if row else None
+    return result.scalar_one_or_none()
 
 
 async def exists(
@@ -510,38 +492,30 @@ async def exists(
 async def tree(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     user_account_id: uuid.UUID, root: str = "/"
-) -> List[Dict[str, Any]]:
+) -> List[UserFile]:
     """Flat list of all nodes under root, ordered by path."""
-    stmt = (
-        select(UserFile.path, UserFile.name, UserFile.type, UserFile.file_class)
-        .where(
-            UserFile.blueprint_agent_id == blueprint_agent_id,
-            UserFile.user_account_id == user_account_id,
-        )
+    stmt = select(UserFile).where(
+        UserFile.blueprint_agent_id == blueprint_agent_id,
+        UserFile.user_account_id == user_account_id,
     )
     if root != "/":
         stmt = stmt.where(UserFile.path.like(f"{root}/%"))
     stmt = stmt.order_by(UserFile.path)
     result = await session.execute(stmt)
-    return [dict(r) for r in result.mappings()]
+    return list(result.scalars().all())
 
 
 async def get_user_files(
     session: AsyncSession, blueprint_agent_id: uuid.UUID, user_account_id: uuid.UUID
-) -> List[Dict[str, Any]]:
-    """Get all files for a specific end user."""
-    stmt = (
-        select(
-            UserFile.path, UserFile.name, UserFile.content,
-            UserFile.file_class, UserFile.storage_path,
-        )
-        .where(
-            UserFile.blueprint_agent_id == blueprint_agent_id,
-            UserFile.user_account_id == user_account_id, UserFile.type == "file",
-        )
+) -> List[UserFile]:
+    """Get all file rows (type=file) for a specific end user."""
+    stmt = select(UserFile).where(
+        UserFile.blueprint_agent_id == blueprint_agent_id,
+        UserFile.user_account_id == user_account_id,
+        UserFile.type == NodeType.file,
     )
     result = await session.execute(stmt)
-    return [dict(r) for r in result.mappings()]
+    return list(result.scalars().all())
 
 
 async def delete_files(

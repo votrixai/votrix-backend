@@ -1,5 +1,7 @@
 """File system models."""
 
+from __future__ import annotations
+
 import posixpath
 from datetime import datetime
 from enum import Enum
@@ -145,7 +147,104 @@ class GrepMatch(BaseModel):
 
 
 class TreeEntry(BaseModel):
+    """Lightweight tree listing (no id/timestamps/mime)."""
+
     path: str
     name: str
     type: NodeType
     file_class: str
+
+
+# ── ORM → HTTP response (used by file routers) ─────────────────
+
+from app.db.models.blueprint_files import BlueprintFile as _BlueprintFile
+from app.db.models.user_files import UserFile as _UserFile
+
+
+def _api_node_type(t) -> NodeType:
+    v = t.value if hasattr(t, "value") else t
+    return NodeType(v)
+
+
+def file_list_entry_from_blueprint(f: _BlueprintFile) -> FileListEntry:
+    return FileListEntry(
+        id=str(f.id),
+        path=f.path,
+        name=f.name,
+        type=_api_node_type(f.type),
+        mime_type=f.mime_type,
+        size_bytes=f.size_bytes,
+        file_class=f.file_class,
+        created_by=f.created_by,
+        updated_at=f.updated_at,
+    )
+
+
+def file_list_entry_from_user(f: _UserFile) -> FileListEntry:
+    return FileListEntry(
+        id=str(f.id),
+        path=f.path,
+        name=f.name,
+        type=_api_node_type(f.type),
+        user_account_id=str(f.user_account_id),
+        mime_type=f.mime_type,
+        size_bytes=f.size_bytes,
+        file_class=f.file_class,
+        created_by=f.created_by,
+        updated_at=f.updated_at,
+    )
+
+
+def file_content_from_blueprint(
+    f: _BlueprintFile,
+    *,
+    download_url: str | None = None,
+) -> FileContent:
+    return FileContent(
+        path=f.path,
+        name=f.name,
+        type=_api_node_type(f.type),
+        content=f.content,
+        mime_type=f.mime_type,
+        size_bytes=f.size_bytes,
+        file_class=f.file_class,
+        storage_path=f.storage_path,
+        download_url=download_url,
+    )
+
+
+def file_content_from_user(
+    f: _UserFile,
+    *,
+    download_url: str | None = None,
+) -> FileContent:
+    return FileContent(
+        path=f.path,
+        name=f.name,
+        type=_api_node_type(f.type),
+        user_account_id=str(f.user_account_id),
+        content=f.content,
+        mime_type=f.mime_type,
+        size_bytes=f.size_bytes,
+        file_class=f.file_class,
+        storage_path=f.storage_path,
+        download_url=download_url,
+    )
+
+
+def tree_entry_from_blueprint(f: _BlueprintFile) -> TreeEntry:
+    return TreeEntry(
+        path=f.path,
+        name=f.name,
+        type=_api_node_type(f.type),
+        file_class=f.file_class,
+    )
+
+
+def tree_entry_from_user(f: _UserFile) -> TreeEntry:
+    return TreeEntry(
+        path=f.path,
+        name=f.name,
+        type=_api_node_type(f.type),
+        file_class=f.file_class,
+    )

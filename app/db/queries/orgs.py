@@ -1,4 +1,20 @@
-"""DAO functions for the orgs table."""
+"""DAO functions for the orgs table.
+
+Return shapes (DAO; HTTP layer uses ``app.models.org``):
+
+    ``create_org``, ``get_org``, ``list_orgs``, ``update_org``,
+    ``add_org_integration``
+        → :class:`app.db.models.orgs.Org` ORM instance (or ``None`` if not found).
+
+    ``get_org_integration_slugs``
+        → ``list[str]`` — activated integration slugs for the org.
+
+    ``remove_org_integration``
+        → ``bool`` — whether a slug was removed.
+
+    ``delete_org``
+        → ``bool`` — whether a row was deleted.
+"""
 
 from __future__ import annotations
 
@@ -27,7 +43,7 @@ async def create_org(
         display_name=display_name,
         timezone=timezone,
         metadata_=metadata or {},
-        integrations=integrations or [],
+        enabled_integration_slugs=integrations or [],
     )
     session.add(obj)
     await session.flush()
@@ -50,6 +66,8 @@ async def list_orgs(session: AsyncSession) -> list[Org]:
 async def update_org(session: AsyncSession, org_id: uuid.UUID, **kwargs) -> Org | None:
     if "metadata" in kwargs:
         kwargs["metadata_"] = kwargs.pop("metadata")
+    if "integrations" in kwargs:
+        kwargs["enabled_integration_slugs"] = kwargs.pop("integrations")
     stmt = (
         update(Org)
         .where(Org.id == org_id)
@@ -108,7 +126,7 @@ async def delete_org(session: AsyncSession, org_id: uuid.UUID) -> bool:
 async def get_org_integration_slugs(session: AsyncSession, org_id: uuid.UUID) -> list[str]:
     """Return the list of integration slugs activated for this org."""
     org = await get_org(session, org_id)
-    return list(org.integrations or []) if org else []
+    return list(org.enabled_integration_slugs or []) if org else []
 
 
 async def add_org_integration(session: AsyncSession, org_id: uuid.UUID, slug: str) -> Org | None:
@@ -116,11 +134,11 @@ async def add_org_integration(session: AsyncSession, org_id: uuid.UUID, slug: st
     org = await get_org(session, org_id)
     if not org:
         return None
-    current = list(org.integrations or [])
+    current = list(org.enabled_integration_slugs or [])
     if slug in current:
         return org
     current.append(slug)
-    stmt = update(Org).where(Org.id == org_id).values(integrations=current).returning(Org)
+    stmt = update(Org).where(Org.id == org_id).values(enabled_integration_slugs=current).returning(Org)
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -130,9 +148,9 @@ async def remove_org_integration(session: AsyncSession, org_id: uuid.UUID, slug:
     org = await get_org(session, org_id)
     if not org:
         return False
-    current = list(org.integrations or [])
+    current = list(org.enabled_integration_slugs or [])
     if slug not in current:
         return False
     current.remove(slug)
-    await session.execute(update(Org).where(Org.id == org_id).values(integrations=current))
+    await session.execute(update(Org).where(Org.id == org_id).values(enabled_integration_slugs=current))
     return True

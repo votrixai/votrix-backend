@@ -1,13 +1,13 @@
 """
-Provider metadata — static mapping of provider IDs to Provider objects.
+Provider metadata — static mapping of provider slugs to Provider objects.
 
 Pure data, no logic.
 """
 
-from app.models.tools import Provider, ProviderType
+from app.models.integration import Provider, ProviderType
 
 PROVIDERS = {
-    "platform": Provider(id="platform", name="Platform", type=ProviderType.PLATFORM),
-    "composio": Provider(id="composio", name="Composio", type=ProviderType.COMPOSIO),
-    "custom":   Provider(id="custom",   name="Custom",   type=ProviderType.CUSTOM),
+    "platform": Provider(slug="platform", name="Platform", type=ProviderType.PLATFORM),
+    "composio": Provider(slug="composio", name="Composio", type=ProviderType.COMPOSIO),
+    "custom":   Provider(slug="custom",   name="Custom",   type=ProviderType.CUSTOM),
 }

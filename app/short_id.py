@@ -273,7 +273,6 @@ _PARAM_PREFIX: dict[str, str] = {
 _PROP_PREFIX: dict[str, str] = {
     **_FK_FIELD_PREFIX,
     "id": "",  # generic — no example prefix
-    "seed_from": "agent",
 }
 
 _EXAMPLE_UUID = uuid.UUID("a0b1c2d3-e4f5-6789-abcd-ef0123456789")
