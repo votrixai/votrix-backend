@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.db.queries import agents as agents_q
 from app.integrations.context import ToolContext
+from app.models.agent import AgentIntegration
 
 
 async def load_tools(
@@ -20,9 +21,18 @@ async def load_tools(
         return []
 
     settings = get_settings()
+    integration_rows = await agents_q.get_agent_integrations(session, agent_id)
+    payload = [
+        AgentIntegration(
+            integration_slug=i.integration_slug,
+            deferred=i.deferred,
+            enabled_tool_slugs=list(i.enabled_tool_slugs or []),
+        )
+        for i in integration_rows
+    ]
     ctx = ToolContext(api_key=settings.composio_api_key)
     await ctx.initialize(
-        agent_integrations=agent.get("integrations") or [],
+        agent_integrations=payload,
         user_id=str(end_user_id),
     )
     return ctx.get_active_tools()

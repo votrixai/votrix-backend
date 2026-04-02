@@ -1,7 +1,6 @@
 """
-Domain model types for the tool registry.
+Domain model types for the integration registry and public API.
 
-Matches the schema in docs/tools.md §1 (registry.proto).
 Pure type definitions — no static data, no business logic.
 """
 
@@ -24,81 +23,71 @@ class ProviderType(str, Enum):
 
 
 class Provider(BaseModel):
-    id: str
+    slug: str
     name: str
     type: ProviderType
     endpoint: str = ""
 
 
 class Tool(BaseModel):
-    id: str
+    slug: str
     name: str
     description: str
     input_schema: Dict[str, Any]
     # None = inherit routing from parent Integration
-    provider_id: Optional[str] = None
+    provider_slug: Optional[str] = None
     provider_config: Optional[Dict[str, Any]] = None
 
 
 class Integration(BaseModel):
-    id: str
+    slug: str
     display_name: str
     description: str
-    provider_id: str
+    provider_slug: str
     provider_config: Dict[str, Any] = {}
     tools: List[Tool] = []
     deferred: bool = False
 
-    def get_tool(self, tool_id: str) -> Optional[Tool]:
+    def get_tool(self, tool_slug: str) -> Optional[Tool]:
         for t in self.tools:
-            if t.id == tool_id:
+            if t.slug == tool_slug:
                 return t
         return None
 
-    def effective_provider_id(self, tool: Tool) -> str:
-        return tool.provider_id if tool.provider_id is not None else self.provider_id
+    def effective_provider_slug(self, tool: Tool) -> str:
+        return tool.provider_slug if tool.provider_slug is not None else self.provider_slug
 
     def effective_provider_config(self, tool: Tool) -> Dict[str, Any]:
         return tool.provider_config if tool.provider_config is not None else self.provider_config
 
 
 # ---------------------------------------------------------------------------
-# Public API response models (strip internal routing fields)
+# Public API response models
 # ---------------------------------------------------------------------------
 
-class ToolSchema(BaseModel):
-    """Single tool as seen by the frontend — no internal provider routing."""
-    id: str
+class ToolSchemaResponse(BaseModel):
+    """Single tool as seen by the frontend."""
+    slug: str
     name: str
     description: str
     input_schema: Optional[Dict[str, Any]] = None
 
 
-class IntegrationSummary(BaseModel):
+class IntegrationSummaryResponse(BaseModel):
     """Lightweight integration row for list endpoints."""
-    id: str
-    display_name: str
-    description: str
-    provider_type: ProviderType
-    deferred: bool
-    tool_count: int
-
-
-class IntegrationDetail(BaseModel):
-    """Full integration with tool list for single-integration endpoints."""
-    id: str
-    display_name: str
-    description: str
-    provider_type: ProviderType
-    deferred: bool
-    tools: List[ToolSchema]
-
-
-class OrgIntegrationItem(BaseModel):
-    """One integration entry in an org's activated list."""
     slug: str
     display_name: str
     description: str
     provider_type: ProviderType
+    deferred: bool
     tool_count: int
-    categories: List[str] = []
+
+
+class IntegrationDetailResponse(BaseModel):
+    """Full integration with tool list."""
+    slug: str
+    display_name: str
+    description: str
+    provider_type: ProviderType
+    deferred: bool
+    tools: List[ToolSchemaResponse]

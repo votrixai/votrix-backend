@@ -33,6 +33,9 @@ from app.models.files import (
     MoveRequest,
     TreeEntry,
     WriteFileRequest,
+    file_content_from_user,
+    file_list_entry_from_user,
+    tree_entry_from_user,
 )
 from app.storage import BUCKET, get_signed_url, is_text_mime
 
@@ -54,7 +57,7 @@ async def ls(
 ):
     """List files and subdirectories at the given path."""
     entries = await user_files.ls(session, blueprint_agent_id, user_id, path)
-    return [FileListEntry(**e) for e in entries]
+    return [file_list_entry_from_user(e) for e in entries]
 
 
 @router.get(f"{PREFIX}/read", response_model=FileContent, summary="Read file content", responses=_404)
@@ -68,10 +71,10 @@ async def read_file(
     file = await user_files.read_file(session, blueprint_agent_id, user_id, path)
     if not file:
         raise HTTPException(status_code=404, detail=f"File not found: {path}")
-    result = dict(file)
-    if result.get("storage_path"):
-        result["download_url"] = get_signed_url(BUCKET, result["storage_path"])
-    return FileContent(**result)
+    download_url = (
+        get_signed_url(BUCKET, file.storage_path) if file.storage_path else None
+    )
+    return file_content_from_user(file, download_url=download_url)
 
 
 @router.post(PREFIX, response_model=FileListEntry, status_code=201, summary="Create or overwrite file")
@@ -86,7 +89,7 @@ async def write_file(
         session, blueprint_agent_id, user_id, body.path, body.content or "",
         mime_type=body.mime_type,
     )
-    return FileListEntry(**row)
+    return file_list_entry_from_user(row)
 
 
 @router.post(f"{PREFIX}/upload", response_model=FileListEntry, status_code=201, summary="Upload binary file")
@@ -106,7 +109,7 @@ async def upload_file(
         mime_type=actual_mime,
         binary_data=data,
     )
-    return FileListEntry(**row)
+    return file_list_entry_from_user(row)
 
 
 @router.patch(PREFIX, response_model=FileContent, summary="Edit file (surgical replace)", responses=_404)
@@ -124,7 +127,12 @@ async def edit_file(
     if not result:
         raise HTTPException(status_code=404, detail=f"File not found or old_str not present: {body.path}")
     file = await user_files.read_file(session, blueprint_agent_id, user_id, body.path)
-    return FileContent(**file)
+    if not file:
+        raise HTTPException(status_code=404, detail=f"File not found: {body.path}")
+    download_url = (
+        get_signed_url(BUCKET, file.storage_path) if file.storage_path else None
+    )
+    return file_content_from_user(file, download_url=download_url)
 
 
 @router.delete(PREFIX, status_code=204, summary="Delete file or directory", responses=_404)
@@ -156,7 +164,7 @@ async def mkdir(
 ):
     """Create a directory entry at the given path."""
     row = await user_files.mkdir(session, blueprint_agent_id, user_id, body.path)
-    return FileListEntry(**row)
+    return file_list_entry_from_user(row)
 
 
 @router.post(f"{PREFIX}/mv", status_code=200, summary="Move or rename", responses=_404)
@@ -199,7 +207,7 @@ async def glob(
 ):
     """Find files matching a glob pattern."""
     results = await user_files.glob(session, blueprint_agent_id, user_id, pattern)
-    return [FileListEntry(**r) for r in results]
+    return [file_list_entry_from_user(r) for r in results]
 
 
 @router.get(f"{PREFIX}/tree", response_model=List[TreeEntry], summary="Get file tree")
@@ -209,6 +217,6 @@ async def tree(
     root: str = Query("/", description="Root path for tree"),
     session: AsyncSession = Depends(get_session),
 ):
-    """Return the full directory tree as a flat list of entries."""
+    """Return the full directory tree as a flat list of lightweight entries."""
     entries = await user_files.tree(session, blueprint_agent_id, user_id, root)
-    return [TreeEntry(**e) for e in entries]
+    return [tree_entry_from_user(e) for e in entries]

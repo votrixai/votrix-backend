@@ -1,7 +1,8 @@
 """Blueprint file queries — admin/member-owned virtual filesystem.
 
-Core ops (fast path): ls, read_file, write_file, edit_file, grep, glob
-Supporting ops: mkdir, rm, rm_rf, mv, stat, tree
+Returns ORM :class:`BlueprintFile` instances for row-shaped results (ls, read, write,
+mkdir, stat, tree, glob, cp, get_all_files). ``grep`` still returns ``FileGrepRow``
+dicts (aggregated matches). HTTP layer builds ``app.models.files`` from ORM attributes.
 """
 
 from __future__ import annotations
@@ -9,13 +10,14 @@ from __future__ import annotations
 import posixpath
 import re
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.blueprint_files import BlueprintFile
+from app.db.models.blueprint_files import BlueprintFile, NodeType
+from app.db.schemas.fs import FileGrepRow  # grep only — aggregated dict rows
 from app.models.files import classify_file
 from app.storage import BUCKET, is_text_mime, upload_file as storage_upload, delete_file as storage_delete
 
@@ -29,18 +31,6 @@ def _derive_fields(path: str, name: str, content: str = "", size_bytes: int = 0)
         "size_bytes": size_bytes or (len(content.encode("utf-8")) if content else 0),
         "file_class": classify_file(path, name),
     }
-
-
-def _row_to_dict(row) -> Dict[str, Any]:
-    if hasattr(row, "__table__"):
-        d = {c.key: getattr(row, c.key) for c in row.__table__.columns}
-    else:
-        d = dict(row)
-    # Ensure UUID fields are serialised as strings for Pydantic
-    for k, v in d.items():
-        if isinstance(v, uuid.UUID):
-            d[k] = str(v)
-    return d
 
 
 async def _ensure_ancestors(
@@ -76,14 +66,10 @@ async def _ensure_ancestors(
 
 async def ls(
     session: AsyncSession, blueprint_agent_id: uuid.UUID, parent: str = "/"
-) -> List[Dict[str, Any]]:
+) -> List[BlueprintFile]:
     """List directory contents (base files only)."""
     stmt = (
-        select(
-            BlueprintFile.id, BlueprintFile.path, BlueprintFile.name,
-            BlueprintFile.type, BlueprintFile.mime_type, BlueprintFile.size_bytes,
-            BlueprintFile.file_class, BlueprintFile.created_by, BlueprintFile.updated_at,
-        )
+        select(BlueprintFile)
         .where(
             BlueprintFile.blueprint_agent_id == blueprint_agent_id,
             BlueprintFile.parent == parent,
@@ -91,27 +77,19 @@ async def ls(
         .order_by(BlueprintFile.type.desc(), BlueprintFile.name)
     )
     result = await session.execute(stmt)
-    return [dict(r) for r in result.mappings()]
+    return list(result.scalars().all())
 
 
 async def read_file(
     session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str
-) -> Optional[Dict[str, Any]]:
-    """Read a base file by path."""
-    stmt = (
-        select(
-            BlueprintFile.content, BlueprintFile.mime_type, BlueprintFile.size_bytes,
-            BlueprintFile.file_class, BlueprintFile.name, BlueprintFile.type, BlueprintFile.path,
-            BlueprintFile.storage_path,
-        )
-        .where(
-            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
-            BlueprintFile.path == path,
-        )
+) -> Optional[BlueprintFile]:
+    """Load the full base node row (file or directory) by path."""
+    stmt = select(BlueprintFile).where(
+        BlueprintFile.blueprint_agent_id == blueprint_agent_id,
+        BlueprintFile.path == path,
     )
     result = await session.execute(stmt)
-    row = result.mappings().first()
-    return dict(row) if row else None
+    return result.scalar_one_or_none()
 
 
 async def write_file(
@@ -122,7 +100,7 @@ async def write_file(
     mime_type: str = "text/markdown",
     created_by: str = "system",
     binary_data: Optional[bytes] = None,
-) -> Dict[str, Any]:
+) -> BlueprintFile:
     """Write or upsert a base file. Text content goes to Postgres, binary to Storage."""
     name = posixpath.basename(path)
     await _ensure_ancestors(session, blueprint_agent_id, path, created_by)
@@ -177,27 +155,27 @@ async def write_file(
     )
     result = await session.execute(stmt)
     await session.commit()
-    return _row_to_dict(result.scalar_one())
+    return result.scalar_one()
 
 
 async def edit_file(
     session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str, old_str: str, new_str: str
-) -> Optional[Dict[str, Any]]:
+) -> Optional[BlueprintFile]:
     """Replace first occurrence of old_str with new_str in file content."""
     file = await read_file(session, blueprint_agent_id, path)
-    if not file or not file.get("content") or old_str not in file["content"]:
+    if not file or not file.content or old_str not in file.content:
         return None
-    updated_content = file["content"].replace(old_str, new_str, 1)
+    updated_content = file.content.replace(old_str, new_str, 1)
     return await write_file(
         session, blueprint_agent_id, path, updated_content,
-        file.get("mime_type", "text/markdown"),
+        file.mime_type,
     )
 
 
 async def grep(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     pattern: str, case_insensitive: bool = False
-) -> List[Dict[str, Any]]:
+) -> List[FileGrepRow]:
     """Regex search across all base files. Returns matching paths + lines."""
     stmt = (
         select(
@@ -206,7 +184,7 @@ async def grep(
         )
         .where(
             BlueprintFile.blueprint_agent_id == blueprint_agent_id,
-            BlueprintFile.type == "file",
+            BlueprintFile.type == NodeType.file,
         )
     )
     result = await session.execute(stmt)
@@ -217,29 +195,39 @@ async def grep(
         if row["storage_path"] is not None:
             # Binary file — match against filename/path only
             if compiled.search(row["name"]) or compiled.search(row["path"]):
-                results.append({
-                    "path": row["path"],
-                    "name": row["name"],
-                    "file_class": row["file_class"],
-                    "matches": ["[binary file]"],
-                })
+                results.append(
+                    cast(
+                        FileGrepRow,
+                        {
+                            "path": row["path"],
+                            "name": row["name"],
+                            "file_class": row["file_class"],
+                            "matches": ["[binary file]"],
+                        },
+                    )
+                )
         else:
             content = row["content"] or ""
             lines = content.split("\n")
             matching = [line for line in lines if compiled.search(line)]
             if matching:
-                results.append({
-                    "path": row["path"],
-                    "name": row["name"],
-                    "file_class": row["file_class"],
-                    "matches": matching,
-                })
+                results.append(
+                    cast(
+                        FileGrepRow,
+                        {
+                            "path": row["path"],
+                            "name": row["name"],
+                            "file_class": row["file_class"],
+                            "matches": matching,
+                        },
+                    )
+                )
     return results
 
 
 async def glob(
     session: AsyncSession, blueprint_agent_id: uuid.UUID, pattern: str
-) -> List[Dict[str, Any]]:
+) -> List[BlueprintFile]:
     """Match base files by glob pattern. Supports *.md, skills/**/*.md, etc."""
     if "**" in pattern:
         prefix = pattern.split("**")[0].rstrip("/")
@@ -253,13 +241,7 @@ async def glob(
 
     name_like = name_part.replace("*", "%").replace("?", "_") if name_part else "%"
 
-    stmt = (
-        select(
-            BlueprintFile.path, BlueprintFile.name, BlueprintFile.type,
-            BlueprintFile.file_class, BlueprintFile.size_bytes, BlueprintFile.updated_at,
-        )
-        .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id)
-    )
+    stmt = select(BlueprintFile).where(BlueprintFile.blueprint_agent_id == blueprint_agent_id)
     if prefix:
         stmt = stmt.where(BlueprintFile.path.like(f"{prefix}/%"))
     if name_like != "%":
@@ -267,7 +249,7 @@ async def glob(
 
     stmt = stmt.order_by(BlueprintFile.updated_at.desc())
     result = await session.execute(stmt)
-    return [dict(r) for r in result.mappings()]
+    return list(result.scalars().all())
 
 
 # ── Supporting ops ───────────────────────────────────────────
@@ -276,7 +258,7 @@ async def glob(
 async def mkdir(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     path: str, created_by: str = "system"
-) -> Dict[str, Any]:
+) -> BlueprintFile:
     name = posixpath.basename(path)
     await _ensure_ancestors(session, blueprint_agent_id, path, created_by)
 
@@ -314,7 +296,7 @@ async def mkdir(
     )
     result = await session.execute(stmt)
     await session.commit()
-    return _row_to_dict(result.scalar_one())
+    return result.scalar_one()
 
 
 async def rm(session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str) -> None:
@@ -431,22 +413,13 @@ async def _move_storage_object(old_storage_path: str, new_storage_path: str, mim
 
 async def stat(
     session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str
-) -> Optional[Dict[str, Any]]:
-    stmt = (
-        select(
-            BlueprintFile.id, BlueprintFile.path, BlueprintFile.name,
-            BlueprintFile.type, BlueprintFile.mime_type, BlueprintFile.size_bytes,
-            BlueprintFile.file_class, BlueprintFile.created_by,
-            BlueprintFile.created_at, BlueprintFile.updated_at,
-        )
-        .where(
-            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
-            BlueprintFile.path == path,
-        )
+) -> Optional[BlueprintFile]:
+    stmt = select(BlueprintFile).where(
+        BlueprintFile.blueprint_agent_id == blueprint_agent_id,
+        BlueprintFile.path == path,
     )
     result = await session.execute(stmt)
-    row = result.mappings().first()
-    return dict(row) if row else None
+    return result.scalar_one_or_none()
 
 
 async def exists(session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str) -> bool:
@@ -460,17 +433,14 @@ async def exists(session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str
 
 async def tree(
     session: AsyncSession, blueprint_agent_id: uuid.UUID, root: str = "/"
-) -> List[Dict[str, Any]]:
+) -> List[BlueprintFile]:
     """Flat list of all nodes under root, ordered by path."""
-    stmt = (
-        select(BlueprintFile.path, BlueprintFile.name, BlueprintFile.type, BlueprintFile.file_class)
-        .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id)
-    )
+    stmt = select(BlueprintFile).where(BlueprintFile.blueprint_agent_id == blueprint_agent_id)
     if root != "/":
         stmt = stmt.where(BlueprintFile.path.like(f"{root}/%"))
     stmt = stmt.order_by(BlueprintFile.path)
     result = await session.execute(stmt)
-    return [dict(r) for r in result.mappings()]
+    return list(result.scalars().all())
 
 
 async def bulk_insert(
@@ -533,20 +503,17 @@ async def bulk_delete(
 async def cp(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
     source_path: str, dest_path: str,
-) -> List[Dict[str, Any]]:
+) -> List[BlueprintFile]:
     """Copy a file or directory to a new path. Returns list of created rows."""
-    # Read the source node
     source = await read_file(session, blueprint_agent_id, source_path)
     if not source:
         return []
 
-    created: List[Dict[str, Any]] = []
+    created: List[BlueprintFile] = []
 
-    if source["type"] == "directory":
-        # Copy the directory itself
+    if source.type == NodeType.directory:
         row = await mkdir(session, blueprint_agent_id, dest_path)
         created.append(row)
-        # Copy all children
         children_stmt = (
             select(BlueprintFile)
             .where(
@@ -558,7 +525,7 @@ async def cp(
         children = (await session.execute(children_stmt)).scalars().all()
         for child in children:
             child_dest = dest_path + child.path[len(source_path):]
-            if child.type == "directory":
+            if child.type == NodeType.directory:
                 row = await mkdir(session, blueprint_agent_id, child_dest)
             elif child.storage_path:
                 from app.storage import download_file
@@ -576,37 +543,30 @@ async def cp(
                 )
             created.append(row)
     else:
-        # Single file copy
-        if source.get("storage_path"):
+        if source.storage_path:
             from app.storage import download_file
-            data = await download_file(BUCKET, source["storage_path"])
+            data = await download_file(BUCKET, source.storage_path)
             row = await write_file(
                 session, blueprint_agent_id, dest_path,
-                mime_type=source.get("mime_type", "application/octet-stream"),
+                mime_type=source.mime_type or "application/octet-stream",
                 binary_data=data,
             )
         else:
             row = await write_file(
                 session, blueprint_agent_id, dest_path,
-                source.get("content") or "",
-                mime_type=source.get("mime_type", "text/markdown"),
+                source.content or "",
+                mime_type=source.mime_type or "text/markdown",
             )
         created.append(row)
 
     return created
 
 
-async def get_all_files(session: AsyncSession, blueprint_agent_id: uuid.UUID) -> List[Dict[str, Any]]:
-    """Get all base files (for publish diffing)."""
-    stmt = (
-        select(
-            BlueprintFile.path, BlueprintFile.name, BlueprintFile.content,
-            BlueprintFile.file_class, BlueprintFile.storage_path,
-        )
-        .where(
-            BlueprintFile.blueprint_agent_id == blueprint_agent_id,
-            BlueprintFile.type == "file",
-        )
+async def get_all_files(session: AsyncSession, blueprint_agent_id: uuid.UUID) -> List[BlueprintFile]:
+    """Get all base file rows (type=file only; for publish diffing)."""
+    stmt = select(BlueprintFile).where(
+        BlueprintFile.blueprint_agent_id == blueprint_agent_id,
+        BlueprintFile.type == NodeType.file,
     )
     result = await session.execute(stmt)
-    return [dict(r) for r in result.mappings()]
+    return list(result.scalars().all())

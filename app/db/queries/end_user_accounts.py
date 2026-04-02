@@ -1,4 +1,15 @@
-"""DAO functions for the end_user_accounts table."""
+"""DAO functions for the end_user_accounts table.
+
+Return shapes (DAO; HTTP layer uses ``app.models.end_user_account``):
+
+    ``create_end_user_account``, ``get_end_user_account``,
+    ``list_end_user_accounts``, ``update_end_user_account``
+        → :class:`app.db.models.end_user_accounts.EndUserAccount`
+        OR ``None`` where a single-row lookup/update misses.
+
+    ``delete_end_user_account``
+        → ``bool`` — row deleted or not (callers should ``commit``).
+"""
 
 from __future__ import annotations
 

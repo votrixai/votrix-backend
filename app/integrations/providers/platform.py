@@ -1,8 +1,8 @@
 """
 PlatformProvider — loads platform-native tools.
 
-Tools with effective provider_id == "platform"  → wrapped with a local handler.
-Tools with effective provider_id == "composio"  → delegated to Composio SDK
+Tools with effective provider_slug == "platform"  → wrapped with a local handler.
+Tools with effective provider_slug == "composio"  → delegated to Composio SDK
     (e.g. web_search → TAVILY_SEARCH, web_fetch → SCRAPE_URL, bash_tool → EXEC_COMMAND).
 """
 
@@ -12,9 +12,10 @@ from typing import Any, Dict, List, Optional, Type
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import create_model
 
-from app.models.tools import Integration, Tool
+from app.models.integration import Integration, Tool
 from app.integrations.handlers import PLATFORM_HANDLERS
 from app.integrations.providers import ToolProvider
+from app.integrations.providers.composio import load_by_tools
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ _PY_TYPE_MAP = {
 }
 
 
-def _schema_to_model(tool_id: str, schema: Dict[str, Any]) -> Type:
+def _schema_to_model(tool_slug: str, schema: Dict[str, Any]) -> Type:
     """Dynamically build a Pydantic model from a JSON Schema dict."""
     props = schema.get("properties", {})
     required = set(schema.get("required", []))
@@ -39,14 +40,14 @@ def _schema_to_model(tool_id: str, schema: Dict[str, Any]) -> Type:
             fields[name] = (py_type, ...)
         else:
             fields[name] = (Optional[py_type], None)
-    return create_model(f"{tool_id}_schema", **fields)
+    return create_model(f"{tool_slug}_schema", **fields)
 
 
 def _make_local_tool(tool: Tool) -> BaseTool:
-    handler = PLATFORM_HANDLERS[tool.id]
-    model = _schema_to_model(tool.id, tool.input_schema)
+    handler = PLATFORM_HANDLERS[tool.slug]
+    model = _schema_to_model(tool.slug, tool.input_schema)
     return StructuredTool(
-        name=tool.id,
+        name=tool.slug,
         description=tool.description,
         args_schema=model,
         coroutine=handler,
@@ -60,22 +61,22 @@ class PlatformProvider(ToolProvider):
     async def load_tools(
         self,
         integration: Integration,
-        enabled_tool_ids: Optional[List[str]],
+        enabled_tool_slugs: Optional[List[str]],
         user_id: str,
     ) -> List[BaseTool]:
         tools = integration.tools
-        if enabled_tool_ids:
-            tools = [t for t in tools if t.id in enabled_tool_ids]
+        if enabled_tool_slugs:
+            tools = [t for t in tools if t.slug in enabled_tool_slugs]
 
         result: List[BaseTool] = []
         composio_actions: List[str] = []
 
         for tool in tools:
-            eff_provider = integration.effective_provider_id(tool)
+            eff_provider = integration.effective_provider_slug(tool)
 
             if eff_provider == "platform":
-                if tool.id not in PLATFORM_HANDLERS:
-                    logger.warning("No handler for platform tool: %s — skipping", tool.id)
+                if tool.slug not in PLATFORM_HANDLERS:
+                    logger.warning("No handler for platform tool: %s — skipping", tool.slug)
                     continue
                 result.append(_make_local_tool(tool))
 
@@ -85,10 +86,9 @@ class PlatformProvider(ToolProvider):
                 if action:
                     composio_actions.append(action)
                 else:
-                    logger.warning("composio tool %s has no action in provider_config", tool.id)
+                    logger.warning("composio tool %s has no action in provider_config", tool.slug)
 
         if composio_actions:
-            from app.integrations.providers.composio import load_by_tools
             composio_tools = await load_by_tools(self._api_key, user_id, composio_actions)
             result.extend(composio_tools)
 

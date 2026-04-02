@@ -17,20 +17,14 @@ from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session
 from app.db.queries import agents as agents_q
 from app.llm.engine.agent_engine import AgentEngine
+from app.models.chat import ChatRequest
 
 router = APIRouter(prefix="/agents", tags=["chat"])
-
-
-class ChatRequest(BaseModel):
-    user_id: uuid.UUID
-    session_id: uuid.UUID
-    message: str
 
 
 def _sse(payload: dict) -> str:

@@ -18,14 +18,14 @@ class UpdateEndUserAccountRequest(BaseModel):
     sandbox: Optional[bool] = None
 
 
-class EndUserAccountSummary(BaseModel):
+class EndUserAccountSummaryResponse(BaseModel):
     id: str
     display_name: str
     sandbox: bool
     created_at: datetime
 
 
-class EndUserAccountDetail(BaseModel):
+class EndUserAccountDetailResponse(BaseModel):
     id: str
     org_id: str
     display_name: str
@@ -38,7 +38,7 @@ class CreateEndUserAgentRequest(BaseModel):
     blueprint_agent_id: str
 
 
-class EndUserAgentDetail(BaseModel):
+class EndUserAgentDetailResponse(BaseModel):
     id: str
     end_user_account_id: str
     blueprint_agent_id: str

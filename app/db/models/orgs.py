@@ -14,3 +14,6 @@ class Org(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     display_name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
     timezone: Mapped[str] = mapped_column(Text, nullable=False, server_default="UTC")
     metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, server_default="{}")
+    enabled_integration_slugs: Mapped[list] = mapped_column(
+        "integrations", ARRAY(Text), nullable=False, server_default="{}"
+    )

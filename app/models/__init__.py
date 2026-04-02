@@ -1,22 +1,40 @@
 from app.models.org import (
+    AddOrgIntegrationRequest,
     CreateOrgRequest,
-    OrgDetail,
-    OrgSummary,
+    OrgDetailResponse,
+    OrgSummaryResponse,
     UpdateOrgRequest,
 )
 from app.models.agent import (
-    AgentDetail,
-    AgentSummary,
+    AgentDetailResponse,
+    AgentIntegration,
+    AgentSummaryResponse,
     CreateAgentRequest,
     UpdateAgentRequest,
+    UpsertAgentIntegrationRequest,
+)
+from app.models.chat import ChatRequest
+from app.models.integration import (
+    Integration,
+    IntegrationDetailResponse,
+    IntegrationSummaryResponse,
+    Provider,
+    ProviderType,
+    Tool,
+    ToolSchemaResponse,
 )
 from app.models.end_user_account import (
     CreateEndUserAccountRequest,
-    EndUserAccountDetail,
-    EndUserAccountSummary,
+    CreateEndUserAgentRequest,
+    EndUserAccountDetailResponse,
+    EndUserAccountSummaryResponse,
+    EndUserAgentDetailResponse,
     UpdateEndUserAccountRequest,
 )
 from app.models.files import (
+    BulkDeleteRequest,
+    BulkMoveRequest,
+    CopyRequest,
     EditFileRequest,
     FileContent,
     FileEntry,
@@ -31,17 +49,40 @@ from app.models.files import (
 )
 
 __all__ = [
+    # org
+    "AddOrgIntegrationRequest",
     "CreateOrgRequest",
-    "OrgDetail",
-    "OrgSummary",
+    "OrgDetailResponse",
+    "OrgSummaryResponse",
     "UpdateOrgRequest",
-    "AgentDetail",
-    "AgentSummary",
+    # chat
+    "ChatRequest",
+    # agent
+    "AgentDetailResponse",
+    "AgentIntegration",
+    "AgentSummaryResponse",
     "CreateAgentRequest",
+    "UpdateAgentRequest",
+    "UpsertAgentIntegrationRequest",
+    # integration
+    "Integration",
+    "IntegrationDetailResponse",
+    "IntegrationSummaryResponse",
+    "Provider",
+    "ProviderType",
+    "Tool",
+    "ToolSchemaResponse",
+    # end user
     "CreateEndUserAccountRequest",
-    "EndUserAccountDetail",
-    "EndUserAccountSummary",
+    "CreateEndUserAgentRequest",
+    "EndUserAccountDetailResponse",
+    "EndUserAccountSummaryResponse",
+    "EndUserAgentDetailResponse",
     "UpdateEndUserAccountRequest",
+    # files
+    "BulkDeleteRequest",
+    "BulkMoveRequest",
+    "CopyRequest",
     "EditFileRequest",
     "FileContent",
     "FileEntry",
@@ -51,7 +92,6 @@ __all__ = [
     "MoveRequest",
     "NodeType",
     "TreeEntry",
-    "UpdateAgentRequest",
     "WriteFileRequest",
     "classify_file",
 ]

@@ -12,7 +12,7 @@ from scalar_fastapi import get_scalar_api_reference
 from app.config import get_settings
 from app.db.engine import dispose_engine, init_engine
 from app.llm.engine import AgentEngine
-from app.routers import agent_integrations, agents, chat, end_user_accounts, files, integrations, org_integrations, orgs, user_files
+from app.routers import agents, chat, end_user_accounts, files, integrations, orgs, user_files
 from app.routers.agents import load_default_blueprint_files
 from app.short_id import ShortIdMiddleware, patch_openapi
 from app.ws import router as ws_router
@@ -33,9 +33,8 @@ async def lifespan(app: FastAPI):
     init_engine(settings.database_url)
     logger.info("SQLAlchemy engine initialized")
 
-    # psycopg3 pool for LangGraph checkpointer
-    # DATABASE_URL may be postgresql+asyncpg://... — strip the driver suffix
-    pg_url = settings.database_url.replace("+asyncpg", "")
+    # psycopg3 pool for LangGraph checkpointer (requires plain postgresql:// DSN)
+    pg_url = settings.langgraph_database_url or settings.database_url.replace("+asyncpg", "")
     pg_pool = AsyncConnectionPool(pg_url, open=False)
     await pg_pool.open()
     await AgentEngine.init(pg_pool)
@@ -69,9 +68,7 @@ app.add_middleware(
 )
 
 app.include_router(orgs.router)
-app.include_router(org_integrations.router)
 app.include_router(agents.router)
-app.include_router(agent_integrations.router)
 app.include_router(end_user_accounts.router)
 app.include_router(files.router)
 app.include_router(user_files.router)

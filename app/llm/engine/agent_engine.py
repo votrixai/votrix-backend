@@ -9,6 +9,7 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.db.models.blueprint_agents import BlueprintAgent
 from app.llm.engine.graph import build_graph
 from app.llm.prompt.builder import build_system_prompt
 from app.llm.tools.loader import load_tools
@@ -48,7 +49,8 @@ class AgentEngine:
                     "SELECT v FROM checkpoint_migrations ORDER BY v DESC LIMIT 1"
                 )
                 row = await results.fetchone()
-                version = -1 if row is None else row["v"]
+                # psycopg typically returns tuple rows; use index instead of dict access.
+                version = -1 if row is None else int(row[0])
             except Exception:
                 version = -1
             for v, migration in zip(
@@ -58,7 +60,11 @@ class AgentEngine:
             ):
                 await cur.execute(migration)
                 await cur.execute(
-                    "INSERT INTO checkpoint_migrations (v) VALUES (%s)", (v,)
+                    """
+                    INSERT INTO checkpoint_migrations (v) VALUES (%s)
+                    ON CONFLICT (v) DO NOTHING
+                    """,
+                    (v,),
                 )
         cls._graph = build_graph(checkpointer)
 
@@ -76,14 +82,13 @@ class AgentEngine:
         self._llm = None
         self._system_prompt: str = ""
 
-    async def setup(self, agent: dict) -> None:
+    async def setup(self, agent: BlueprintAgent) -> None:
         """
         Load and cache llm + tools + system_prompt.
         Must be called once before astream().
-        agent: dict from agents_q.get_agent().
         """
         settings = get_settings()
-        model_name: str = agent.get("model", "claude-sonnet-4-6")
+        model_name: str = agent.model or "claude-sonnet-4-6"
 
         if model_name.startswith("claude"):
             llm = ChatAnthropic(model=model_name, api_key=settings.anthropic_api_key)

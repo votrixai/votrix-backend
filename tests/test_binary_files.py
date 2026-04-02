@@ -11,6 +11,7 @@ import pytest
 from app.db.queries.orgs import create_org, delete_org
 from app.db.queries.agents import create_agent, delete_agent
 from app.db.queries.end_user_accounts import create_end_user_account, delete_end_user_account
+from app.db.models.blueprint_files import NodeType
 from app.db.queries import blueprint_files as bf
 from app.db.queries import user_files as uf
 from app.db.queries.end_user_agents import replicate_blueprint_to_user, link_agent
@@ -24,7 +25,7 @@ async def agent_id(session):
     org = await create_org(session, display_name="O")
     await session.commit()
     row = await create_agent(session, org.id, display_name="A")
-    return row["id"]
+    return row.id
 
 
 @pytest.fixture
@@ -35,7 +36,7 @@ async def user_ids(session):
     agent = await create_agent(session, org.id, display_name="A")
     user = await create_end_user_account(session, org.id, display_name="U")
     await session.commit()
-    return agent["id"], user.id
+    return agent.id, user.id
 
 
 @pytest.fixture
@@ -46,7 +47,7 @@ async def full_ids(session):
     agent = await create_agent(session, org.id, display_name="A")
     user = await create_end_user_account(session, org.id, display_name="U")
     await session.commit()
-    return org.id, agent["id"], user.id
+    return org.id, agent.id, user.id
 
 
 @pytest.fixture
@@ -101,10 +102,10 @@ class TestBlueprintBinaryWrite:
             mime_type="image/png",
             binary_data=b"\x89PNG\r\n\x1a\n",
         )
-        assert row["storage_path"] is not None
-        assert row["content"] is None
-        assert row["size_bytes"] == 8
-        assert row["mime_type"] == "image/png"
+        assert row.storage_path is not None
+        assert row.content is None
+        assert row.size_bytes == 8
+        assert row.mime_type == "image/png"
 
     async def test_write_binary_uploads_to_storage(self, session, agent_id, mock_storage):
         data = b"\x89PNG fake image"
@@ -120,8 +121,8 @@ class TestBlueprintBinaryWrite:
 
     async def test_write_text_no_storage_path(self, session, agent_id, mock_storage):
         row = await bf.write_file(session, agent_id, "/readme.md", "# Hello")
-        assert row["storage_path"] is None
-        assert row["content"] == "# Hello"
+        assert row.storage_path is None
+        assert row.content == "# Hello"
         assert len(mock_storage) == 0
 
     async def test_text_mime_via_upload_decoded(self, session, agent_id, mock_storage):
@@ -131,8 +132,8 @@ class TestBlueprintBinaryWrite:
             mime_type="application/json",
             binary_data=b'{"key": "value"}',
         )
-        assert row["storage_path"] is None
-        assert row["content"] == '{"key": "value"}'
+        assert row.storage_path is None
+        assert row.content == '{"key": "value"}'
         assert len(mock_storage) == 0
 
 
@@ -145,15 +146,15 @@ class TestBlueprintBinaryRead:
         )
         f = await bf.read_file(session, agent_id, "/doc.pdf")
         assert f is not None
-        assert f["content"] is None
-        assert f["storage_path"] is not None
-        assert "doc.pdf" in f["storage_path"]
+        assert f.content is None
+        assert f.storage_path is not None
+        assert "doc.pdf" in f.storage_path
 
     async def test_read_text_no_storage_path(self, session, agent_id, mock_storage):
         await bf.write_file(session, agent_id, "/note.md", "hello")
         f = await bf.read_file(session, agent_id, "/note.md")
-        assert f["content"] == "hello"
-        assert f["storage_path"] is None
+        assert f.content == "hello"
+        assert f.storage_path is None
 
 
 class TestBlueprintBinaryOverwrite:
@@ -168,8 +169,8 @@ class TestBlueprintBinaryOverwrite:
         # Overwrite with text
         await bf.write_file(session, agent_id, "/file.dat", "now text", mime_type="text/plain")
         f = await bf.read_file(session, agent_id, "/file.dat")
-        assert f["content"] == "now text"
-        assert f["storage_path"] is None
+        assert f.content == "now text"
+        assert f.storage_path is None
         assert len(mock_storage) == 0  # old storage cleaned up
 
     async def test_overwrite_binary_with_new_binary(self, session, agent_id, mock_storage):
@@ -184,8 +185,8 @@ class TestBlueprintBinaryOverwrite:
             binary_data=b"v2",
         )
         f = await bf.read_file(session, agent_id, "/img.png")
-        assert f["content"] is None
-        assert f["storage_path"] is not None
+        assert f.content is None
+        assert f.storage_path is not None
         # Old storage cleaned, new one present
         key = f"blueprints/{agent_id}/img.png"
         assert mock_storage[key]["data"] == b"v2"
@@ -198,8 +199,8 @@ class TestBlueprintBinaryOverwrite:
             binary_data=b"\xff\xd8\xff",
         )
         f = await bf.read_file(session, agent_id, "/f.txt")
-        assert f["content"] is None
-        assert f["storage_path"] is not None
+        assert f.content is None
+        assert f.storage_path is not None
 
 
 class TestBlueprintBinaryEdit:
@@ -295,14 +296,14 @@ class TestBlueprintBinaryMv:
         assert new_key in mock_storage
 
         f = await bf.read_file(session, agent_id, "/new.png")
-        assert f["storage_path"] == new_key
+        assert f.storage_path == new_key
 
     async def test_mv_text_no_storage_op(self, session, agent_id, mock_storage):
         await bf.write_file(session, agent_id, "/old.md", "content")
         await bf.mv(session, agent_id, "/old.md", "/new.md")
         assert len(mock_storage) == 0
         f = await bf.read_file(session, agent_id, "/new.md")
-        assert f["content"] == "content"
+        assert f.content == "content"
 
 
 class TestBlueprintMkdirOverwrite:
@@ -332,14 +333,14 @@ class TestUserBinaryWrite:
             mime_type="image/jpeg",
             binary_data=b"\xff\xd8\xff",
         )
-        assert row["storage_path"] is not None
-        assert row["content"] is None
+        assert row.storage_path is not None
+        assert row.content is None
 
     async def test_write_text(self, session, user_ids, mock_storage):
         aid, uid = user_ids
         row = await uf.write_file(session, aid, uid, "/note.md", "hello")
-        assert row["storage_path"] is None
-        assert row["content"] == "hello"
+        assert row.storage_path is None
+        assert row.content == "hello"
 
     async def test_text_mime_binary_data_decoded(self, session, user_ids, mock_storage):
         aid, uid = user_ids
@@ -348,8 +349,8 @@ class TestUserBinaryWrite:
             mime_type="application/x-sh",
             binary_data=b"#!/bin/bash\necho hi",
         )
-        assert row["content"] == "#!/bin/bash\necho hi"
-        assert row["storage_path"] is None
+        assert row.content == "#!/bin/bash\necho hi"
+        assert row.storage_path is None
 
 
 class TestUserBinaryDelete:
@@ -417,8 +418,8 @@ class TestReplicationBinary:
         count = await replicate_blueprint_to_user(session, aid, uid)
         assert count == 1
         f = await uf.read_file(session, aid, uid, "/doc.md")
-        assert f["content"] == "hello"
-        assert f["storage_path"] is None
+        assert f.content == "hello"
+        assert f.storage_path is None
 
     async def test_replicate_binary_files(self, session, user_ids, mock_storage):
         aid, uid = user_ids
@@ -431,10 +432,10 @@ class TestReplicationBinary:
         assert count == 1
 
         f = await uf.read_file(session, aid, uid, "/logo.png")
-        assert f["content"] is None
-        assert f["storage_path"] is not None
+        assert f.content is None
+        assert f.storage_path is not None
         # User storage path is different from blueprint storage path
-        assert f["storage_path"].startswith(f"users/{uid}/")
+        assert f.storage_path.startswith(f"users/{uid}/")
 
     async def test_replicate_mixed(self, session, user_ids, mock_storage):
         aid, uid = user_ids
@@ -449,12 +450,12 @@ class TestReplicationBinary:
         assert count == 3  # dir + text + binary
 
         text = await uf.read_file(session, aid, uid, "/readme.md")
-        assert text["content"] == "text"
-        assert text["storage_path"] is None
+        assert text.content == "text"
+        assert text.storage_path is None
 
         img = await uf.read_file(session, aid, uid, "/assets/img.png")
-        assert img["content"] is None
-        assert img["storage_path"] is not None
+        assert img.content is None
+        assert img.storage_path is not None
 
 
 # ══════════════════════════════════════════════════════════════
@@ -469,16 +470,16 @@ class TestEdgeCases:
             mime_type="application/octet-stream",
             binary_data=b"",
         )
-        assert row["storage_path"] is not None
-        assert row["content"] is None
-        assert row["size_bytes"] == 0
+        assert row.storage_path is not None
+        assert row.content is None
+        assert row.size_bytes == 0
 
     async def test_write_no_content_no_binary(self, session, agent_id, mock_storage):
         """JSON endpoint with content=None, no binary_data → empty text file."""
         row = await bf.write_file(session, agent_id, "/empty.md")
-        assert row["content"] == ""
-        assert row["storage_path"] is None
-        assert row["size_bytes"] == 0
+        assert row.content == ""
+        assert row.storage_path is None
+        assert row.size_bytes == 0
 
     async def test_binary_file_in_glob(self, session, agent_id, mock_storage):
         await bf.write_file(
@@ -487,7 +488,7 @@ class TestEdgeCases:
         )
         await bf.write_file(session, agent_id, "/assets/style.css", "body {}")
         results = await bf.glob(session, agent_id, "/assets/*")
-        paths = [r["path"] for r in results]
+        paths = [r.path for r in results]
         assert "/assets/logo.png" in paths
         assert "/assets/style.css" in paths
 
@@ -497,7 +498,7 @@ class TestEdgeCases:
             mime_type="application/x-sqlite3", binary_data=b"SQLite",
         )
         entries = await bf.tree(session, agent_id)
-        assert any(e["path"] == "/data.db" for e in entries)
+        assert any(e.path == "/data.db" for e in entries)
 
     async def test_binary_file_in_ls(self, session, agent_id, mock_storage):
         await bf.write_file(
@@ -506,7 +507,7 @@ class TestEdgeCases:
         )
         entries = await bf.ls(session, agent_id, "/")
         assert len(entries) == 1
-        assert entries[0]["mime_type"] == "video/mp4"
+        assert entries[0].mime_type == "video/mp4"
 
     async def test_stat_binary_file(self, session, agent_id, mock_storage):
         await bf.write_file(
@@ -515,8 +516,8 @@ class TestEdgeCases:
         )
         s = await bf.stat(session, agent_id, "/doc.pdf")
         assert s is not None
-        assert s["mime_type"] == "application/pdf"
-        assert s["size_bytes"] == 4
+        assert s.mime_type == "application/pdf"
+        assert s.size_bytes == 4
 
     async def test_get_all_files_includes_binary(self, session, agent_id, mock_storage):
         await bf.write_file(session, agent_id, "/a.md", "text")
@@ -526,12 +527,12 @@ class TestEdgeCases:
         )
         all_files = await bf.get_all_files(session, agent_id)
         assert len(all_files) == 2
-        text_f = next(f for f in all_files if f["path"] == "/a.md")
-        bin_f = next(f for f in all_files if f["path"] == "/b.bin")
-        assert text_f["content"] == "text"
-        assert text_f["storage_path"] is None
-        assert bin_f["content"] is None
-        assert bin_f["storage_path"] is not None
+        text_f = next(f for f in all_files if f.path == "/a.md")
+        bin_f = next(f for f in all_files if f.path == "/b.bin")
+        assert text_f.content == "text"
+        assert text_f.storage_path is None
+        assert bin_f.content is None
+        assert bin_f.storage_path is not None
 
     async def test_utf8_decode_error_replaced(self, session, agent_id, mock_storage):
         """Binary data with text MIME that isn't valid UTF-8 → replacement chars."""
@@ -540,9 +541,9 @@ class TestEdgeCases:
             mime_type="text/plain",
             binary_data=b"hello \xff\xfe world",
         )
-        assert row["storage_path"] is None
-        assert "\ufffd" in row["content"]  # replacement character
-        assert "hello" in row["content"]
+        assert row.storage_path is None
+        assert "\ufffd" in row.content  # replacement character
+        assert "hello" in row.content
 
 
 # ══════════════════════════════════════════════════════════════
@@ -634,35 +635,35 @@ class TestSeedFromBinary:
         await bf.write_file(session, src_aid, "/doc.md", "hello")
 
         new_agent = await create_agent(session, org_id, display_name="Clone")
-        new_id = new_agent["id"]
+        new_id = new_agent.id
 
         # Manually replicate seed_from logic
         source_files = await bf.tree(session, src_aid)
         for f in source_files:
-            if f["type"] == "directory":
-                await bf.mkdir(session, new_id, f["path"])
+            if f.type == NodeType.directory:
+                await bf.mkdir(session, new_id, f.path)
             else:
-                content_row = await bf.read_file(session, src_aid, f["path"])
+                content_row = await bf.read_file(session, src_aid, f.path)
                 if content_row:
-                    if content_row.get("storage_path"):
+                    if content_row.storage_path:
                         from app.storage import download_file
-                        data = await download_file("files", content_row["storage_path"])
+                        data = await download_file("files", content_row.storage_path)
                         await bf.write_file(
-                            session, new_id, f["path"],
-                            mime_type=content_row.get("mime_type", "application/octet-stream"),
+                            session, new_id, f.path,
+                            mime_type=content_row.mime_type or "application/octet-stream",
                             binary_data=data,
                         )
                     else:
                         await bf.write_file(
-                            session, new_id, f["path"],
-                            content_row.get("content") or "",
-                            mime_type=content_row.get("mime_type", "text/markdown"),
+                            session, new_id, f.path,
+                            content_row.content or "",
+                            mime_type=content_row.mime_type or "text/markdown",
                         )
 
         cloned = await bf.read_file(session, new_id, "/doc.md")
         assert cloned is not None
-        assert cloned["content"] == "hello"
-        assert cloned["storage_path"] is None
+        assert cloned.content == "hello"
+        assert cloned.storage_path is None
 
     async def test_seed_clones_binary_files(self, session, full_ids, mock_storage):
         org_id, src_aid, _ = full_ids
@@ -672,25 +673,25 @@ class TestSeedFromBinary:
         )
 
         new_agent = await create_agent(session, org_id, display_name="Clone")
-        new_id = new_agent["id"]
+        new_id = new_agent.id
 
         source_files = await bf.tree(session, src_aid)
         for f in source_files:
-            if f["type"] != "directory":
-                content_row = await bf.read_file(session, src_aid, f["path"])
-                if content_row and content_row.get("storage_path"):
+            if f.type != NodeType.directory:
+                content_row = await bf.read_file(session, src_aid, f.path)
+                if content_row and content_row.storage_path:
                     from app.storage import download_file
-                    data = await download_file("files", content_row["storage_path"])
+                    data = await download_file("files", content_row.storage_path)
                     await bf.write_file(
-                        session, new_id, f["path"],
-                        mime_type=content_row.get("mime_type", "application/octet-stream"),
+                        session, new_id, f.path,
+                        mime_type=content_row.mime_type or "application/octet-stream",
                         binary_data=data,
                     )
 
         cloned = await bf.read_file(session, new_id, "/logo.png")
         assert cloned is not None
-        assert cloned["content"] is None
-        assert cloned["storage_path"] is not None
+        assert cloned.content is None
+        assert cloned.storage_path is not None
         # Cloned storage path should be different from source
         src = await bf.read_file(session, src_aid, "/logo.png")
-        assert cloned["storage_path"] != src["storage_path"]
+        assert cloned.storage_path != src.storage_path

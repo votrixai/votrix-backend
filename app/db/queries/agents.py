@@ -1,64 +1,77 @@
-"""Agent queries — CRUD for blueprint_agents."""
+"""Agent queries — CRUD for blueprint_agents + blueprint_agent_integrations.
+
+Returns are SQLAlchemy ORM instances from :mod:`app.db.models` (no separate DAO dict/TypedDict layer).
+"""
 
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.blueprint_agents import BlueprintAgent
+from app.db.models.blueprint_agent_integrations import BlueprintAgentIntegration
 from app.db.models.blueprint_files import BlueprintFile
 from app.db.models.user_files import UserFile
 from app.storage import BUCKET, delete_file as storage_delete
 
 
-def _row_to_dict(row: BlueprintAgent) -> Dict[str, Any]:
-    return {c.key: getattr(row, c.key) for c in BlueprintAgent.__table__.columns}
-
-
-async def get_agent(session: AsyncSession, agent_id: uuid.UUID) -> Optional[Dict[str, Any]]:
+async def get_agent(session: AsyncSession, agent_id: uuid.UUID) -> Optional[BlueprintAgent]:
     stmt = select(BlueprintAgent).where(BlueprintAgent.id == agent_id)
     result = await session.execute(stmt)
-    row = result.scalar_one_or_none()
-    if not row:
-        return None
-    return _row_to_dict(row)
+    return result.scalar_one_or_none()
 
 
-async def create_agent(session: AsyncSession, org_id: uuid.UUID, **kwargs) -> Dict[str, Any]:
+async def create_agent(session: AsyncSession, org_id: uuid.UUID, **kwargs) -> BlueprintAgent:
     integrations = kwargs.pop("integrations", None) or []
-    obj = BlueprintAgent(org_id=org_id, integrations=integrations, **kwargs)
+    obj = BlueprintAgent(org_id=org_id, **kwargs)
     session.add(obj)
     await session.commit()
     await session.refresh(obj)
-    return _row_to_dict(obj)
+
+    if integrations:
+        for item in integrations:
+            if isinstance(item, dict):
+                d = item
+            else:
+                d = item.model_dump()
+            slug = d.get("integration_slug")
+            if not slug:
+                continue
+            session.add(BlueprintAgentIntegration(
+                blueprint_agent_id=obj.id,
+                integration_slug=slug,
+                deferred=bool(d.get("deferred", False)),
+                enabled_tool_slugs=list(d.get("enabled_tool_slugs") or []),
+            ))
+        await session.commit()
+
+    return obj
 
 
-async def update_agent(session: AsyncSession, agent_id: uuid.UUID, **kwargs) -> Optional[Dict[str, Any]]:
+async def update_agent(session: AsyncSession, agent_id: uuid.UUID, **kwargs) -> Optional[BlueprintAgent]:
     stmt = (
         update(BlueprintAgent)
         .where(BlueprintAgent.id == agent_id)
         .values(**kwargs)
-        .returning(BlueprintAgent)
     )
     result = await session.execute(stmt)
-    row = result.scalar_one_or_none()
-    if not row:
-        return None
     await session.commit()
-    return _row_to_dict(row)
+    if result.rowcount == 0:
+        return None
+    return await session.get(BlueprintAgent, agent_id)
 
 
-async def list_agents(session: AsyncSession, org_id: uuid.UUID) -> List[Dict[str, Any]]:
+async def list_agents(session: AsyncSession, org_id: uuid.UUID) -> List[BlueprintAgent]:
     stmt = (
-        select(BlueprintAgent.id, BlueprintAgent.display_name, BlueprintAgent.created_at, BlueprintAgent.updated_at)
+        select(BlueprintAgent)
         .where(BlueprintAgent.org_id == org_id)
         .where(BlueprintAgent.deleted_at.is_(None))
     )
     result = await session.execute(stmt)
-    return [dict(r) for r in result.mappings()]
+    return list(result.scalars().all())
 
 
 async def soft_delete_agent(session: AsyncSession, agent_id: uuid.UUID) -> bool:
@@ -74,7 +87,6 @@ async def soft_delete_agent(session: AsyncSession, agent_id: uuid.UUID) -> bool:
 
 async def delete_agent(session: AsyncSession, agent_id: uuid.UUID) -> bool:
     """Delete an agent and clean up any Storage objects before DB cascade."""
-    # Clean up storage objects from blueprint_files and user_files before cascade
     for model in (BlueprintFile, UserFile):
         storage_stmt = (
             select(model.storage_path)
@@ -90,57 +102,101 @@ async def delete_agent(session: AsyncSession, agent_id: uuid.UUID) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Per-integration operations (operate on the JSONB list in-place)
+# Per-integration operations (blueprint_agent_integrations table)
 # ---------------------------------------------------------------------------
+
+
+async def get_agent_integrations(
+    session: AsyncSession,
+    agent_id: uuid.UUID,
+) -> List[BlueprintAgentIntegration]:
+    stmt = select(BlueprintAgentIntegration).where(
+        BlueprintAgentIntegration.blueprint_agent_id == agent_id
+    )
+    rows = (await session.execute(stmt)).scalars().all()
+    return list(rows)
+
+
+async def replace_agent_integrations(
+    session: AsyncSession,
+    agent_id: uuid.UUID,
+    integrations: List[Any],
+) -> None:
+    """Replace all integration rows for an agent (full set from request body)."""
+    await session.execute(
+        delete(BlueprintAgentIntegration).where(
+            BlueprintAgentIntegration.blueprint_agent_id == agent_id
+        )
+    )
+    for item in integrations:
+        if isinstance(item, dict):
+            d = item
+        else:
+            d = item.model_dump()
+        slug = d.get("integration_slug")
+        if not slug:
+            continue
+        session.add(BlueprintAgentIntegration(
+            blueprint_agent_id=agent_id,
+            integration_slug=slug,
+            deferred=bool(d.get("deferred", False)),
+            enabled_tool_slugs=list(d.get("enabled_tool_slugs") or []),
+        ))
+    await session.commit()
+
 
 async def upsert_agent_integration(
     session: AsyncSession,
     agent_id: uuid.UUID,
-    integration_id: str,
+    integration_slug: str,
     deferred: bool,
-    enabled_tool_ids: List[str],
-) -> Optional[Dict[str, Any]]:
-    """Add or replace a single integration entry on the agent. Returns the upserted item, or None if agent not found."""
-    result = await session.execute(select(BlueprintAgent).where(BlueprintAgent.id == agent_id))
-    agent = result.scalar_one_or_none()
+    enabled_tool_slugs: List[str],
+) -> Optional[BlueprintAgentIntegration]:
+    """Add or replace a single integration row for the agent. Returns None if agent not found."""
+    agent = await session.get(BlueprintAgent, agent_id)
     if not agent:
         return None
 
-    new_item = {"integration_id": integration_id, "deferred": deferred, "enabled_tool_ids": enabled_tool_ids}
-    updated = [i for i in (agent.integrations or []) if i.get("integration_id") != integration_id]
-    updated.append(new_item)
-
-    await session.execute(
-        update(BlueprintAgent)
-        .where(BlueprintAgent.id == agent_id)
-        .values(integrations=updated)
+    result = await session.execute(
+        select(BlueprintAgentIntegration).where(
+            BlueprintAgentIntegration.blueprint_agent_id == agent_id,
+            BlueprintAgentIntegration.integration_slug == integration_slug,
+        )
     )
+    row = result.scalar_one_or_none()
+    if row:
+        row.deferred = deferred
+        row.enabled_tool_slugs = enabled_tool_slugs
+    else:
+        row = BlueprintAgentIntegration(
+            blueprint_agent_id=agent_id,
+            integration_slug=integration_slug,
+            deferred=deferred,
+            enabled_tool_slugs=enabled_tool_slugs,
+        )
+        session.add(row)
+
     await session.commit()
-    return new_item
+    await session.refresh(row)
+    return row
 
 
 async def delete_agent_integration(
     session: AsyncSession,
     agent_id: uuid.UUID,
-    integration_id: str,
+    integration_slug: str,
 ) -> bool:
-    """Remove a single integration from the agent. Returns False if agent or integration not found."""
-    result = await session.execute(select(BlueprintAgent).where(BlueprintAgent.id == agent_id))
-    agent = result.scalar_one_or_none()
-    if not agent:
-        return False
-
-    current = agent.integrations or []
-    updated = [i for i in current if i.get("integration_id") != integration_id]
-    if len(updated) == len(current):
-        return False
-
-    await session.execute(
-        update(BlueprintAgent)
-        .where(BlueprintAgent.id == agent_id)
-        .values(integrations=updated)
+    """Remove a single integration from the agent. Returns False if not found."""
+    stmt = delete(BlueprintAgentIntegration).where(
+        BlueprintAgentIntegration.blueprint_agent_id == agent_id,
+        BlueprintAgentIntegration.integration_slug == integration_slug,
     )
+    result = await session.execute(stmt)
     await session.commit()
-    return True
+    return result.rowcount > 0
 
 
+async def get_org_integration_slugs(session: AsyncSession, org_id: uuid.UUID) -> List[str]:
+    """Helper used by agent_integrations router to check org's activated slugs."""
+    from app.db.queries import orgs as orgs_q
+    return await orgs_q.get_org_integration_slugs(session, org_id)

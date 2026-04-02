@@ -3,15 +3,15 @@ Platform integration static data — tool declarations and input schemas.
 
 Pure data, no execution logic, no SDK imports.
 
-web_search, web_fetch, bash_tool route through Composio (provider_id="composio").
+web_search, web_fetch, bash_tool route through Composio (provider_slug="composio").
 create_file, str_replace, view run locally via handlers/.
 """
 
-from app.models.tools import Integration, Tool
+from app.models.integration import Integration, Tool
 
 _PLATFORM_TOOLS = [
     Tool(
-        id="create_file",
+        slug="create_file",
         name="create_file",
         description="Create a new file with content in the container",
         input_schema={
@@ -34,7 +34,7 @@ _PLATFORM_TOOLS = [
         },
     ),
     Tool(
-        id="str_replace",
+        slug="str_replace",
         name="str_replace",
         description=(
             "Replace a unique string in a file with another string. "
@@ -58,7 +58,7 @@ _PLATFORM_TOOLS = [
         },
     ),
     Tool(
-        id="view",
+        slug="view",
         name="view",
         description="Supports viewing text, images, and directory listings.",
         input_schema={
@@ -81,7 +81,7 @@ _PLATFORM_TOOLS = [
         },
     ),
     Tool(
-        id="web_search",
+        slug="web_search",
         name="web_search",
         description="Search the web",
         input_schema={
@@ -91,11 +91,11 @@ _PLATFORM_TOOLS = [
             },
             "required": ["query"],
         },
-        provider_id="composio",
+        provider_slug="composio",
         provider_config={"app_id": "TAVILY", "action": "TAVILY_SEARCH"},
     ),
     Tool(
-        id="web_fetch",
+        slug="web_fetch",
         name="web_fetch",
         description="Fetch the contents of a web page at a given URL.",
         input_schema={
@@ -105,11 +105,11 @@ _PLATFORM_TOOLS = [
             },
             "required": ["url"],
         },
-        provider_id="composio",
+        provider_slug="composio",
         provider_config={"app_id": "FIRECRAWL", "action": "SCRAPE_URL"},
     ),
     Tool(
-        id="bash_tool",
+        slug="bash_tool",
         name="bash_tool",
         description="Run a bash command in the container",
         input_schema={
@@ -123,16 +123,16 @@ _PLATFORM_TOOLS = [
             },
             "required": ["command"],
         },
-        provider_id="composio",
+        provider_slug="composio",
         provider_config={"app_id": "REMOTE_BASH", "action": "EXEC_COMMAND"},
     ),
 ]
 
 PLATFORM_INTEGRATION = Integration(
-    id="platform",
+    slug="platform",
     display_name="Platform",
     description="Platform-native tools built into the runtime",
-    provider_id="platform",
+    provider_slug="platform",
     provider_config={},
     deferred=False,
     tools=_PLATFORM_TOOLS,
@@ -141,7 +141,7 @@ PLATFORM_INTEGRATION = Integration(
 # tool_search is auto-injected by ToolContext when any deferred integration is enabled.
 # Not listed under PLATFORM_INTEGRATION.
 TOOL_SEARCH = Tool(
-    id="tool_search",
+    slug="tool_search",
     name="tool_search",
     description=(
         "Search for and load deferred tools by keyword. "
