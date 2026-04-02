@@ -60,10 +60,10 @@ class ToolContext:
                                integration.provider_slug, ai.integration_slug)
                 continue
 
-            enabled = ai.enabled_tool_slugs if ai.enabled_tool_slugs else None
+            enabled = ai.enabled_mcp_tool_slugs if ai.enabled_mcp_tool_slugs else None
             tools = await provider.load_tools(
                 integration=integration,
-                enabled_tool_slugs=enabled,
+                enabled_mcp_tool_slugs=enabled,
                 user_id=user_id,
             )
 

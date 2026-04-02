@@ -20,7 +20,7 @@ class CustomProvider(ToolProvider):
     async def load_tools(
         self,
         integration: Integration,
-        enabled_tool_slugs: Optional[List[str]],
+        enabled_mcp_tool_slugs: Optional[List[str]],
         user_id: str,
     ) -> List[BaseTool]:
         logger.warning("CustomProvider is not yet implemented (integration: %s)", integration.slug)

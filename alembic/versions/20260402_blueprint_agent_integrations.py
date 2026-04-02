@@ -35,7 +35,7 @@ def upgrade() -> None:
         sa.Column("blueprint_agent_id", UUID(as_uuid=True), sa.ForeignKey("blueprint_agents.id", ondelete="CASCADE"), nullable=False),
         sa.Column("integration_slug", sa.Text(), nullable=False),
         sa.Column("deferred", sa.Boolean(), nullable=False, server_default="false"),
-        sa.Column("enabled_tool_slugs", sa.ARRAY(sa.Text()), nullable=False, server_default="{}"),
+        sa.Column("enabled_mcp_tool_slugs", sa.ARRAY(sa.Text()), nullable=False, server_default="{}"),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False, server_default=sa.func.now()),
         sa.UniqueConstraint("blueprint_agent_id", "integration_slug", name="uq_blueprint_agent_integration_slug"),

@@ -150,7 +150,7 @@ class ComposioProvider(ToolProvider):
     async def load_tools(
         self,
         integration: Integration,
-        enabled_tool_slugs: Optional[List[str]],
+        enabled_mcp_tool_slugs: Optional[List[str]],
         user_id: str,
     ) -> List[BaseTool]:
         if not self._api_key:
@@ -158,11 +158,11 @@ class ComposioProvider(ToolProvider):
             return []
         try:
             composio = await _get_composio(self._api_key)
-            if enabled_tool_slugs:
+            if enabled_mcp_tool_slugs:
                 return await asyncio.to_thread(
                     composio.tools.get,
                     user_id=user_id,
-                    tools=enabled_tool_slugs,
+                    tools=enabled_mcp_tool_slugs,
                 )
             else:
                 # v3 SDK accepts lowercase slugs directly — no .upper() needed

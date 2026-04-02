@@ -92,7 +92,7 @@ async def _to_detail(session: AsyncSession, agent: BlueprintAgent) -> AgentDetai
             AgentIntegration(
                 integration_slug=i.integration_slug,
                 deferred=i.deferred,
-                enabled_tool_slugs=list(i.enabled_tool_slugs or []),
+                enabled_mcp_tool_slugs=list(i.enabled_mcp_tool_slugs or []),
             )
             for i in integs
         ],

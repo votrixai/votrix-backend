@@ -9,12 +9,12 @@ from pydantic import BaseModel, Field
 class AgentIntegration(BaseModel):
     integration_slug: str
     deferred: bool
-    enabled_tool_slugs: List[str] = []
+    enabled_mcp_tool_slugs: List[str] = []
 
 
 class UpsertAgentIntegrationRequest(BaseModel):
     deferred: bool
-    enabled_tool_slugs: List[str] = []
+    enabled_mcp_tool_slugs: List[str] = []
 
 
 class CreateAgentRequest(BaseModel):
