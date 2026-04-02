@@ -12,6 +12,7 @@ create table orgs (
   display_name text not null default '',
   timezone     text not null default 'UTC',
   metadata     jsonb not null default '{}',
+  integrations text[] not null default '{}',
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
@@ -22,26 +23,64 @@ create table orgs (
 create table blueprint_agents (
   id           uuid primary key default gen_random_uuid(),
   org_id       uuid not null references orgs(id) on delete cascade,
-  name         text not null default '',
+  display_name text not null default '',
+  deleted_at   timestamptz default null,
 
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now()
 );
 
 -- ============================================================
--- 3. agent_integrations
+-- 3. agent_integrations (global catalog)
 -- ============================================================
 create table agent_integrations (
-  id                  uuid primary key default gen_random_uuid(),
-  blueprint_agent_id  uuid not null references blueprint_agents(id) on delete cascade,
-  integration_slug    text not null,
-  created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now(),
-  unique (blueprint_agent_id, integration_slug)
+  id              uuid primary key default gen_random_uuid(),
+  slug            text not null unique,
+  display_name    text not null default '',
+  description     text not null default '',
+  provider_slug   text not null default '',
+  provider_config jsonb not null default '{}',
+  created_at      timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
 );
 
-create index idx_agent_integrations_agent
-  on agent_integrations (blueprint_agent_id);
+-- ============================================================
+-- 3a. agent_integration_tools (tools per integration)
+-- ============================================================
+create table agent_integration_tools (
+  id                    uuid primary key default gen_random_uuid(),
+  agent_integration_id  uuid not null references agent_integrations(id) on delete cascade,
+  slug                  text not null,
+  display_name          text not null default '',
+  description           text not null default '',
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now(),
+  unique (agent_integration_id, slug)
+);
+
+-- ============================================================
+-- 3b. blueprint_agent_integrations (agent ↔ integration link)
+-- ============================================================
+create table blueprint_agent_integrations (
+  id                    uuid primary key default gen_random_uuid(),
+  blueprint_agent_id    uuid not null references blueprint_agents(id) on delete cascade,
+  agent_integration_id  uuid not null references agent_integrations(id) on delete cascade,
+  created_at            timestamptz not null default now(),
+  updated_at            timestamptz not null default now(),
+  unique (blueprint_agent_id, agent_integration_id)
+);
+
+-- ============================================================
+-- 3c. blueprint_agent_integration_tools (enabled tools per link)
+-- ============================================================
+create table blueprint_agent_integration_tools (
+  id                              uuid primary key default gen_random_uuid(),
+  blueprint_agent_integration_id  uuid not null references blueprint_agent_integrations(id) on delete cascade,
+  agent_integration_tool_id       uuid not null references agent_integration_tools(id) on delete cascade,
+  created_at                      timestamptz not null default now(),
+  updated_at                      timestamptz not null default now(),
+  unique (blueprint_agent_integration_id, agent_integration_tool_id)
+);
 
 -- ============================================================
 -- 4. blueprint_files — admin/member-owned base files
@@ -58,7 +97,8 @@ create table blueprint_files (
   type         node_type not null default 'file',
 
   -- content
-  content      text not null default '',
+  content      text default '',
+  storage_path text,
   mime_type    text not null default 'text/markdown',
   size_bytes   int not null default 0,
 
@@ -120,7 +160,8 @@ create table user_files (
   type         node_type not null default 'file',
 
   -- content
-  content      text not null default '',
+  content      text default '',
+  storage_path text,
   mime_type    text not null default 'text/markdown',
   size_bytes   int not null default 0,
 
@@ -153,9 +194,9 @@ create index idx_user_files_glob
   on user_files (blueprint_agent_id, path text_pattern_ops);
 
 -- ============================================================
--- 7. end_user_agent_links — many-to-many
+-- 7. end_user_agents — many-to-many
 -- ============================================================
-create table end_user_agent_links (
+create table end_user_agents (
   id                    uuid primary key default gen_random_uuid(),
   end_user_account_id   uuid not null references end_user_accounts(id) on delete cascade,
   blueprint_agent_id    uuid not null references blueprint_agents(id) on delete cascade,
@@ -165,17 +206,20 @@ create table end_user_agent_links (
   unique (end_user_account_id, blueprint_agent_id)
 );
 
-create index idx_end_user_agent_links_account
-  on end_user_agent_links (end_user_account_id);
+create index idx_end_user_agents_account
+  on end_user_agents (end_user_account_id);
 
-create index idx_end_user_agent_links_agent
-  on end_user_agent_links (blueprint_agent_id);
+create index idx_end_user_agents_agent
+  on end_user_agents (blueprint_agent_id);
 
 -- Row Level Security
 -- ============================================================
-alter table blueprint_agents       enable row level security;
-alter table agent_integrations     enable row level security;
-alter table blueprint_files        enable row level security;
-alter table end_user_accounts      enable row level security;
-alter table user_files             enable row level security;
-alter table end_user_agent_links   enable row level security;
+alter table blueprint_agents                  enable row level security;
+alter table agent_integrations                enable row level security;
+alter table agent_integration_tools           enable row level security;
+alter table blueprint_agent_integrations      enable row level security;
+alter table blueprint_agent_integration_tools enable row level security;
+alter table blueprint_files                   enable row level security;
+alter table end_user_accounts                 enable row level security;
+alter table user_files                        enable row level security;
+alter table end_user_agents              enable row level security;

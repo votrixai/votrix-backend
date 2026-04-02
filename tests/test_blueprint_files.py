@@ -12,7 +12,7 @@ from app.models.files import classify_file
 async def agent_id(session):
     org = await create_org(session, display_name="O")
     await session.commit()
-    row = await create_agent(session, org.id, name="A")
+    row = await create_agent(session, org.id, display_name="A")
     return row["id"]
 
 

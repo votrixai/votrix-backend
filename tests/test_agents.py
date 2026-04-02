@@ -14,27 +14,27 @@ async def org(session):
 
 
 async def test_create_and_get(session, org):
-    row = await create_agent(session, org.id, name="Bot1")
+    row = await create_agent(session, org.id, display_name="Bot1")
     agent = await get_agent(session, row["id"])
     assert agent is not None
-    assert agent["name"] == "Bot1"
+    assert agent["display_name"] == "Bot1"
 
 
 async def test_list(session, org):
-    await create_agent(session, org.id, name="A")
-    await create_agent(session, org.id, name="B")
+    await create_agent(session, org.id, display_name="A")
+    await create_agent(session, org.id, display_name="B")
     agents = await list_agents(session, org.id)
     assert len(agents) == 2
 
 
 async def test_update(session, org):
-    row = await create_agent(session, org.id, name="Old")
-    updated = await update_agent(session, row["id"], name="New")
-    assert updated["name"] == "New"
+    row = await create_agent(session, org.id, display_name="Old")
+    updated = await update_agent(session, row["id"], display_name="New")
+    assert updated["display_name"] == "New"
 
 
 async def test_delete(session, org):
-    row = await create_agent(session, org.id, name="Del")
+    row = await create_agent(session, org.id, display_name="Del")
     assert await delete_agent(session, row["id"]) is True
     assert await get_agent(session, row["id"]) is None
 

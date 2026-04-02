@@ -13,6 +13,8 @@ from app.config import get_settings
 from app.db.engine import dispose_engine, init_engine
 from app.llm.engine import AgentEngine
 from app.routers import agent_integrations, agents, chat, end_user_accounts, files, integrations, org_integrations, orgs, user_files
+from app.routers.agents import load_default_blueprint_files
+from app.short_id import ShortIdMiddleware, patch_openapi
 from app.ws import router as ws_router
 from app.integrations import cache as composio_cache
 
@@ -24,6 +26,10 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
 
+    load_default_blueprint_files()
+
+    # Kick off Composio catalog refresh in the background so startup isn't blocked.
+    # GET /integrations returns only platform items until the cache is ready.
     init_engine(settings.database_url)
     logger.info("SQLAlchemy engine initialized")
 
@@ -48,9 +54,11 @@ app = FastAPI(
     description="Multi-tenant agentic filesystem backend backed by Postgres.",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/swagger",
     redoc_url=None,
 )
 
+app.add_middleware(ShortIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -59,19 +67,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(orgs.router, tags=["orgs"])
-app.include_router(org_integrations.router, tags=["org-integrations"])
-app.include_router(agents.router, tags=["agents"])
+app.include_router(orgs.router)
+app.include_router(org_integrations.router)
+app.include_router(agents.router)
 app.include_router(agent_integrations.router)
-app.include_router(end_user_accounts.router, tags=["users"])
-app.include_router(files.router, tags=["agent-files"])
-app.include_router(user_files.router, tags=["user-files"])
+app.include_router(end_user_accounts.router)
+app.include_router(files.router)
+app.include_router(user_files.router)
 app.include_router(integrations.router)
 app.include_router(chat.router)
 app.include_router(ws_router.router)
 
 
-@app.get("/reference", include_in_schema=False)
+# Patch OpenAPI schema to show prefixed short IDs instead of raw UUIDs
+_original_openapi = app.openapi
+
+
+def _patched_openapi():
+    schema = _original_openapi()
+    return patch_openapi(schema)
+
+
+app.openapi = _patched_openapi
+
+
+@app.get("/docs", include_in_schema=False)
 async def scalar_docs():
     return get_scalar_api_reference(
         openapi_url=app.openapi_url,

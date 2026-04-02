@@ -26,7 +26,7 @@ async def test_agent_crud(client):
     org_id = org["id"]
 
     # Create agent
-    r = await client.post(f"/orgs/{org_id}/agents", json={"name": "Bot"})
+    r = await client.post(f"/orgs/{org_id}/agents", json={"display_name": "Bot"})
     assert r.status_code == 201
     agent = r.json()
     agent_id = agent["id"]
@@ -34,7 +34,7 @@ async def test_agent_crud(client):
     # Get agent
     r = await client.get(f"/agents/{agent_id}")
     assert r.status_code == 200
-    assert r.json()["name"] == "Bot"
+    assert r.json()["display_name"] == "Bot"
 
     # List agents
     r = await client.get(f"/orgs/{org_id}/agents")
@@ -44,7 +44,7 @@ async def test_agent_crud(client):
 
 async def test_blueprint_file_crud(client):
     org = (await client.post("/orgs", json={"display_name": "O"})).json()
-    agent = (await client.post(f"/orgs/{org['id']}/agents", json={"name": "A"})).json()
+    agent = (await client.post(f"/orgs/{org['id']}/agents", json={"display_name": "A", "skip_defaults": True})).json()
     aid = agent["id"]
 
     # Write file
@@ -68,7 +68,7 @@ async def test_blueprint_file_crud(client):
 
 async def test_user_instantiation(client):
     org = (await client.post("/orgs", json={"display_name": "O"})).json()
-    agent = (await client.post(f"/orgs/{org['id']}/agents", json={"name": "A"})).json()
+    agent = (await client.post(f"/orgs/{org['id']}/agents", json={"display_name": "A", "skip_defaults": True})).json()
     aid = agent["id"]
 
     # Create blueprint file first
@@ -92,7 +92,7 @@ async def test_user_instantiation(client):
 
 async def test_user_file_crud(client):
     org = (await client.post("/orgs", json={"display_name": "O"})).json()
-    agent = (await client.post(f"/orgs/{org['id']}/agents", json={"name": "A"})).json()
+    agent = (await client.post(f"/orgs/{org['id']}/agents", json={"display_name": "A", "skip_defaults": True})).json()
     aid = agent["id"]
     user = (await client.post(f"/orgs/{org['id']}/users", json={"display_name": "U"})).json()
     uid = user["id"]
@@ -111,6 +111,90 @@ async def test_user_file_crud(client):
     r = await client.get(f"/users/{uid}/agents/{aid}/files/read", params={"path": "/notes.md"})
     assert r.status_code == 200
     assert r.json()["content"] == "my notes"
+
+
+async def test_agent_default_files(client):
+    """Creating an agent populates default template files from prompts/agents/default/."""
+    org = (await client.post("/orgs", json={"display_name": "O"})).json()
+    agent = (await client.post(f"/orgs/{org['id']}/agents", json={"display_name": "D"})).json()
+    aid = agent["id"]
+
+    # Tree should contain the default files
+    r = await client.get(f"/agents/{aid}/files/tree")
+    assert r.status_code == 200
+    tree = r.json()
+    paths = {f["path"] for f in tree}
+    # Spot-check key files exist
+    assert "/IDENTITY.md" in paths
+    assert "/SOUL.md" in paths
+    assert "/skills/booking/SKILL.md" in paths
+    assert len(tree) >= 15  # 21 files + dirs expected
+
+
+async def test_agent_skip_defaults(client):
+    """Creating an agent with skip_defaults=true produces no files."""
+    org = (await client.post("/orgs", json={"display_name": "O"})).json()
+    agent = (await client.post(
+        f"/orgs/{org['id']}/agents",
+        json={"display_name": "Empty", "skip_defaults": True},
+    )).json()
+    aid = agent["id"]
+
+    r = await client.get(f"/agents/{aid}/files/tree")
+    assert r.status_code == 200
+    assert r.json() == []
+
+
+async def test_soft_delete(client):
+    """Soft-deleted agent is hidden from list but still GET-able with files intact."""
+    org = (await client.post("/orgs", json={"display_name": "O"})).json()
+    org_id = org["id"]
+    agent = (await client.post(
+        f"/orgs/{org_id}/agents",
+        json={"display_name": "S", "skip_defaults": True},
+    )).json()
+    aid = agent["id"]
+
+    # Add a file
+    await client.post(f"/agents/{aid}/files", json={"path": "/keep.md", "content": "kept"})
+
+    # Soft delete
+    r = await client.delete(f"/agents/{aid}", params={"soft": "true"})
+    assert r.status_code == 204
+
+    # Hidden from list
+    r = await client.get(f"/orgs/{org_id}/agents")
+    assert all(a["id"] != aid for a in r.json())
+
+    # Still accessible via direct GET
+    r = await client.get(f"/agents/{aid}")
+    assert r.status_code == 200
+    assert r.json()["deleted_at"] is not None
+
+    # Files still intact
+    r = await client.get(f"/agents/{aid}/files/read", params={"path": "/keep.md"})
+    assert r.status_code == 200
+    assert r.json()["content"] == "kept"
+
+
+async def test_hard_delete(client):
+    """Hard delete removes agent and all files."""
+    org = (await client.post("/orgs", json={"display_name": "O"})).json()
+    agent = (await client.post(
+        f"/orgs/{org['id']}/agents",
+        json={"display_name": "H", "skip_defaults": True},
+    )).json()
+    aid = agent["id"]
+
+    await client.post(f"/agents/{aid}/files", json={"path": "/gone.md", "content": "bye"})
+
+    # Hard delete
+    r = await client.delete(f"/agents/{aid}")
+    assert r.status_code == 204
+
+    # Agent gone
+    r = await client.get(f"/agents/{aid}")
+    assert r.status_code == 404
 
 
 async def test_404s(client):

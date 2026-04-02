@@ -13,7 +13,7 @@ from app.db.queries.agents import create_agent, delete_agent
 from app.db.queries.end_user_accounts import create_end_user_account, delete_end_user_account
 from app.db.queries import blueprint_files as bf
 from app.db.queries import user_files as uf
-from app.db.queries.end_user_agent_links import replicate_blueprint_to_user, link_agent
+from app.db.queries.end_user_agents import replicate_blueprint_to_user, link_agent
 
 
 # ── Fixtures ─────────────────────────────────────────────────
@@ -23,7 +23,7 @@ from app.db.queries.end_user_agent_links import replicate_blueprint_to_user, lin
 async def agent_id(session):
     org = await create_org(session, display_name="O")
     await session.commit()
-    row = await create_agent(session, org.id, name="A")
+    row = await create_agent(session, org.id, display_name="A")
     return row["id"]
 
 
@@ -32,7 +32,7 @@ async def user_ids(session):
     """Return (agent_id, user_id)."""
     org = await create_org(session, display_name="O")
     await session.commit()
-    agent = await create_agent(session, org.id, name="A")
+    agent = await create_agent(session, org.id, display_name="A")
     user = await create_end_user_account(session, org.id, display_name="U")
     await session.commit()
     return agent["id"], user.id
@@ -43,7 +43,7 @@ async def full_ids(session):
     """Return (org_id, agent_id, user_id) for cascade delete tests."""
     org = await create_org(session, display_name="O")
     await session.commit()
-    agent = await create_agent(session, org.id, name="A")
+    agent = await create_agent(session, org.id, display_name="A")
     user = await create_end_user_account(session, org.id, display_name="U")
     await session.commit()
     return org.id, agent["id"], user.id
@@ -83,7 +83,7 @@ def mock_storage():
         patch("app.storage.download_file", side_effect=_download),
         patch("app.storage.delete_file", side_effect=_delete),
         patch("app.storage.copy_file", side_effect=_copy),
-        patch("app.db.queries.end_user_agent_links.download_file", side_effect=_download),
+        patch("app.db.queries.end_user_agents.download_file", side_effect=_download),
         patch("app.routers.agents.download_file", side_effect=_download),
     ):
         yield store
@@ -633,7 +633,7 @@ class TestSeedFromBinary:
         org_id, src_aid, _ = full_ids
         await bf.write_file(session, src_aid, "/doc.md", "hello")
 
-        new_agent = await create_agent(session, org_id, name="Clone")
+        new_agent = await create_agent(session, org_id, display_name="Clone")
         new_id = new_agent["id"]
 
         # Manually replicate seed_from logic
@@ -671,7 +671,7 @@ class TestSeedFromBinary:
             mime_type="image/png", binary_data=b"PNG data",
         )
 
-        new_agent = await create_agent(session, org_id, name="Clone")
+        new_agent = await create_agent(session, org_id, display_name="Clone")
         new_id = new_agent["id"]
 
         source_files = await bf.tree(session, src_aid)

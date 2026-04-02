@@ -13,7 +13,7 @@ async def ids(session):
     """Return (agent_id, user1_id, user2_id)."""
     org = await create_org(session, display_name="O")
     await session.commit()
-    agent = await create_agent(session, org.id, name="A")
+    agent = await create_agent(session, org.id, display_name="A")
     u1 = await create_end_user_account(session, org.id, display_name="U1")
     u2 = await create_end_user_account(session, org.id, display_name="U2")
     await session.commit()

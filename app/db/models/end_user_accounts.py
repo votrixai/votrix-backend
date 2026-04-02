@@ -11,6 +11,7 @@ from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class EndUserAccount(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "end_user_accounts"
+    _short_id_prefix = "user"
 
     org_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("orgs.id", ondelete="CASCADE"), nullable=False

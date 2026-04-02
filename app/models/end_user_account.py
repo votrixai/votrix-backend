@@ -38,7 +38,7 @@ class CreateEndUserAgentRequest(BaseModel):
     blueprint_agent_id: str
 
 
-class EndUserAgentLink(BaseModel):
+class EndUserAgentDetail(BaseModel):
     id: str
     end_user_account_id: str
     blueprint_agent_id: str

@@ -1,4 +1,4 @@
-"""DAO functions for end_user_agent_links + replication."""
+"""DAO functions for end_user_agents + replication."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.end_user_agent_links import EndUserAgentLink
+from app.db.models.end_user_agents import EndUserAgent
 from app.db.queries import blueprint_files, user_files
 from app.storage import BUCKET, download_file
 
@@ -18,16 +18,16 @@ async def link_agent(
     session: AsyncSession,
     end_user_account_id: uuid.UUID,
     blueprint_agent_id: uuid.UUID,
-) -> EndUserAgentLink:
+) -> EndUserAgent:
     """Create a link between an end user account and a blueprint agent."""
     stmt = (
-        insert(EndUserAgentLink)
+        insert(EndUserAgent)
         .values(
             end_user_account_id=end_user_account_id,
             blueprint_agent_id=blueprint_agent_id,
         )
         .on_conflict_do_nothing(index_elements=["end_user_account_id", "blueprint_agent_id"])
-        .returning(EndUserAgentLink)
+        .returning(EndUserAgent)
     )
     result = await session.execute(stmt)
     row = result.scalar_one_or_none()
@@ -40,10 +40,10 @@ async def get_link(
     session: AsyncSession,
     end_user_account_id: uuid.UUID,
     blueprint_agent_id: uuid.UUID,
-) -> Optional[EndUserAgentLink]:
-    stmt = select(EndUserAgentLink).where(
-        EndUserAgentLink.end_user_account_id == end_user_account_id,
-        EndUserAgentLink.blueprint_agent_id == blueprint_agent_id,
+) -> Optional[EndUserAgent]:
+    stmt = select(EndUserAgent).where(
+        EndUserAgent.end_user_account_id == end_user_account_id,
+        EndUserAgent.blueprint_agent_id == blueprint_agent_id,
     )
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
@@ -51,11 +51,11 @@ async def get_link(
 
 async def list_links_for_account(
     session: AsyncSession, end_user_account_id: uuid.UUID
-) -> List[EndUserAgentLink]:
+) -> List[EndUserAgent]:
     stmt = (
-        select(EndUserAgentLink)
-        .where(EndUserAgentLink.end_user_account_id == end_user_account_id)
-        .order_by(EndUserAgentLink.created_at)
+        select(EndUserAgent)
+        .where(EndUserAgent.end_user_account_id == end_user_account_id)
+        .order_by(EndUserAgent.created_at)
     )
     result = await session.execute(stmt)
     return list(result.scalars().all())
@@ -66,9 +66,9 @@ async def unlink_agent(
     end_user_account_id: uuid.UUID,
     blueprint_agent_id: uuid.UUID,
 ) -> bool:
-    stmt = delete(EndUserAgentLink).where(
-        EndUserAgentLink.end_user_account_id == end_user_account_id,
-        EndUserAgentLink.blueprint_agent_id == blueprint_agent_id,
+    stmt = delete(EndUserAgent).where(
+        EndUserAgent.end_user_account_id == end_user_account_id,
+        EndUserAgent.blueprint_agent_id == blueprint_agent_id,
     )
     result = await session.execute(stmt)
     return result.rowcount > 0

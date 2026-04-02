@@ -9,9 +9,8 @@ from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class Org(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "orgs"
+    _short_id_prefix = "org"
 
     display_name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
     timezone: Mapped[str] = mapped_column(Text, nullable=False, server_default="UTC")
     metadata_: Mapped[dict] = mapped_column("metadata", JSONB, nullable=False, server_default="{}")
-    # Slugs of integrations this org has activated (platform is always available, not stored here)
-    integrations: Mapped[list] = mapped_column(ARRAY(Text), nullable=False, server_default="{}")

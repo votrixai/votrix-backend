@@ -90,6 +90,25 @@ class MoveRequest(BaseModel):
     new_path: str = Field(..., description="New path")
 
 
+class BulkDeleteRequest(BaseModel):
+    paths: List[str] = Field(..., description="Paths to delete", min_length=1)
+    recursive: bool = Field(False, description="If true, each path is treated as rm -rf")
+
+
+class BulkMoveEntry(BaseModel):
+    old_path: str = Field(..., description="Current path")
+    new_path: str = Field(..., description="New path")
+
+
+class BulkMoveRequest(BaseModel):
+    moves: List[BulkMoveEntry] = Field(..., description="List of move operations", min_length=1)
+
+
+class CopyRequest(BaseModel):
+    source_path: str = Field(..., description="Path to copy from")
+    dest_path: str = Field(..., description="Path to copy to")
+
+
 # ── Response models ───────────────────────────────────────────
 
 class FileListEntry(BaseModel):

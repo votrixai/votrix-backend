@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.blueprint_agents import BlueprintAgent
@@ -53,11 +53,23 @@ async def update_agent(session: AsyncSession, agent_id: uuid.UUID, **kwargs) -> 
 
 async def list_agents(session: AsyncSession, org_id: uuid.UUID) -> List[Dict[str, Any]]:
     stmt = (
-        select(BlueprintAgent.id, BlueprintAgent.name, BlueprintAgent.created_at, BlueprintAgent.updated_at)
+        select(BlueprintAgent.id, BlueprintAgent.display_name, BlueprintAgent.created_at, BlueprintAgent.updated_at)
         .where(BlueprintAgent.org_id == org_id)
+        .where(BlueprintAgent.deleted_at.is_(None))
     )
     result = await session.execute(stmt)
     return [dict(r) for r in result.mappings()]
+
+
+async def soft_delete_agent(session: AsyncSession, agent_id: uuid.UUID) -> bool:
+    stmt = (
+        update(BlueprintAgent)
+        .where(BlueprintAgent.id == agent_id, BlueprintAgent.deleted_at.is_(None))
+        .values(deleted_at=func.now())
+    )
+    result = await session.execute(stmt)
+    await session.commit()
+    return result.rowcount > 0
 
 
 async def delete_agent(session: AsyncSession, agent_id: uuid.UUID) -> bool:
@@ -130,3 +142,5 @@ async def delete_agent_integration(
     )
     await session.commit()
     return True
+
+

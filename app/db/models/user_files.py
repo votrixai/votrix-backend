@@ -20,6 +20,7 @@ from app.db.models.blueprint_files import NodeType
 
 class UserFile(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "user_files"
+    _short_id_prefix = "file"
     __table_args__ = (
         UniqueConstraint("blueprint_agent_id", "user_account_id", "path"),
         Index("idx_user_files_by_user", "blueprint_agent_id", "user_account_id"),
