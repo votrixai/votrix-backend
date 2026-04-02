@@ -22,11 +22,44 @@ from app.models.agent_integration import (
     BlueprintAgentIntegrationDetail,
     BlueprintAgentIntegrationToolDetail,
 )
+from app.db.queries import agents as agents_q, orgs as orgs_q
+from app.models.agent import AgentIntegration, UpsertAgentIntegrationRequest
+from app.config import get_settings
+from app.integrations.providers.composio import toolkit_exists
+from app.integrations.registry import get_integration
 
 router = APIRouter(prefix="/agents", tags=["agent-integrations"])
 
 
-@router.get("/{agent_id}/integrations", response_model=List[BlueprintAgentIntegrationDetail],
+
+async def _validate_integration(
+    session: AsyncSession,
+    agent_id: uuid.UUID,
+    integration_id: str,
+) -> None:
+    """Raise 404/403 if the integration can't be used by this agent."""
+    # 1. Slug must exist (registry or live Composio SDK check)
+    if not get_integration(integration_id) and not await toolkit_exists(get_settings().composio_api_key, integration_id):
+        raise HTTPException(status_code=404, detail=f"Integration '{integration_id}' not found")
+
+    # 2. platform is always allowed — skip org check
+    if integration_id == _PLATFORM_SLUG:
+        return
+
+    # 3. Must be in the org's activated list
+    agent = await agents_q.get_agent(session, agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+
+    org_slugs = await orgs_q.get_org_integration_slugs(session, agent["org_id"])
+    if integration_id not in org_slugs:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Integration '{integration_id}' is not activated for this org",
+        )
+
+
+@router.get("/{agent_id}/integrations", response_model=List[AgentIntegration],
             summary="List agent integrations",
             responses={404: {"description": "Agent not found"}})
 async def list_agent_integrations(
