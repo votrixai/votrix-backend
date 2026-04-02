@@ -28,8 +28,8 @@ async def get_agent(session: AsyncSession, agent_id: uuid.UUID) -> Optional[Dict
 
 
 async def create_agent(session: AsyncSession, org_id: uuid.UUID, **kwargs) -> Dict[str, Any]:
-    kwargs.pop("integrations", None)  # ignored — use blueprint_agent_integrations
-    obj = BlueprintAgent(org_id=org_id, **kwargs)
+    integrations = kwargs.pop("integrations", None) or []
+    obj = BlueprintAgent(org_id=org_id, integrations=integrations, **kwargs)
     session.add(obj)
     await session.commit()
     await session.refresh(obj)
@@ -87,5 +87,60 @@ async def delete_agent(session: AsyncSession, agent_id: uuid.UUID) -> bool:
     result = await session.execute(stmt)
     await session.commit()
     return result.rowcount > 0
+
+
+# ---------------------------------------------------------------------------
+# Per-integration operations (operate on the JSONB list in-place)
+# ---------------------------------------------------------------------------
+
+async def upsert_agent_integration(
+    session: AsyncSession,
+    agent_id: uuid.UUID,
+    integration_id: str,
+    deferred: bool,
+    enabled_tool_ids: List[str],
+) -> Optional[Dict[str, Any]]:
+    """Add or replace a single integration entry on the agent. Returns the upserted item, or None if agent not found."""
+    result = await session.execute(select(BlueprintAgent).where(BlueprintAgent.id == agent_id))
+    agent = result.scalar_one_or_none()
+    if not agent:
+        return None
+
+    new_item = {"integration_id": integration_id, "deferred": deferred, "enabled_tool_ids": enabled_tool_ids}
+    updated = [i for i in (agent.integrations or []) if i.get("integration_id") != integration_id]
+    updated.append(new_item)
+
+    await session.execute(
+        update(BlueprintAgent)
+        .where(BlueprintAgent.id == agent_id)
+        .values(integrations=updated)
+    )
+    await session.commit()
+    return new_item
+
+
+async def delete_agent_integration(
+    session: AsyncSession,
+    agent_id: uuid.UUID,
+    integration_id: str,
+) -> bool:
+    """Remove a single integration from the agent. Returns False if agent or integration not found."""
+    result = await session.execute(select(BlueprintAgent).where(BlueprintAgent.id == agent_id))
+    agent = result.scalar_one_or_none()
+    if not agent:
+        return False
+
+    current = agent.integrations or []
+    updated = [i for i in current if i.get("integration_id") != integration_id]
+    if len(updated) == len(current):
+        return False
+
+    await session.execute(
+        update(BlueprintAgent)
+        .where(BlueprintAgent.id == agent_id)
+        .values(integrations=updated)
+    )
+    await session.commit()
+    return True
 
 
