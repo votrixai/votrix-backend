@@ -64,12 +64,12 @@ Scalar API docs at `GET /reference`. OpenAPI schema at `GET /openapi.json`.
 | Table | Purpose |
 |-------|---------|
 | `orgs` | Tenant root |
-| `blueprint_agents` | Agent templates (name, org_id) |
-| `agent_integrations` | Per-agent integration slugs |
+| `blueprint_agents` | Agent templates (name, model, integrations, org_id) |
+| `blueprint_agent_tools` | Enabled tools per agent (tool_id, integration_slug) |
 | `blueprint_files` | Admin-owned virtual filesystem |
 | `end_user_accounts` | End user accounts (display_name, sandbox) |
 | `user_files` | End-user file copies (FK to blueprint_agent + user_account) |
-| `end_user_agent_links` | Many-to-many user ↔ agent |
+| `end_user_agents` | Many-to-many user ↔ agent |
 
 ## Project Structure
 

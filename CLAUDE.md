@@ -44,14 +44,11 @@ SQLAlchemy async ORM → Postgres (asyncpg)
 
 ## Database
 
-11 tables defined as ORM models in `app/db/models/`:
+7 tables defined as ORM models in `app/db/models/`:
 
-- `orgs` — tenant root (UUID `id`, display_name, timezone, metadata, integrations)
-- `blueprint_agents` — agent templates. UUID `id`, FK `org_id` → `orgs.id`, `display_name`, nullable `deleted_at` for soft delete
-- `agent_integrations` — global integration catalog. UUID `id`, unique `slug`, `display_name`, `provider_slug`, `provider_config`
-- `agent_integration_tools` — tools per integration. FK `agent_integration_id`, unique `(agent_integration_id, slug)`
-- `blueprint_agent_integrations` — agent ↔ integration join. FKs to `blueprint_agents` and `agent_integrations`, unique on pair
-- `blueprint_agent_integration_tools` — enabled tools per agent-integration link. FKs to `blueprint_agent_integrations` and `agent_integration_tools`, unique on pair
+- `orgs` — tenant root (UUID `id`, display_name, timezone, metadata)
+- `blueprint_agents` — agent templates. UUID `id`, FK `org_id` → `orgs.id`, `display_name`, `model` (default `claude-sonnet-4-6`), `integrations` (JSONB array), nullable `deleted_at` for soft delete
+- `blueprint_agent_tools` — enabled tools per agent. FK `blueprint_agent_id`, `tool_id`, `integration_slug`, unique on `(blueprint_agent_id, tool_id)`
 - `blueprint_files` — admin-owned virtual filesystem. FK `blueprint_agent_id`, unique on `(blueprint_agent_id, path)`
 - `end_user_accounts` — end user accounts. FK `org_id` → `orgs.id`, `display_name`, `sandbox`
 - `user_files` — end-user files. FKs to `blueprint_agents.id` and `end_user_accounts.id`, unique on `(blueprint_agent_id, user_account_id, path)`
