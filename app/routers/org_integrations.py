@@ -21,8 +21,7 @@ from app.db.engine import get_session
 from app.db.queries import orgs as orgs_q
 from app.models.tools import OrgIntegrationItem, ProviderType
 from app.config import get_settings
-from app.integrations import cache as composio_cache
-from app.integrations.providers.composio import toolkit_exists
+from app.integrations.providers.composio import get_toolkit_detail, toolkit_exists
 from app.integrations.registry import PROVIDERS, get_integration
 
 router = APIRouter(prefix="/orgs", tags=["org-integrations"])
@@ -39,8 +38,8 @@ def _provider_type(provider_id: str) -> ProviderType:
     return p.type if p else ProviderType.UNSPECIFIED
 
 
-def _slug_to_item(slug: str) -> OrgIntegrationItem | None:
-    """Resolve a slug to OrgIntegrationItem from registry or cache."""
+async def _slug_to_item(slug: str) -> OrgIntegrationItem | None:
+    """Resolve a slug to OrgIntegrationItem from registry or SDK."""
     integration = get_integration(slug)
     if integration:
         return OrgIntegrationItem(
@@ -51,7 +50,7 @@ def _slug_to_item(slug: str) -> OrgIntegrationItem | None:
             tool_count=len(integration.tools),
             categories=[],
         )
-    item = composio_cache.get_by_slug(slug)
+    item = await get_toolkit_detail(get_settings().composio_api_key, slug)
     if item:
         return OrgIntegrationItem(
             slug=item["slug"],
@@ -80,7 +79,7 @@ async def list_org_integrations(
 
     items = []
     for slug in slugs:
-        item = _slug_to_item(slug)
+        item = await _slug_to_item(slug)
         if item:
             items.append(item)
 

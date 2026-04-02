@@ -27,9 +27,8 @@ async def lifespan(app: FastAPI):
     init_engine(settings.database_url)
     logger.info("SQLAlchemy engine initialized")
 
-    # psycopg3 pool for LangGraph checkpointer
-    # DATABASE_URL may be postgresql+asyncpg://... — strip the driver suffix
-    pg_url = settings.database_url.replace("+asyncpg", "")
+    # psycopg3 pool for LangGraph checkpointer (requires plain postgresql:// DSN)
+    pg_url = settings.langgraph_database_url or settings.database_url.replace("+asyncpg", "")
     pg_pool = AsyncConnectionPool(pg_url, open=False)
     await pg_pool.open()
     await AgentEngine.init(pg_pool)

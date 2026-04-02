@@ -15,6 +15,7 @@ from pydantic import create_model
 from app.models.tools import Integration, Tool
 from app.integrations.handlers import PLATFORM_HANDLERS
 from app.integrations.providers import ToolProvider
+from app.integrations.providers.composio import load_by_tools
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,6 @@ class PlatformProvider(ToolProvider):
                     logger.warning("composio tool %s has no action in provider_config", tool.id)
 
         if composio_actions:
-            from app.integrations.providers.composio import load_by_tools
             composio_tools = await load_by_tools(self._api_key, user_id, composio_actions)
             result.extend(composio_tools)
 

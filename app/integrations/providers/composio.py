@@ -60,6 +60,35 @@ async def load_by_tools(api_key: str, user_id: str, tools: List[str]) -> List[Ba
         return []
 
 
+async def get_toolkit_detail(api_key: str, slug: str) -> Optional[Dict[str, Any]]:
+    """Fetch metadata for a single toolkit slug. Returns None if not found.
+
+    Used by GET /integrations/{slug} and org integration listing.
+    """
+    if not api_key:
+        return None
+    try:
+        composio = await _get_composio(api_key)
+        item = await asyncio.to_thread(composio.toolkits.get, slug)
+        if item is None:
+            return None
+        meta = getattr(item, "meta", None)
+        categories = []
+        if meta and getattr(meta, "categories", None):
+            categories = [getattr(c, "id", "") for c in meta.categories]
+        return {
+            "slug":         getattr(item, "slug", "") or "",
+            "name":         getattr(item, "name", "") or "",
+            "description":  getattr(meta, "description", "") if meta else "",
+            "tool_count":   int(getattr(meta, "tools_count", 0) or 0) if meta else 0,
+            "categories":   categories,
+            "no_auth":      getattr(item, "no_auth", False) or False,
+            "auth_schemes": list(getattr(item, "auth_schemes", None) or []),
+        }
+    except Exception:
+        return None
+
+
 async def get_tool_schemas(api_key: str, toolkit_slug: str) -> List[Dict[str, Any]]:
     """Fetch tool schemas for a toolkit. Results cached per slug for 24h.
 

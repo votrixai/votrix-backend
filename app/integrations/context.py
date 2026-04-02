@@ -20,6 +20,10 @@ from langchain_core.tools import BaseTool
 
 from app.models.agent import AgentIntegration
 from app.models.tools import Integration
+from app.integrations.registry import REGISTRY
+from app.integrations.providers.platform import PlatformProvider
+from app.integrations.providers.composio import ComposioProvider
+from app.integrations.providers.custom import CustomProvider
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +44,6 @@ class ToolContext:
         user_id: str,
     ) -> None:
         """Load all tools. Must be called before get_active_tools()."""
-        from app.integrations.registry import REGISTRY
-        from app.integrations.providers.platform import PlatformProvider
-        from app.integrations.providers.composio import ComposioProvider
-        from app.integrations.providers.custom import CustomProvider
-
         providers = {
             "platform": PlatformProvider(api_key=self._api_key),
             "composio": ComposioProvider(api_key=self._api_key),

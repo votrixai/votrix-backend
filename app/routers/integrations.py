@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException, Query
 from app.config import get_settings
 from app.models.tools import IntegrationDetail, IntegrationSummary, ProviderType, ToolSchema
 from app.integrations import cache as composio_cache
+from app.integrations.providers.composio import get_toolkit_detail, get_tool_schemas
 from app.integrations.registry import PROVIDERS, get_integration, list_integrations
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
@@ -105,27 +106,26 @@ async def get_integration_endpoint(slug: str):
             ],
         )
 
-    # Composio-backed: fetch real action schemas via SDK
-    item = composio_cache.get_by_slug(slug)
-    if item:
-        from app.integrations.providers.composio import get_tool_schemas
-        settings = get_settings()
-        tool_schemas = await get_tool_schemas(settings.composio_api_key, slug)
-        return IntegrationDetail(
-            id=item["slug"],
-            display_name=item["name"],
-            description=item["description"],
-            provider_type=ProviderType.COMPOSIO,
-            deferred=True,
-            tools=[
-                ToolSchema(
-                    id=t["id"],
-                    name=t["name"],
-                    description=t["description"],
-                    input_schema=t.get("input_schema"),
-                )
-                for t in tool_schemas
-            ],
-        )
+    # Composio-backed: fetch toolkit metadata + real action schemas from SDK
+    settings = get_settings()
+    toolkit = await get_toolkit_detail(settings.composio_api_key, slug)
+    if toolkit is None:
+        raise HTTPException(status_code=404, detail=f"Integration '{slug}' not found")
 
-    raise HTTPException(status_code=404, detail=f"Integration '{slug}' not found")
+    tool_schemas = await get_tool_schemas(settings.composio_api_key, slug)
+    return IntegrationDetail(
+        id=toolkit["slug"],
+        display_name=toolkit["name"],
+        description=toolkit["description"],
+        provider_type=ProviderType.COMPOSIO,
+        deferred=True,
+        tools=[
+            ToolSchema(
+                id=t["id"],
+                name=t["name"],
+                description=t["description"],
+                input_schema=t.get("input_schema"),
+            )
+            for t in tool_schemas
+        ],
+    )
