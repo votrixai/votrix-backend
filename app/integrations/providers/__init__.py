@@ -15,14 +15,14 @@ class ToolProvider(ABC):
     async def load_tools(
         self,
         integration: Integration,
-        enabled_tool_slugs: Optional[List[str]],
+        enabled_mcp_tool_slugs: Optional[List[str]],
         user_id: str,
     ) -> List[BaseTool]:
         """Load tools for an integration.
 
         Contract:
-        - enabled_tool_slugs non-empty  → return only those tools
-        - enabled_tool_slugs None/empty → return ALL tools for the integration
+        - enabled_mcp_tool_slugs non-empty  → return only those tools
+        - enabled_mcp_tool_slugs None/empty → return ALL tools for the integration
         - Never raises; returns [] on failure
         """
         ...

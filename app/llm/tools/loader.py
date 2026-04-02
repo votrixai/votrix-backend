@@ -26,7 +26,7 @@ async def load_tools(
         AgentIntegration(
             integration_slug=i.integration_slug,
             deferred=i.deferred,
-            enabled_tool_slugs=list(i.enabled_tool_slugs or []),
+            enabled_mcp_tool_slugs=list(i.enabled_mcp_tool_slugs or []),
         )
         for i in integration_rows
     ]

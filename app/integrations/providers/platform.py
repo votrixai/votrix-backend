@@ -61,12 +61,12 @@ class PlatformProvider(ToolProvider):
     async def load_tools(
         self,
         integration: Integration,
-        enabled_tool_slugs: Optional[List[str]],
+        enabled_mcp_tool_slugs: Optional[List[str]],
         user_id: str,
     ) -> List[BaseTool]:
         tools = integration.tools
-        if enabled_tool_slugs:
-            tools = [t for t in tools if t.slug in enabled_tool_slugs]
+        if enabled_mcp_tool_slugs:
+            tools = [t for t in tools if t.slug in enabled_mcp_tool_slugs]
 
         result: List[BaseTool] = []
         composio_actions: List[str] = []
