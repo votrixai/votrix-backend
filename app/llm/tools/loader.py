@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db.queries import agents as agents_q
-from app.integrations.context import ToolContext
+from app.llm.tools.assembler import ToolAssembler
 from app.models.agent import AgentIntegration
 
 
@@ -15,7 +15,7 @@ async def load_tools(
     end_user_id: UUID,
     session: AsyncSession,
 ) -> List[BaseTool]:
-    """Load active tools for a given (agent, user) pair via ToolContext."""
+    """Load active tools for a given (agent, user) pair via ToolAssembler."""
     agent = await agents_q.get_agent(session, agent_id)
     if not agent:
         return []
@@ -30,9 +30,11 @@ async def load_tools(
         )
         for i in integration_rows
     ]
-    ctx = ToolContext(api_key=settings.composio_api_key)
-    await ctx.initialize(
+    assembler = ToolAssembler(api_key=settings.composio_api_key)
+    await assembler.initialize(
         agent_integrations=payload,
         user_id=str(end_user_id),
+        agent_id=agent_id,
+        session=session,
     )
-    return ctx.get_active_tools()
+    return assembler.get_active_tools()

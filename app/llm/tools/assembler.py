@@ -1,34 +1,38 @@
 """
-ToolContext — per-chat-session tool assembly.
+ToolAssembler — per-chat-session tool assembly.
 
-Single entry point for chat.py. Resolves integrations, delegates to the
-correct provider, and splits tools into active vs deferred buckets.
+Single entry point for loader.py. Resolves integrations, delegates to the
+correct handler, and splits tools into active vs deferred buckets.
 
 Usage:
-    ctx = ToolContext(api_key=settings.composio_api_key)
-    await ctx.initialize(
+    assembler = ToolAssembler(api_key=settings.composio_api_key)
+    await assembler.initialize(
         agent_integrations=agent.get("integrations") or [],
         user_id=str(body.user_id),
+        agent_id=agent_id,
+        session=session,
     )
-    tools = ctx.get_active_tools()
+    tools = assembler.get_active_tools()
 """
 
 import logging
+import uuid
 from typing import Dict, List, Optional, Union
 
 from langchain_core.tools import BaseTool
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.agent import AgentIntegration
 from app.models.integration import Integration
-from app.integrations.registry import REGISTRY
-from app.integrations.providers.platform import PlatformProvider
-from app.integrations.providers.composio import ComposioProvider
-from app.integrations.providers.custom import CustomProvider
+from app.integrations.catalog import REGISTRY
+from app.integrations.handlers import platform as platform_handler
+from app.integrations.handlers import composio as composio_handler
+from app.integrations.handlers import custom as custom_handler
 
 logger = logging.getLogger(__name__)
 
 
-class ToolContext:
+class ToolAssembler:
     def __init__(self, api_key: str = ""):
         self._api_key = api_key
         self._active_tools:   List[BaseTool] = []
@@ -42,30 +46,44 @@ class ToolContext:
         self,
         agent_integrations: List[Union[AgentIntegration, dict]],
         user_id: str,
+        agent_id: Optional[uuid.UUID] = None,
+        session: Optional[AsyncSession] = None,
     ) -> None:
         """Load all tools. Must be called before get_active_tools()."""
-        providers = {
-            "platform": PlatformProvider(api_key=self._api_key),
-            "composio": ComposioProvider(api_key=self._api_key),
-            "custom":   CustomProvider(),
-        }
-
         for item in agent_integrations:
             ai = AgentIntegration(**item) if isinstance(item, dict) else item
 
             integration = self._resolve_integration(ai.integration_slug, REGISTRY)
-            provider = providers.get(integration.provider_slug)
-            if provider is None:
-                logger.warning("Unknown provider '%s' for integration '%s' — skipping",
-                               integration.provider_slug, ai.integration_slug)
-                continue
-
             enabled = ai.enabled_tool_slugs if ai.enabled_tool_slugs else None
-            tools = await provider.load_tools(
-                integration=integration,
-                enabled_tool_slugs=enabled,
-                user_id=user_id,
-            )
+
+            if integration.provider_slug == "platform":
+                tools = await platform_handler.load_tools(
+                    integration=integration,
+                    enabled_tool_slugs=enabled,
+                    user_id=user_id,
+                    agent_id=agent_id,
+                    session=session,
+                    api_key=self._api_key,
+                )
+            elif integration.provider_slug == "composio":
+                tools = await composio_handler.load_tools(
+                    integration=integration,
+                    enabled_tool_slugs=enabled,
+                    user_id=user_id,
+                    api_key=self._api_key,
+                )
+            elif integration.provider_slug == "custom":
+                tools = await custom_handler.load_tools(
+                    integration=integration,
+                    enabled_tool_slugs=enabled,
+                    user_id=user_id,
+                )
+            else:
+                logger.warning(
+                    "Unknown provider '%s' for integration '%s' — skipping",
+                    integration.provider_slug, ai.integration_slug,
+                )
+                continue
 
             if ai.deferred:
                 self._deferred_tools.extend(tools)

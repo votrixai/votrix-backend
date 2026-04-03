@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session
 from app.db.queries.orgs import create_org, delete_org, get_org, list_orgs, update_org
 from app.models.org import CreateOrgRequest, OrgDetailResponse, OrgSummaryResponse, UpdateOrgRequest
-from app.integrations.registry import DEFAULT_ORG_INTEGRATIONS
+from app.integrations.catalog import DEFAULT_ORG_INTEGRATIONS
 
 router = APIRouter(prefix="/orgs", tags=["orgs"])
 

@@ -30,10 +30,9 @@ class Provider(BaseModel):
 
 
 class Tool(BaseModel):
-    slug: str
-    name: str
+    name: str                              # unique identifier + LangChain tool name
     description: str
-    input_schema: Dict[str, Any]
+    input_schema: Dict[str, Any]           # JSON Schema, for API display only
     # None = inherit routing from parent Integration
     provider_slug: Optional[str] = None
     provider_config: Optional[Dict[str, Any]] = None
@@ -48,29 +47,31 @@ class Integration(BaseModel):
     tools: List[Tool] = []
     deferred: bool = False
 
-    def get_tool(self, tool_slug: str) -> Optional[Tool]:
-        for t in self.tools:
-            if t.slug == tool_slug:
-                return t
-        return None
-
-    def effective_provider_slug(self, tool: Tool) -> str:
-        return tool.provider_slug if tool.provider_slug is not None else self.provider_slug
-
-    def effective_provider_config(self, tool: Tool) -> Dict[str, Any]:
-        return tool.provider_config if tool.provider_config is not None else self.provider_config
-
 
 # ---------------------------------------------------------------------------
 # Public API response models
 # ---------------------------------------------------------------------------
 
+class PropertyDef(BaseModel):
+    """Single input parameter definition, as seen by the frontend."""
+    type: str                          # "string" | "integer" | "number" | "boolean" | "array" | "object"
+    description: str = ""
+    required: bool = False
+    default: Optional[Any] = None
+    enum: Optional[List[Any]] = None
+    items_type: Optional[str] = None   # element type when type == "array"
+
+
+class InputSchemaDef(BaseModel):
+    """Flattened, frontend-friendly representation of a tool's input schema."""
+    properties: Dict[str, PropertyDef]
+
+
 class ToolSchemaResponse(BaseModel):
     """Single tool as seen by the frontend."""
-    slug: str
     name: str
     description: str
-    input_schema: Optional[Dict[str, Any]] = None
+    input_schema: Optional[InputSchemaDef] = None
 
 
 class IntegrationSummaryResponse(BaseModel):

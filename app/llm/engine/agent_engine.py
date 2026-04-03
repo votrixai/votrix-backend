@@ -80,7 +80,7 @@ class AgentEngine:
         self._session_id = session_id
         self._db_session = db_session
         self._llm = None
-        self._system_prompt: str = ""
+        self._system_prompts: list[str] = []
 
     async def setup(self, agent: BlueprintAgent) -> None:
         """
@@ -95,7 +95,7 @@ class AgentEngine:
         else:
             llm = ChatOpenAI(model=model_name, api_key=settings.openai_api_key)
 
-        self._system_prompt = await build_system_prompt(self._agent_id, self._db_session)
+        self._system_prompts = await build_system_prompt(self._agent_id, self._end_user_id, self._db_session)
         tools = await load_tools(self._agent_id, self._end_user_id, self._db_session)
         self._llm = llm.bind_tools(tools) if tools else llm
 
@@ -119,7 +119,7 @@ class AgentEngine:
                 "configurable": {
                     "thread_id": str(self._session_id),
                     "llm": self._llm,
-                    "system_prompt": self._system_prompt,
+                    "system_prompts": self._system_prompts,
                     "cancel_event": cancel_event,
                 }
             },
