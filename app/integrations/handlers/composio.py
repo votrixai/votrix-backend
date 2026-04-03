@@ -1,5 +1,5 @@
 """
-ComposioProvider — loads tools via the Composio SDK (v3).
+Composio handler — loads tools via the Composio SDK (v3).
 
 Singleton pattern: one Composio instance per process, lazily initialized.
 Composio SDK is synchronous; all calls are offloaded to a thread pool.
@@ -13,13 +13,11 @@ from typing import Any, Dict, List, Optional
 from langchain_core.tools import BaseTool
 
 from app.models.integration import Integration
-from app.integrations.providers import ToolProvider
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Module-level singleton
-# ---------------------------------------------------------------------------
+
+# ── Singleton ─────────────────────────────────────────────────────────────────
 
 _composio = None
 _lock = asyncio.Lock()
@@ -39,15 +37,10 @@ async def _get_composio(api_key: str):
     return _composio
 
 
-# ---------------------------------------------------------------------------
-# Helpers used by other providers / routers
-# ---------------------------------------------------------------------------
+# ── Helpers (used by routers and platform handler) ────────────────────────────
 
 async def load_by_tools(api_key: str, user_id: str, tools: List[str]) -> List[BaseTool]:
-    """Load specific Composio tools by action slug (e.g. GMAIL_SEND_EMAIL).
-
-    Used by PlatformProvider for composio-routed platform tools.
-    """
+    """Load specific Composio tools by action slug (e.g. GMAIL_SEND_EMAIL)."""
     if not api_key or not tools:
         return []
     try:
@@ -61,10 +54,7 @@ async def load_by_tools(api_key: str, user_id: str, tools: List[str]) -> List[Ba
 
 
 async def get_toolkit_detail(api_key: str, slug: str) -> Optional[Dict[str, Any]]:
-    """Fetch metadata for a single toolkit slug. Returns None if not found.
-
-    Used by GET /integrations/{slug} and org integration listing.
-    """
+    """Fetch metadata for a single toolkit slug. Returns None if not found."""
     if not api_key:
         return None
     try:
@@ -90,17 +80,12 @@ async def get_toolkit_detail(api_key: str, slug: str) -> Optional[Dict[str, Any]
 
 
 async def get_tool_schemas(api_key: str, toolkit_slug: str) -> List[Dict[str, Any]]:
-    """Fetch tool schemas for a toolkit. Results cached per slug for 24h.
-
-    Used by GET /integrations/{slug} to return the real action list
-    instead of an empty tools array.
-    """
+    """Fetch tool schemas for a toolkit. Results cached per slug for 24h."""
     cached = _schema_cache.get(toolkit_slug)
     if cached:
         schemas, fetched_at = cached
         if time.time() - fetched_at < _SCHEMA_TTL:
             return schemas
-
     try:
         composio = await _get_composio(api_key)
         raw_tools = await asyncio.to_thread(
@@ -109,7 +94,6 @@ async def get_tool_schemas(api_key: str, toolkit_slug: str) -> List[Dict[str, An
         )
         schemas = [
             {
-                "slug":         getattr(t, "slug", ""),
                 "name":         getattr(t, "slug", ""),
                 "description":  getattr(t, "description", ""),
                 "input_schema": getattr(t, "input_parameters", None),
@@ -124,11 +108,7 @@ async def get_tool_schemas(api_key: str, toolkit_slug: str) -> List[Dict[str, An
 
 
 async def toolkit_exists(api_key: str, slug: str) -> bool:
-    """Check whether a Composio toolkit slug is valid.
-
-    Used for slug validation on org/agent integration write operations,
-    replacing the startup-cache slug_exists() which has a race condition.
-    """
+    """Check whether a Composio toolkit slug is valid."""
     if not api_key:
         return False
     try:
@@ -139,38 +119,31 @@ async def toolkit_exists(api_key: str, slug: str) -> bool:
         return False
 
 
-# ---------------------------------------------------------------------------
-# Provider
-# ---------------------------------------------------------------------------
+# ── Entry point ───────────────────────────────────────────────────────────────
 
-class ComposioProvider(ToolProvider):
-    def __init__(self, api_key: str = ""):
-        self._api_key = api_key
-
-    async def load_tools(
-        self,
-        integration: Integration,
-        enabled_mcp_tool_slugs: Optional[List[str]],
-        user_id: str,
-    ) -> List[BaseTool]:
-        if not self._api_key:
-            logger.warning("No Composio API key — skipping integration: %s", integration.slug)
-            return []
-        try:
-            composio = await _get_composio(self._api_key)
-            if enabled_mcp_tool_slugs:
-                return await asyncio.to_thread(
-                    composio.tools.get,
-                    user_id=user_id,
-                    tools=enabled_mcp_tool_slugs,
-                )
-            else:
-                # v3 SDK accepts lowercase slugs directly — no .upper() needed
-                return await asyncio.to_thread(
-                    composio.tools.get,
-                    user_id=user_id,
-                    toolkits=[integration.slug],
-                )
-        except Exception as exc:
-            logger.error("ComposioProvider.load_tools failed (%s): %s", integration.slug, exc)
-            return []
+async def load_tools(
+    integration: Integration,
+    enabled_tool_slugs: Optional[List[str]],
+    user_id: str,
+    api_key: str = "",
+) -> List[BaseTool]:
+    if not api_key:
+        logger.warning("No Composio API key — skipping integration: %s", integration.slug)
+        return []
+    try:
+        composio = await _get_composio(api_key)
+        if enabled_tool_slugs:
+            return await asyncio.to_thread(
+                composio.tools.get,
+                user_id=user_id,
+                tools=enabled_tool_slugs,
+            )
+        else:
+            return await asyncio.to_thread(
+                composio.tools.get,
+                user_id=user_id,
+                toolkits=[integration.slug],
+            )
+    except Exception as exc:
+        logger.error("composio load_tools failed (%s): %s", integration.slug, exc)
+        return []

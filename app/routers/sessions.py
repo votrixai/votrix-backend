@@ -1,0 +1,145 @@
+"""Session history read API.
+
+Routes:
+  GET  /sessions/{session_id}           — full session with all events
+  GET  /users/{user_id}/sessions        — list sessions for a user (paginated)
+  GET  /agents/{agent_id}/sessions      — list sessions for an agent (paginated)
+  POST /sessions/{session_id}/end       — mark session ended_at (manual close)
+"""
+
+import uuid
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.engine import get_session
+from app.db.queries import sessions as sessions_q
+from app.models.session import (
+    SessionEventResponse,
+    SessionListResponse,
+    SessionResponse,
+    SessionSummaryResponse,
+)
+
+router = APIRouter(tags=["sessions"])
+
+_404 = {404: {"description": "Session not found"}}
+
+
+def _to_event(ev) -> SessionEventResponse:
+    return SessionEventResponse(
+        id=str(ev.id),
+        sequence_no=ev.sequence_no,
+        event_type=ev.event_type,
+        event_title=ev.event_title,
+        event_body=ev.event_body,
+        occurred_at=ev.occurred_at,
+        created_at=ev.created_at,
+    )
+
+
+def _to_session(s, events=None) -> SessionResponse:
+    return SessionResponse(
+        id=str(s.id),
+        agent_id=str(s.agent_id),
+        user_id=str(s.user_id),
+        started_at=s.created_at,
+        ended_at=s.ended_at,
+        events=[_to_event(e) for e in (events or [])],
+    )
+
+
+@router.get("/sessions/{session_id}", response_model=SessionResponse, responses=_404,
+            summary="Get session with events")
+async def get_session_detail(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_session),
+):
+    result = await sessions_q.get_session(db, session_id, include_events=True)
+    if not result:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session, events = result
+    return _to_session(session, events)
+
+
+@router.get("/users/{user_id}/sessions", response_model=SessionListResponse,
+            summary="List sessions for a user")
+async def list_user_sessions(
+    user_id: uuid.UUID,
+    page_offset: int = Query(0, ge=0),
+    page_size: int = Query(20, ge=1, le=100),
+    agent_id: Optional[uuid.UUID] = Query(None, description="Filter by agent"),
+    db: AsyncSession = Depends(get_session),
+):
+    rows, total = await sessions_q.list_sessions(
+        db,
+        user_id=user_id,
+        agent_id=agent_id,
+        page_offset=page_offset,
+        page_size=page_size,
+    )
+    return SessionListResponse(
+        sessions=[
+            SessionSummaryResponse(
+                id=str(r.id),
+                agent_id=str(r.agent_id),
+                user_id=str(r.user_id),
+                started_at=r.started_at,
+                ended_at=r.ended_at,
+                event_count=r.event_count,
+            )
+            for r in rows
+        ],
+        total=total,
+        page_offset=page_offset,
+        page_size=page_size,
+    )
+
+
+@router.get("/agents/{agent_id}/sessions", response_model=SessionListResponse,
+            summary="List sessions for an agent")
+async def list_agent_sessions(
+    agent_id: uuid.UUID,
+    page_offset: int = Query(0, ge=0),
+    page_size: int = Query(20, ge=1, le=100),
+    user_id: Optional[uuid.UUID] = Query(None, description="Filter by user"),
+    db: AsyncSession = Depends(get_session),
+):
+    rows, total = await sessions_q.list_sessions(
+        db,
+        agent_id=agent_id,
+        user_id=user_id,
+        page_offset=page_offset,
+        page_size=page_size,
+    )
+    return SessionListResponse(
+        sessions=[
+            SessionSummaryResponse(
+                id=str(r.id),
+                agent_id=str(r.agent_id),
+                user_id=str(r.user_id),
+                started_at=r.started_at,
+                ended_at=r.ended_at,
+                event_count=r.event_count,
+            )
+            for r in rows
+        ],
+        total=total,
+        page_offset=page_offset,
+        page_size=page_size,
+    )
+
+
+@router.post("/sessions/{session_id}/end", response_model=SessionResponse,
+             responses=_404, summary="End a session")
+async def end_session(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_session),
+):
+    """Mark session ended_at = now(). Idempotent — safe to call if already ended."""
+    result = await sessions_q.end_session(db, session_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session, events = result
+    return _to_session(session, events)

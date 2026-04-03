@@ -21,8 +21,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session
 from app.db.queries import agents as agents_q
+from app.db.queries import sessions as sessions_q
 from app.llm.engine.agent_engine import AgentEngine
 from app.models.chat import ChatRequest
+from app.models.session import SessionEventType
 
 router = APIRouter(prefix="/agents", tags=["chat"])
 
@@ -41,10 +43,23 @@ async def chat(
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
+    # Ensure session row exists before streaming starts.
+    await sessions_q.upsert_session(db_session, body.session_id, agent_id, body.user_id)
+
+    # Record the user's message.
+    await sessions_q.append_event(
+        db_session,
+        body.session_id,
+        event_type=SessionEventType.user_message,
+        event_body=body.message,
+    )
+
     engine = AgentEngine(agent_id, body.user_id, body.session_id, db_session)
     await engine.setup(agent)
 
     async def event_stream() -> AsyncGenerator[str, None]:
+        ai_tokens: list[str] = []
+
         try:
             async for event in engine.astream(body.message):
                 kind = event["event"]
@@ -52,24 +67,57 @@ async def chat(
                 if kind == "on_chat_model_stream":
                     token = event["data"]["chunk"].content
                     if token and isinstance(token, str):
+                        ai_tokens.append(token)
                         yield _sse({"type": "token", "content": token})
 
                 elif kind == "on_tool_start":
+                    tool_name = event["name"]
+                    tool_input = event["data"].get("input", {})
+                    await sessions_q.append_event(
+                        db_session,
+                        body.session_id,
+                        event_type=SessionEventType.tool_start,
+                        event_title=tool_name,
+                        event_body=json.dumps(tool_input),
+                    )
                     yield _sse({
                         "type": "tool_start",
                         "tool_call_id": event.get("run_id", ""),
-                        "name": event["name"],
+                        "name": tool_name,
                     })
 
                 elif kind == "on_tool_end":
+                    tool_output = event["data"].get("output", "")
+                    await sessions_q.append_event(
+                        db_session,
+                        body.session_id,
+                        event_type=SessionEventType.tool_end,
+                        event_title=event["name"],
+                        event_body=str(tool_output),
+                    )
                     yield _sse({
                         "type": "tool_end",
                         "tool_call_id": event.get("run_id", ""),
                     })
 
+            # Persist the complete AI reply after streaming finishes.
+            if ai_tokens:
+                await sessions_q.append_event(
+                    db_session,
+                    body.session_id,
+                    event_type=SessionEventType.ai_message,
+                    event_body="".join(ai_tokens),
+                )
+
             yield _sse({"type": "done"})
 
         except Exception as e:
+            await sessions_q.append_event(
+                db_session,
+                body.session_id,
+                event_type=SessionEventType.error,
+                event_body=str(e),
+            )
             yield _sse({"type": "error", "message": str(e)})
 
     return StreamingResponse(

@@ -25,7 +25,7 @@ class BlueprintAgentIntegration(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     integration_slug: Mapped[str] = mapped_column(Text, nullable=False)
     deferred: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
-    enabled_mcp_tool_slugs: Mapped[list] = mapped_column(
+    enabled_tool_slugs: Mapped[list] = mapped_column(
         ARRAY(Text), nullable=False, server_default="{}"
     )
 

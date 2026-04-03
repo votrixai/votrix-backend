@@ -44,7 +44,7 @@ async def create_agent(session: AsyncSession, org_id: uuid.UUID, **kwargs) -> Bl
                 blueprint_agent_id=obj.id,
                 integration_slug=slug,
                 deferred=bool(d.get("deferred", False)),
-                enabled_mcp_tool_slugs=list(d.get("enabled_mcp_tool_slugs") or []),
+                enabled_tool_slugs=list(d.get("enabled_tool_slugs") or []),
             ))
         await session.commit()
 
@@ -140,7 +140,7 @@ async def replace_agent_integrations(
             blueprint_agent_id=agent_id,
             integration_slug=slug,
             deferred=bool(d.get("deferred", False)),
-            enabled_mcp_tool_slugs=list(d.get("enabled_mcp_tool_slugs") or []),
+            enabled_tool_slugs=list(d.get("enabled_tool_slugs") or []),
         ))
     await session.commit()
 
@@ -150,7 +150,7 @@ async def upsert_agent_integration(
     agent_id: uuid.UUID,
     integration_slug: str,
     deferred: bool,
-    enabled_mcp_tool_slugs: List[str],
+    enabled_tool_slugs: List[str],
 ) -> Optional[BlueprintAgentIntegration]:
     """Add or replace a single integration row for the agent. Returns None if agent not found."""
     agent = await session.get(BlueprintAgent, agent_id)
@@ -166,13 +166,13 @@ async def upsert_agent_integration(
     row = result.scalar_one_or_none()
     if row:
         row.deferred = deferred
-        row.enabled_mcp_tool_slugs = enabled_mcp_tool_slugs
+        row.enabled_tool_slugs = enabled_tool_slugs
     else:
         row = BlueprintAgentIntegration(
             blueprint_agent_id=agent_id,
             integration_slug=integration_slug,
             deferred=deferred,
-            enabled_mcp_tool_slugs=enabled_mcp_tool_slugs,
+            enabled_tool_slugs=enabled_tool_slugs,
         )
         session.add(row)
 

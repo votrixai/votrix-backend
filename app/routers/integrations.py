@@ -5,22 +5,72 @@ Routes:
   GET /integrations/{slug}        — single integration detail with tools
 """
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
 from app.config import get_settings
-from app.models.integration import IntegrationDetailResponse, IntegrationSummaryResponse, ProviderType, ToolSchemaResponse
-from app.integrations import cache as composio_cache
-from app.integrations.providers.composio import get_toolkit_detail, get_tool_schemas
-from app.integrations.registry import PROVIDERS, get_integration, list_integrations
+from app.models.integration import (
+    InputSchemaDef, IntegrationDetailResponse, IntegrationSummaryResponse,
+    PropertyDef, ProviderType, ToolSchemaResponse,
+)
+from app.integrations.handlers.composio import get_toolkit_detail, get_tool_schemas
+from app.integrations.catalog import PROVIDERS, get_integration, get_cached, list_integrations
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
 def _provider_type(provider_slug: str) -> ProviderType:
     p = PROVIDERS.get(provider_slug)
     return p.type if p else ProviderType.UNSPECIFIED
+
+
+def _resolve_type(prop: Dict[str, Any]) -> str:
+    """Handle anyOf [{type: X}, {type: null}] → X, fall back to 'string'."""
+    if "type" in prop:
+        return str(prop["type"])
+    for sub in prop.get("anyOf", []):
+        if isinstance(sub, dict) and sub.get("type") != "null":
+            return str(sub.get("type", "string"))
+    return "string"
+
+
+def _items_type(prop: Dict[str, Any], resolved_type: str) -> Optional[str]:
+    """Extract array element type, handling both top-level and anyOf-nested items."""
+    if resolved_type != "array":
+        return None
+    if "items" in prop:
+        return prop["items"].get("type")
+    for sub in prop.get("anyOf", []):
+        if isinstance(sub, dict) and sub.get("type") == "array" and "items" in sub:
+            return sub["items"].get("type")
+    return None
+
+
+def _flatten_schema(raw: Optional[Dict[str, Any]]) -> Optional[InputSchemaDef]:
+    """JSON Schema object → InputSchemaDef for frontend consumption."""
+    if not raw:
+        return None
+    props = raw.get("properties") or {}
+    if not props:
+        return None
+    required_set = set(raw.get("required") or [])
+    return InputSchemaDef(
+        properties={
+            name: PropertyDef(
+                type=(t := _resolve_type(prop)),
+                description=prop.get("description", ""),
+                required=name in required_set,
+                default=prop.get("default"),
+                enum=prop.get("enum"),
+                items_type=_items_type(prop, t),
+            )
+            for name, prop in props.items()
+            if isinstance(prop, dict)
+        }
+    )
 
 
 def _summary_from_registry(integration) -> IntegrationSummaryResponse:
@@ -45,6 +95,8 @@ def _summary_from_cache(item: dict) -> IntegrationSummaryResponse:
     )
 
 
+# ── Routes ────────────────────────────────────────────────────────────────────
+
 @router.get("", response_model=List[IntegrationSummaryResponse], summary="List integrations")
 async def list_integrations_endpoint(
     search: Optional[str] = Query(None, description="Filter by name or slug"),
@@ -61,7 +113,7 @@ async def list_integrations_endpoint(
             continue
         results.append(s)
 
-    cache_items, _ = composio_cache.get_all(
+    cache_items, _ = get_cached(
         search=search or "",
         category=category or "",
         limit=10_000,
@@ -89,10 +141,9 @@ async def get_integration_endpoint(slug: str):
             deferred=integration.deferred,
             tools=[
                 ToolSchemaResponse(
-                    slug=t.slug,
                     name=t.name,
                     description=t.description,
-                    input_schema=t.input_schema,
+                    input_schema=_flatten_schema(t.input_schema),
                 )
                 for t in integration.tools
             ],
@@ -112,10 +163,9 @@ async def get_integration_endpoint(slug: str):
         deferred=True,
         tools=[
             ToolSchemaResponse(
-                slug=t["slug"],
                 name=t["name"],
                 description=t["description"],
-                input_schema=t.get("input_schema"),
+                input_schema=_flatten_schema(t.get("input_schema")),
             )
             for t in tool_schemas
         ],
