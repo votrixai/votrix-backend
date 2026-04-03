@@ -4,12 +4,16 @@ Platform handler — tool schemas, execution closures, and tool assembly.
 Local tools (create_file, str_replace, view) are backed by the user_files
 virtual filesystem (Postgres). Composio-routed tools (web_search, web_fetch,
 bash_tool) are delegated to the Composio SDK.
+
+web_search and web_fetch are deferred — not bound to the LLM by default.
+The LLM activates them via tool_search, after which they are added to the
+session's active_tools and bound on subsequent model calls.
 """
 
 import logging
 import uuid
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Tuple, Type
 
 from langchain_core.tools import BaseTool, StructuredTool
 from pydantic import BaseModel, Field
@@ -19,6 +23,9 @@ from app.db.queries import user_files as user_files_q
 from app.models.integration import Integration, Tool
 
 logger = logging.getLogger(__name__)
+
+# Tool names that are deferred (not bound to LLM until explicitly activated).
+_DEFERRED_TOOL_NAMES: frozenset[str] = frozenset({"web_search", "web_fetch"})
 
 
 # ── Context ───────────────────────────────────────────────────────────────────
@@ -49,6 +56,11 @@ class ViewInput(BaseModel):
     description: str              = Field(..., description="Why I need to view this")
     path: str                     = Field(..., description="Absolute path to file or directory")
     view_range: Optional[List[int]] = Field(None, description="Optional line range [start, end] for text files")
+
+
+class ToolSearchInput(BaseModel):
+    query: str = Field(..., description="Keyword to search for relevant tools (e.g. 'web search', 'browser')")
+    limit: int = Field(5, description="Maximum number of tools to return", ge=1, le=20)
 
 
 # slug → Pydantic input class (used directly as LangChain args_schema)
@@ -128,12 +140,12 @@ PLATFORM_INTEGRATION = Integration(
     tools=_PLATFORM_TOOLS,
 )
 
-# tool_search is auto-injected by ToolAssembler when any deferred integration is enabled.
+# tool_search is auto-injected by ToolAssembler when any deferred tools are present.
 TOOL_SEARCH = Tool(
     name="tool_search",
     description=(
-        "Search for and load deferred tools by keyword. "
-        "Call this to load tool definitions before using them."
+        "Search for and activate deferred tools by keyword. "
+        "Call this before using any search or browser tools."
     ),
     input_schema={
         "type": "object",
@@ -144,6 +156,33 @@ TOOL_SEARCH = Tool(
         "required": ["query"],
     },
 )
+
+
+def make_tool_search(deferred_tools: List[BaseTool]) -> BaseTool:
+    """
+    Build the tool_search StructuredTool with a closure over the full deferred
+    tool list.  Called by ToolAssembler after all providers have been loaded.
+
+    The returned dict uses the `__activate_tools__` protocol key so that
+    tools_node can apply the state update without coupling to this tool's name.
+    """
+    async def handler(query: str, limit: int = 5) -> dict:
+        q = query.lower()
+        matches = [
+            t for t in deferred_tools
+            if q in t.name.lower() or q in (t.description or "").lower()
+        ][:limit]
+        return {
+            "__activate_tools__": [t.name for t in matches],
+            "tools": [{"name": t.name, "description": t.description} for t in matches],
+        }
+
+    return StructuredTool(
+        name="tool_search",
+        description=TOOL_SEARCH.description,
+        args_schema=ToolSearchInput,
+        coroutine=handler,
+    )
 
 
 # ── Handler factories ─────────────────────────────────────────────────────────
@@ -226,7 +265,13 @@ async def load_tools(
     agent_id: uuid.UUID,
     session: AsyncSession,
     api_key: str = "",
-) -> List[BaseTool]:
+) -> Tuple[List[BaseTool], List[BaseTool]]:
+    """
+    Returns (active_tools, deferred_tools).
+
+    Tools whose name is in _DEFERRED_TOOL_NAMES are placed in deferred_tools
+    and are not bound to the LLM until the user activates them via tool_search.
+    """
     from app.integrations.handlers.composio import load_by_tools
 
     tools = integration.tools
@@ -238,28 +283,37 @@ async def load_tools(
         blueprint_agent_id=agent_id,
         user_id=uuid.UUID(user_id),
     )
-    result: List[BaseTool] = []
-    composio_actions: List[str] = []
+    active: List[BaseTool] = []
+    deferred: List[BaseTool] = []
+    composio_active_actions: List[str] = []
+    composio_deferred_actions: List[Tuple[str, str]] = []  # (action, tool_name)
 
     for tool in tools:
         eff_provider = tool.provider_slug if tool.provider_slug is not None else integration.provider_slug
+        is_deferred = tool.name in _DEFERRED_TOOL_NAMES
 
         if eff_provider == "platform":
             if tool.name not in _HANDLER_FACTORIES:
                 logger.warning("No handler for platform tool: %s — skipping", tool.name)
                 continue
-            result.append(_make_local_tool(tool, ctx))
+            lc_tool = _make_local_tool(tool, ctx)
+            (deferred if is_deferred else active).append(lc_tool)
 
         elif eff_provider == "composio":
             cfg = tool.provider_config if tool.provider_config is not None else integration.provider_config
             action = cfg.get("action")
             if action:
-                composio_actions.append(action)
+                if is_deferred:
+                    composio_deferred_actions.append((action, tool.name))
+                else:
+                    composio_active_actions.append(action)
             else:
                 logger.warning("composio tool %s has no action in provider_config", tool.name)
 
-    if composio_actions:
-        composio_tools = await load_by_tools(api_key, user_id, composio_actions)
-        result.extend(composio_tools)
+    if composio_active_actions:
+        active.extend(await load_by_tools(api_key, user_id, composio_active_actions))
 
-    return result
+    if composio_deferred_actions:
+        deferred.extend(await load_by_tools(api_key, user_id, [a for a, _ in composio_deferred_actions]))
+
+    return active, deferred

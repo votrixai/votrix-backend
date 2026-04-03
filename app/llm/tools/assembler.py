@@ -12,7 +12,8 @@ Usage:
         agent_id=agent_id,
         session=session,
     )
-    tools = assembler.get_active_tools()
+    base_tools        = assembler.get_active_tools()
+    deferred_tools    = assembler.get_deferred_tools_map()
 """
 
 import logging
@@ -57,7 +58,9 @@ class ToolAssembler:
             enabled = ai.enabled_tool_slugs if ai.enabled_tool_slugs else None
 
             if integration.provider_slug == "platform":
-                tools = await platform_handler.load_tools(
+                # Platform handler splits active/deferred at the tool level
+                # (web_search, web_fetch are always deferred regardless of ai.deferred).
+                active, deferred = await platform_handler.load_tools(
                     integration=integration,
                     enabled_tool_slugs=enabled,
                     user_id=user_id,
@@ -65,6 +68,12 @@ class ToolAssembler:
                     session=session,
                     api_key=self._api_key,
                 )
+                if ai.deferred:
+                    self._deferred_tools.extend(active + deferred)
+                else:
+                    self._active_tools.extend(active)
+                    self._deferred_tools.extend(deferred)
+
             elif integration.provider_slug == "composio":
                 tools = await composio_handler.load_tools(
                     integration=integration,
@@ -72,12 +81,22 @@ class ToolAssembler:
                     user_id=user_id,
                     api_key=self._api_key,
                 )
+                if ai.deferred:
+                    self._deferred_tools.extend(tools)
+                else:
+                    self._active_tools.extend(tools)
+
             elif integration.provider_slug == "custom":
                 tools = await custom_handler.load_tools(
                     integration=integration,
                     enabled_tool_slugs=enabled,
                     user_id=user_id,
                 )
+                if ai.deferred:
+                    self._deferred_tools.extend(tools)
+                else:
+                    self._active_tools.extend(tools)
+
             else:
                 logger.warning(
                     "Unknown provider '%s' for integration '%s' — skipping",
@@ -85,14 +104,19 @@ class ToolAssembler:
                 )
                 continue
 
-            if ai.deferred:
-                self._deferred_tools.extend(tools)
-            else:
-                self._active_tools.extend(tools)
+        # Inject tool_search into active tools whenever there are deferred tools.
+        if self._deferred_tools:
+            self._active_tools.append(
+                platform_handler.make_tool_search(self._deferred_tools)
+            )
 
     def get_active_tools(self) -> List[BaseTool]:
-        """Non-deferred tools — passed to LLM on turn 1."""
+        """Base tools bound to the LLM from turn 1 (includes tool_search if deferred tools exist)."""
         return list(self._active_tools)
+
+    def get_deferred_tools_map(self) -> Dict[str, BaseTool]:
+        """Deferred tools keyed by name — activated at runtime via tool_search."""
+        return {t.name: t for t in self._deferred_tools}
 
     def get_all_tools(self) -> List[BaseTool]:
         """All tools including deferred (for debugging)."""

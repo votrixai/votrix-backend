@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List, TypedDict
 from uuid import UUID
 
 from langchain_core.tools import BaseTool
@@ -10,15 +10,20 @@ from app.llm.tools.assembler import ToolAssembler
 from app.models.agent import AgentIntegration
 
 
+class ToolBundle(TypedDict):
+    base_tools: List[BaseTool]           # bound to LLM every turn
+    deferred_tools_map: Dict[str, BaseTool]  # activated on-demand via tool_search
+
+
 async def load_tools(
     agent_id: UUID,
     end_user_id: UUID,
     session: AsyncSession,
-) -> List[BaseTool]:
-    """Load active tools for a given (agent, user) pair via ToolAssembler."""
+) -> ToolBundle:
+    """Load tools for a given (agent, user) pair via ToolAssembler."""
     agent = await agents_q.get_agent(session, agent_id)
     if not agent:
-        return []
+        return ToolBundle(base_tools=[], deferred_tools_map={})
 
     settings = get_settings()
     integration_rows = await agents_q.get_agent_integrations(session, agent_id)
@@ -37,4 +42,7 @@ async def load_tools(
         agent_id=agent_id,
         session=session,
     )
-    return assembler.get_active_tools()
+    return ToolBundle(
+        base_tools=assembler.get_active_tools(),
+        deferred_tools_map=assembler.get_deferred_tools_map(),
+    )

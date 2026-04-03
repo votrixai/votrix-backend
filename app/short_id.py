@@ -15,6 +15,7 @@ import json
 import re
 import uuid
 from typing import Any
+from urllib.parse import parse_qsl, urlencode
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -196,6 +197,13 @@ class ShortIdMiddleware(BaseHTTPMiddleware):
         request.scope["path"] = "/".join(
             _decode_path_segment(seg) if seg else seg for seg in segments
         )
+
+        # --- Decode query string ---
+        qs = request.scope.get("query_string", b"")
+        if qs:
+            pairs = parse_qsl(qs.decode("utf-8"), keep_blank_values=True)
+            decoded_pairs = [(k, _decode_path_segment(v)) for k, v in pairs]
+            request.scope["query_string"] = urlencode(decoded_pairs).encode("utf-8")
 
         # --- Decode JSON request body ---
         if request.method in ("POST", "PUT", "PATCH"):

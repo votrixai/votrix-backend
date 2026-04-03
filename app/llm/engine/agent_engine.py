@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import get_settings
 from app.db.models.blueprint_agents import BlueprintAgent
 from app.llm.engine.graph import build_graph
+from app.llm.history.checkpoint_manager import CheckpointManager
+from app.llm.history.compactor import Compactor
 from app.llm.prompt.builder import build_system_prompt
 from app.llm.tools.loader import load_tools
 
@@ -19,8 +21,8 @@ class AgentEngine:
     """
     Per-session execution engine.
 
-    The compiled graph is a class-level singleton shared across all instances.
-    Call AgentEngine.init(pool) once at app startup before creating any instances.
+    The compiled graph and checkpoint manager are class-level singletons shared
+    across all instances. Call AgentEngine.init(pool) once at app startup.
 
     Per-session usage:
         engine = AgentEngine(agent_id, end_user_id, session_id, db_session)
@@ -30,11 +32,12 @@ class AgentEngine:
     """
 
     _graph: ClassVar = None
+    _checkpoint_manager: ClassVar[CheckpointManager] = None
 
     @classmethod
     async def init(cls, pool) -> None:
         """
-        Initialize the class-level graph singleton.
+        Initialize the class-level graph singleton and checkpoint manager.
         Called once at app startup (lifespan).
         """
         checkpointer = AsyncPostgresSaver(pool)
@@ -66,7 +69,9 @@ class AgentEngine:
                     """,
                     (v,),
                 )
-        cls._graph = build_graph(checkpointer)
+        compactor = Compactor(threshold=20, keep_recent=6)
+        cls._graph = build_graph(checkpointer, compactor)
+        cls._checkpoint_manager = CheckpointManager(pool)
 
     def __init__(
         self,
@@ -80,12 +85,17 @@ class AgentEngine:
         self._session_id = session_id
         self._db_session = db_session
         self._llm = None
+        self._base_tools: list = []
+        self._deferred_tools_map: dict = {}
         self._system_prompts: list[str] = []
 
     async def setup(self, agent: BlueprintAgent) -> None:
         """
         Load and cache llm + tools + system_prompt.
         Must be called once before astream().
+
+        The LLM is kept unbound here; model_node binds the appropriate tool
+        subset each turn based on GraphState.active_tools.
         """
         settings = get_settings()
         model_name: str = agent.model or "claude-sonnet-4-6"
@@ -96,8 +106,10 @@ class AgentEngine:
             llm = ChatOpenAI(model=model_name, api_key=settings.openai_api_key)
 
         self._system_prompts = await build_system_prompt(self._agent_id, self._end_user_id, self._db_session)
-        tools = await load_tools(self._agent_id, self._end_user_id, self._db_session)
-        self._llm = llm.bind_tools(tools) if tools else llm
+        bundle = await load_tools(self._agent_id, self._end_user_id, self._db_session)
+        self._llm = llm
+        self._base_tools = bundle["base_tools"]
+        self._deferred_tools_map = bundle["deferred_tools_map"]
 
     async def astream(
         self,
@@ -112,13 +124,19 @@ class AgentEngine:
             on_chat_model_stream  → token
             on_tool_start         → tool call began
             on_tool_end           → tool call finished
+
+        After streaming completes, prune stale checkpoint rows for this thread
+        so the checkpoints table never accumulates more than one row per session.
         """
+        thread_id = str(self._session_id)
         async for event in self._graph.astream_events(
-            {"messages": [HumanMessage(content=message)]},
+            {"messages": [HumanMessage(content=message)], "tool_call_count": 0},
             config={
                 "configurable": {
-                    "thread_id": str(self._session_id),
+                    "thread_id": thread_id,
                     "llm": self._llm,
+                    "base_tools": self._base_tools,
+                    "deferred_tools_map": self._deferred_tools_map,
                     "system_prompts": self._system_prompts,
                     "cancel_event": cancel_event,
                 }
@@ -126,3 +144,5 @@ class AgentEngine:
             version="v2",
         ):
             yield event
+
+        await self._checkpoint_manager.prune(thread_id)
