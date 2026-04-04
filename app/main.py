@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     settings = get_settings()
     logging.basicConfig(level=settings.log_level)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
     load_default_blueprint_files()
 
@@ -33,9 +34,10 @@ async def lifespan(app: FastAPI):
     init_engine(settings.database_url)
     logger.info("SQLAlchemy engine initialized")
 
-    # psycopg3 pool for LangGraph checkpointer (requires plain postgresql:// DSN)
-    pg_url = settings.langgraph_database_url or settings.database_url.replace("+asyncpg", "")
-    pg_pool = AsyncConnectionPool(pg_url, open=False)
+    # psycopg3 pool for LangGraph checkpointer (postgresql:// — set LANGGRAPH_DATABASE_URL in .env)
+    if not settings.langgraph_database_url:
+        raise ValueError("LANGGRAPH_DATABASE_URL is required for the LangGraph Postgres checkpointer")
+    pg_pool = AsyncConnectionPool(settings.langgraph_database_url, open=False)
     await pg_pool.open()
     await AgentEngine.init(pg_pool)
     logger.info("LLM engine initialized")

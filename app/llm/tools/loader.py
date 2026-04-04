@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db.queries import agents as agents_q
+from app.db.models.blueprint_agents import BlueprintAgent
 from app.llm.tools.assembler import ToolAssembler
 from app.models.agent import AgentIntegration
 
@@ -19,9 +20,15 @@ async def load_tools(
     agent_id: UUID,
     end_user_id: UUID,
     session: AsyncSession,
+    agent: BlueprintAgent | None = None,
 ) -> ToolBundle:
-    """Load tools for a given (agent, user) pair via ToolAssembler."""
-    agent = await agents_q.get_agent(session, agent_id)
+    """Load tools for a given (agent, user) pair via ToolAssembler.
+
+    Pass `agent` when the caller already has the object to avoid a redundant
+    DB round-trip (e.g. AgentEngine.setup already fetched it).
+    """
+    if agent is None:
+        agent = await agents_q.get_agent(session, agent_id)
     if not agent:
         return ToolBundle(base_tools=[], deferred_tools_map={})
 

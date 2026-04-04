@@ -154,6 +154,11 @@ def cache_is_ready() -> bool:
     return len(_cache) > 0
 
 
+def get_cached_toolkit_meta(slug: str) -> dict | None:
+    """Return cached toolkit metadata for a single slug, or None if not yet loaded."""
+    return _cache.get(slug)
+
+
 def get_cached(
     search: str = "",
     category: str = "",

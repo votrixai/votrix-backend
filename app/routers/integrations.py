@@ -14,8 +14,8 @@ from app.models.integration import (
     InputSchemaDef, IntegrationDetailResponse, IntegrationSummaryResponse,
     PropertyDef, ProviderType, ToolSchemaResponse,
 )
-from app.integrations.handlers.composio import get_toolkit_detail, get_tool_schemas
-from app.integrations.catalog import PROVIDERS, get_integration, get_cached, list_integrations
+from app.integrations.handlers.composio import warm_toolkit, get_cached_toolkit_schemas
+from app.integrations.catalog import PROVIDERS, get_integration, get_cached, list_integrations, get_cached_toolkit_meta
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
@@ -150,23 +150,32 @@ async def get_integration_endpoint(slug: str):
         )
 
     settings = get_settings()
-    toolkit = await get_toolkit_detail(settings.composio_api_key, slug)
-    if toolkit is None:
+
+    # Toolkit metadata from catalog cache (populated at startup).
+    toolkit_meta = get_cached_toolkit_meta(slug)
+    if toolkit_meta is None:
         raise HTTPException(status_code=404, detail=f"Integration '{slug}' not found")
 
-    tool_schemas = await get_tool_schemas(settings.composio_api_key, slug)
+    # Tool schemas from schema cache; warm on first access.
+    tool_objects = get_cached_toolkit_schemas(slug)
+    if not tool_objects:
+        await warm_toolkit(settings.composio_api_key, slug)
+        tool_objects = get_cached_toolkit_schemas(slug)
+
     return IntegrationDetailResponse(
-        slug=toolkit["slug"],
-        display_name=toolkit["name"],
-        description=toolkit["description"],
+        slug=toolkit_meta["slug"],
+        display_name=toolkit_meta["name"],
+        description=toolkit_meta["description"],
         provider_type=ProviderType.COMPOSIO,
         deferred=True,
         tools=[
             ToolSchemaResponse(
-                name=t["name"],
-                description=t["description"],
-                input_schema=_flatten_schema(t.get("input_schema")),
+                name=getattr(t, "slug", ""),
+                description=getattr(t, "description", ""),
+                input_schema=_flatten_schema(
+                    getattr(t, "input_parameters", None)
+                ),
             )
-            for t in tool_schemas
+            for t in tool_objects
         ],
     )

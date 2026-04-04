@@ -1,14 +1,17 @@
 import asyncio
+import logging
+import time
 from typing import AsyncGenerator, ClassVar
 from uuid import UUID
 
-from langchain_anthropic import ChatAnthropic
+logger = logging.getLogger(__name__)
+
 from langchain_core.messages import HumanMessage
-from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.utils.llm import build_chat_model
 from app.db.models.blueprint_agents import BlueprintAgent
 from app.llm.engine.graph import build_graph
 from app.llm.history.checkpoint_manager import CheckpointManager
@@ -69,7 +72,7 @@ class AgentEngine:
                     """,
                     (v,),
                 )
-        compactor = Compactor(threshold=20, keep_recent=6)
+        compactor = Compactor()
         cls._graph = build_graph(checkpointer, compactor)
         cls._checkpoint_manager = CheckpointManager(pool)
 
@@ -98,15 +101,21 @@ class AgentEngine:
         subset each turn based on GraphState.active_tools.
         """
         settings = get_settings()
-        model_name: str = agent.model or "claude-sonnet-4-6"
+        model_name: str = agent.model or "gemini-2.0-flash"
+        llm = build_chat_model(model_name, settings)
 
-        if model_name.startswith("claude"):
-            llm = ChatAnthropic(model=model_name, api_key=settings.anthropic_api_key)
-        else:
-            llm = ChatOpenAI(model=model_name, api_key=settings.openai_api_key)
-
-        self._system_prompts = await build_system_prompt(self._agent_id, self._end_user_id, self._db_session)
-        bundle = await load_tools(self._agent_id, self._end_user_id, self._db_session)
+        t0 = time.perf_counter()
+        self._system_prompts, bundle = await asyncio.gather(
+            build_system_prompt(self._agent_id, self._end_user_id, self._db_session),
+            load_tools(self._agent_id, self._end_user_id, self._db_session, agent=agent),
+        )
+        logger.info(
+            "engine_setup agent_id=%s gather_ms=%.0f base_tools=%d deferred_tools=%d",
+            self._agent_id,
+            (time.perf_counter() - t0) * 1000,
+            len(bundle["base_tools"]),
+            len(bundle["deferred_tools_map"]),
+        )
         self._llm = llm
         self._base_tools = bundle["base_tools"]
         self._deferred_tools_map = bundle["deferred_tools_map"]
@@ -121,7 +130,7 @@ class AgentEngine:
         cancel_event: WS only — passed to model_node to abort mid-stream.
 
         Relevant event["event"] values:
-            on_chat_model_stream  → token
+            on_chat_model_stream  → token (model node uses astream so these fire)
             on_tool_start         → tool call began
             on_tool_end           → tool call finished
 

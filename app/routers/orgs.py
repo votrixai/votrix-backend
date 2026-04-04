@@ -28,6 +28,13 @@ def _org_detail(org) -> OrgDetailResponse:
     )
 
 
+@router.get("", response_model=list[OrgSummaryResponse], summary="List orgs")
+async def list_orgs_endpoint(session: AsyncSession = Depends(get_session)):
+    """Return all orgs (id, display_name, created_at)."""
+    orgs = await list_orgs(session)
+    return [OrgSummaryResponse(id=str(o.id), display_name=o.display_name, created_at=o.created_at) for o in orgs]
+
+
 @router.post("", response_model=OrgDetailResponse, status_code=201, summary="Create org")
 async def create_org_endpoint(body: CreateOrgRequest, session: AsyncSession = Depends(get_session)):
     """Create a new org. Default integrations are pre-activated."""
@@ -40,13 +47,6 @@ async def create_org_endpoint(body: CreateOrgRequest, session: AsyncSession = De
     )
     await session.commit()
     return _org_detail(org)
-
-
-@router.get("", response_model=list[OrgSummaryResponse], summary="List orgs")
-async def list_orgs_endpoint(session: AsyncSession = Depends(get_session)):
-    """Return all orgs (id, display_name, created_at)."""
-    orgs = await list_orgs(session)
-    return [OrgSummaryResponse(id=str(o.id), display_name=o.display_name, created_at=o.created_at) for o in orgs]
 
 
 @router.get("/{org_id}", response_model=OrgDetailResponse, summary="Get org", responses=_404)

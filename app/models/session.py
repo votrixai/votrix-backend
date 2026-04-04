@@ -8,6 +8,12 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
+class CreateAgentSessionRequest(BaseModel):
+    """Create an empty conversation thread (server assigns session id)."""
+
+    user_id: uuid.UUID
+
+
 class SessionEventType(str, Enum):
     user_message = "user_message"
     ai_message = "ai_message"
@@ -19,7 +25,7 @@ class SessionEventType(str, Enum):
 
 class SessionEventResponse(BaseModel):
     """One event inside a session — mirrors proto SessionEvent."""
-    id: str
+    event_id: str
     sequence_no: int
     event_type: SessionEventType
     event_title: Optional[str] = None   # tool name, snapshot label, etc.

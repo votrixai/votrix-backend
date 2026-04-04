@@ -6,12 +6,14 @@ Response: text/event-stream
 
 SSE event format:
     data: {"type": "token", "content": "..."}
-    data: {"type": "tool_start", "tool_call_id": "...", "name": "..."}
-    data: {"type": "tool_end", "tool_call_id": "..."}
+    data: {"type": "tool_start", "tool_call_id": "...", "name": "...", "input": {...}}
+    data: {"type": "tool_end", "tool_call_id": "...", "output": <JSON-serializable>}
     data: {"type": "done"}
     data: {"type": "error", "message": "..."}
 """
 import json
+import logging
+import time
 import uuid
 from typing import AsyncGenerator
 
@@ -19,18 +21,16 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.engine import get_session
+from app.db.engine import get_session, session_scope
 from app.db.queries import agents as agents_q
 from app.db.queries import sessions as sessions_q
 from app.llm.engine.agent_engine import AgentEngine
 from app.models.chat import ChatRequest
 from app.models.session import SessionEventType
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/agents", tags=["chat"])
-
-
-def _sse(payload: dict) -> str:
-    return f"data: {json.dumps(payload)}\n\n"
 
 
 @router.post("/{agent_id}/chat")
@@ -39,6 +39,8 @@ async def chat(
     body: ChatRequest,
     db_session: AsyncSession = Depends(get_session),
 ):
+    t_start = time.perf_counter()
+
     agent = await agents_q.get_agent(db_session, agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -53,9 +55,22 @@ async def chat(
         event_type=SessionEventType.user_message,
         event_body=body.message,
     )
+    logger.info(
+        "User message agent_id=%s session_id=%s: %s",
+        agent_id,
+        body.session_id,
+        body.message[:200],
+    )
 
     engine = AgentEngine(agent_id, body.user_id, body.session_id, db_session)
     await engine.setup(agent)
+
+    logger.info(
+        "chat_setup agent_id=%s session_id=%s setup_ms=%.0f",
+        agent_id,
+        body.session_id,
+        (time.perf_counter() - t_start) * 1000,
+    )
 
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
@@ -65,60 +80,163 @@ async def chat(
                 kind = event["event"]
 
                 if kind == "on_chat_model_stream":
-                    token = event["data"]["chunk"].content
-                    if token and isinstance(token, str):
-                        ai_tokens.append(token)
-                        yield _sse({"type": "token", "content": token})
+                    content = event["data"]["chunk"].content
+                    if isinstance(content, str):
+                        frag = content
+                    elif isinstance(content, list):
+                        frag = "".join(
+                            b.get("text", "") for b in content
+                            if isinstance(b, dict) and b.get("type") == "text"
+                        )
+                    else:
+                        frag = ""
+                    if frag:
+                        ai_tokens.append(frag)
+                        yield f"data: {json.dumps({'type': 'token', 'content': frag}, default=str)}\n\n"
 
                 elif kind == "on_tool_start":
                     tool_name = event["name"]
-                    tool_input = event["data"].get("input", {})
-                    await sessions_q.append_event(
-                        db_session,
+                    d = event["data"]
+                    raw = d.get("input")
+                    tool_input = raw if isinstance(raw, dict) else {}
+                    tool_call_id = str(d.get("tool_call_id") or event.get("run_id") or "").strip()
+
+                    async with session_scope() as s:
+                        await sessions_q.append_event(
+                            s,
+                            body.session_id,
+                            event_type=SessionEventType.tool_start,
+                            event_title=tool_name,
+                            event_body=json.dumps(tool_input, default=str),
+                        )
+                    logger.info(
+                        "Tool call agent_id=%s session_id=%s name=%s tool_call_id=%s input=%s",
+                        agent_id,
                         body.session_id,
-                        event_type=SessionEventType.tool_start,
-                        event_title=tool_name,
-                        event_body=json.dumps(tool_input),
+                        tool_name,
+                        tool_call_id,
+                        json.dumps(tool_input, default=str)[:200],
                     )
-                    yield _sse({
-                        "type": "tool_start",
-                        "tool_call_id": event.get("run_id", ""),
-                        "name": tool_name,
-                    })
+                    yield (
+                        "data: "
+                        + json.dumps(
+                            {
+                                "type": "tool_start",
+                                "tool_call_id": tool_call_id,
+                                "name": tool_name,
+                                "input": tool_input,
+                            },
+                            default=str,
+                        )
+                        + "\n\n"
+                    )
 
                 elif kind == "on_tool_end":
-                    tool_output = event["data"].get("output", "")
-                    await sessions_q.append_event(
-                        db_session,
+                    d = event["data"]
+                    tool_output = d.get("output", "")
+                    out_str = str(tool_output)
+                    try:
+                        out_sse = json.loads(json.dumps(tool_output, default=str))
+                    except (TypeError, ValueError):
+                        out_sse = str(tool_output)
+                    tool_call_id = str(d.get("tool_call_id") or event.get("run_id") or "").strip()
+                    async with session_scope() as s:
+                        await sessions_q.append_event(
+                            s,
+                            body.session_id,
+                            event_type=SessionEventType.tool_end,
+                            event_title=event["name"],
+                            event_body=out_str,
+                        )
+                    logger.info(
+                        "Tool response agent_id=%s session_id=%s name=%s tool_call_id=%s output=%s",
+                        agent_id,
                         body.session_id,
-                        event_type=SessionEventType.tool_end,
-                        event_title=event["name"],
-                        event_body=str(tool_output),
+                        event["name"],
+                        tool_call_id,
+                        out_str[:200],
                     )
-                    yield _sse({
-                        "type": "tool_end",
-                        "tool_call_id": event.get("run_id", ""),
-                    })
+                    yield (
+                        "data: "
+                        + json.dumps(
+                            {
+                                "type": "tool_end",
+                                "tool_call_id": tool_call_id,
+                                "output": out_sse,
+                            },
+                            default=str,
+                        )
+                        + "\n\n"
+                    )
+
+                elif kind == "on_tool_error":
+                    d = event["data"]
+                    tool_call_id = str(d.get("tool_call_id") or event.get("run_id") or "").strip()
+                    err = d.get("error")
+                    err_str = str(err) if err is not None else "tool_error"
+                    async with session_scope() as s:
+                        await sessions_q.append_event(
+                            s,
+                            body.session_id,
+                            event_type=SessionEventType.tool_end,
+                            event_title=event["name"],
+                            event_body=err_str,
+                        )
+                    logger.warning(
+                        "Tool error agent_id=%s session_id=%s name=%s tool_call_id=%s %s",
+                        agent_id,
+                        body.session_id,
+                        event["name"],
+                        tool_call_id,
+                        err_str[:500],
+                    )
+                    yield (
+                        "data: "
+                        + json.dumps(
+                            {
+                                "type": "tool_end",
+                                "tool_call_id": tool_call_id,
+                                "output": {"error": err_str},
+                            },
+                            default=str,
+                        )
+                        + "\n\n"
+                    )
 
             # Persist the complete AI reply after streaming finishes.
-            if ai_tokens:
-                await sessions_q.append_event(
-                    db_session,
-                    body.session_id,
-                    event_type=SessionEventType.ai_message,
-                    event_body="".join(ai_tokens),
-                )
+            reply_text = "".join(ai_tokens)
+            logger.info(
+                "AI reply agent_id=%s session_id=%s (%d chars): %s",
+                agent_id,
+                body.session_id,
+                len(reply_text),
+                reply_text[:400],
+            )
+            if reply_text:
+                async with session_scope() as s:
+                    await sessions_q.append_event(
+                        s,
+                        body.session_id,
+                        event_type=SessionEventType.ai_message,
+                        event_body=reply_text,
+                    )
 
-            yield _sse({"type": "done"})
+            yield f"data: {json.dumps({'type': 'done'}, default=str)}\n\n"
 
         except Exception as e:
-            await sessions_q.append_event(
-                db_session,
+            logger.exception(
+                "Chat stream failed agent_id=%s session_id=%s",
+                agent_id,
                 body.session_id,
-                event_type=SessionEventType.error,
-                event_body=str(e),
             )
-            yield _sse({"type": "error", "message": str(e)})
+            async with session_scope() as s:
+                await sessions_q.append_event(
+                    s,
+                    body.session_id,
+                    event_type=SessionEventType.error,
+                    event_body=str(e),
+                )
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, default=str)}\n\n"
 
     return StreamingResponse(
         event_stream(),

@@ -55,7 +55,8 @@ class ToolAssembler:
             ai = AgentIntegration(**item) if isinstance(item, dict) else item
 
             integration = self._resolve_integration(ai.integration_slug, REGISTRY)
-            enabled = ai.enabled_tool_slugs if ai.enabled_tool_slugs else None
+            # Empty list = no tools enabled (explicit); do not coerce to None.
+            enabled = list(ai.enabled_tool_slugs or [])
 
             if integration.provider_slug == "platform":
                 # Platform handler splits active/deferred at the tool level
@@ -75,11 +76,10 @@ class ToolAssembler:
                     self._deferred_tools.extend(deferred)
 
             elif integration.provider_slug == "composio":
-                tools = await composio_handler.load_tools(
-                    integration=integration,
-                    enabled_tool_slugs=enabled,
-                    user_id=user_id,
+                tools = await composio_handler.load_tools_cached(
                     api_key=self._api_key,
+                    user_id=user_id,
+                    slugs=list(enabled),
                 )
                 if ai.deferred:
                     self._deferred_tools.extend(tools)
