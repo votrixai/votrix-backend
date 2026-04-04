@@ -13,6 +13,7 @@ SSE event format:
 """
 import json
 import logging
+import time
 import uuid
 from typing import AsyncGenerator
 
@@ -42,6 +43,8 @@ async def chat(
     body: ChatRequest,
     db_session: AsyncSession = Depends(get_session),
 ):
+    t_start = time.perf_counter()
+
     agent = await agents_q.get_agent(db_session, agent_id)
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
@@ -65,6 +68,13 @@ async def chat(
 
     engine = AgentEngine(agent_id, body.user_id, body.session_id, db_session)
     await engine.setup(agent)
+
+    logger.info(
+        "chat_setup agent_id=%s session_id=%s setup_ms=%.0f",
+        agent_id,
+        body.session_id,
+        (time.perf_counter() - t_start) * 1000,
+    )
 
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []

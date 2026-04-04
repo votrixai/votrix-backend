@@ -76,11 +76,10 @@ class ToolAssembler:
                     self._deferred_tools.extend(deferred)
 
             elif integration.provider_slug == "composio":
-                tools = await composio_handler.load_tools(
-                    integration=integration,
-                    enabled_tool_slugs=enabled,
-                    user_id=user_id,
+                tools = await composio_handler.load_tools_cached(
                     api_key=self._api_key,
+                    user_id=user_id,
+                    slugs=list(enabled),
                 )
                 if ai.deferred:
                     self._deferred_tools.extend(tools)

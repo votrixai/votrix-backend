@@ -1,6 +1,10 @@
 import asyncio
+import logging
+import time
 from typing import AsyncGenerator, ClassVar
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -100,8 +104,18 @@ class AgentEngine:
         model_name: str = agent.model or "gemini-2.0-flash"
         llm = build_chat_model(model_name, settings)
 
-        self._system_prompts = await build_system_prompt(self._agent_id, self._end_user_id, self._db_session)
-        bundle = await load_tools(self._agent_id, self._end_user_id, self._db_session)
+        t0 = time.perf_counter()
+        self._system_prompts, bundle = await asyncio.gather(
+            build_system_prompt(self._agent_id, self._end_user_id, self._db_session),
+            load_tools(self._agent_id, self._end_user_id, self._db_session, agent=agent),
+        )
+        logger.info(
+            "engine_setup agent_id=%s gather_ms=%.0f base_tools=%d deferred_tools=%d",
+            self._agent_id,
+            (time.perf_counter() - t0) * 1000,
+            len(bundle["base_tools"]),
+            len(bundle["deferred_tools_map"]),
+        )
         self._llm = llm
         self._base_tools = bundle["base_tools"]
         self._deferred_tools_map = bundle["deferred_tools_map"]

@@ -319,7 +319,7 @@ async def load_tools(
     Tools whose name is in _DEFERRED_TOOL_NAMES are placed in deferred_tools
     and are not bound to the LLM until the user activates them via tool_search.
     """
-    from app.integrations.handlers.composio import load_by_tools
+    from app.integrations.handlers.composio import load_tools_cached
 
     slugs = list(enabled_tool_slugs or [])
     tools = [t for t in integration.tools if t.name in slugs]
@@ -357,9 +357,9 @@ async def load_tools(
                 logger.warning("composio tool %s has no action in provider_config", tool.name)
 
     if composio_active_actions:
-        active.extend(await load_by_tools(api_key, user_id, composio_active_actions))
+        active.extend(await load_tools_cached(api_key, user_id, composio_active_actions))
 
     if composio_deferred_actions:
-        deferred.extend(await load_by_tools(api_key, user_id, [a for a, _ in composio_deferred_actions]))
+        deferred.extend(await load_tools_cached(api_key, user_id, [a for a, _ in composio_deferred_actions]))
 
     return active, deferred
