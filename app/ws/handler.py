@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from typing import Literal
 from uuid import UUID
 
@@ -9,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.queries import agents as agents_q
 from app.llm.engine.agent_engine import AgentEngine
+
+logger = logging.getLogger(__name__)
 
 Phase = Literal["idle", "model", "tools"]
 
@@ -89,6 +92,8 @@ class WSHandler:
                 self._phase = "model"
                 self._cancel_event.clear()
                 cancelled = False
+                ai_tokens: list[str] = []
+                stream_ok = True
 
                 try:
                     async for event in self._engine.astream(
@@ -97,9 +102,19 @@ class WSHandler:
                         kind = event["event"]
 
                         if kind == "on_chat_model_stream":
-                            token = event["data"]["chunk"].content
-                            if token and isinstance(token, str):
-                                await self._send({"type": "token", "content": token})
+                            content = event["data"]["chunk"].content
+                            if isinstance(content, str):
+                                frag = content
+                            elif isinstance(content, list):
+                                frag = "".join(
+                                    b.get("text", "") for b in content
+                                    if isinstance(b, dict) and b.get("type") == "text"
+                                )
+                            else:
+                                frag = ""
+                            if frag:
+                                ai_tokens.append(frag)
+                                await self._send({"type": "token", "content": frag})
 
                         elif kind == "on_tool_start":
                             self._phase = "tools"
@@ -121,13 +136,25 @@ class WSHandler:
                             break
 
                 except Exception as e:
+                    stream_ok = False
+                    logger.exception(
+                        "WebSocket agent stream failed agent_id=%s session_id=%s",
+                        self._agent_id,
+                        self._session_id,
+                    )
                     await self._send({"type": "error", "message": str(e)})
 
                 if cancelled and self._pending_message:
                     message = self._pending_message
                     self._pending_message = None
                 else:
-                    if not cancelled:
+                    if not cancelled and stream_ok:
+                        reply_text = "".join(ai_tokens)
+                        if reply_text:
+                            logger.info(
+                                "AI reply preview: %s",
+                                reply_text[:400].replace("\n", " "),
+                            )
                         await self._send({"type": "done"})
                         if self._pending_message:
                             message = self._pending_message

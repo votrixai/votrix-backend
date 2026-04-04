@@ -1,4 +1,8 @@
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+import asyncio
+
+import asyncio
+
+from langchain_core.messages import AIMessage, AIMessageChunk, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
 from app.llm.engine.state import GraphState
@@ -14,6 +18,8 @@ async def call_model(state: GraphState, config: RunnableConfig) -> dict:
     deferred_tools_map: dict = configurable.get("deferred_tools_map", {})
     system_prompts: list[str] = configurable.get("system_prompts", [])
     max_tool_rounds: int = configurable.get("max_tool_rounds", DEFAULT_MAX_TOOL_ROUNDS)
+    cancel_event: asyncio.Event | None = configurable.get("cancel_event")
+    cancel_event: asyncio.Event | None = configurable.get("cancel_event")
 
     # Guard: if tool_call_count has reached the limit, skip LLM invocation and
     # return a plain AIMessage (no tool_calls) so tools_condition routes to END.
@@ -47,5 +53,16 @@ async def call_model(state: GraphState, config: RunnableConfig) -> dict:
     if system_prompts:
         messages = [SystemMessage(content=sp) for sp in system_prompts] + messages
 
-    response = await bound_llm.ainvoke(messages)
-    return {"messages": [response]}
+    # Use astream so LangGraph astream_events emits on_chat_model_stream (SSE/WS).
+    gathered = None
+    async for chunk in bound_llm.astream(messages, config):
+        if cancel_event is not None and cancel_event.is_set():
+            break
+        if gathered is None:
+            gathered = chunk
+        else:
+            gathered = gathered + chunk
+
+    if gathered is None:
+        return {"messages": [AIMessage(content="")]}
+    return {"messages": [gathered]}

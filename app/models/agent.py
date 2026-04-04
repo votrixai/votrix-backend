@@ -20,7 +20,7 @@ class UpsertAgentIntegrationRequest(BaseModel):
 class CreateAgentRequest(BaseModel):
     """Create a new blueprint agent within an org."""
     display_name: str = Field("", description="Human-friendly agent name")
-    model: str = Field("claude-sonnet-4-6", description="LLM model identifier")
+    model: str = Field("gemini-3.0-flash-preview", description="LLM model identifier")
     integrations: Optional[List[AgentIntegration]] = Field(
         None, description="Integrations to enable"
     )
@@ -48,7 +48,7 @@ class AgentDetailResponse(BaseModel):
     id: str
     org_id: str
     display_name: str = ""
-    model: str = "claude-sonnet-4-6"
+    model: str = "gemini-2.0-flash"
     integrations: List[AgentIntegration] = Field(default_factory=list)
     deleted_at: Optional[datetime] = None
     created_at: Optional[datetime] = None

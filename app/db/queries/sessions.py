@@ -12,6 +12,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.sessions import Session, SessionEvent
 
 
+async def create_session_row(
+    db: AsyncSession,
+    agent_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> Session:
+    """Insert a new session row with a server-generated id. No events."""
+    new_id = uuid.uuid4()
+    row = Session(id=new_id, agent_id=agent_id, user_id=user_id)
+    db.add(row)
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+
 async def upsert_session(
     db: AsyncSession,
     session_id: uuid.UUID,

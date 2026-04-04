@@ -102,6 +102,21 @@ async def _to_detail(session: AsyncSession, agent: BlueprintAgent) -> AgentDetai
     )
 
 
+@router.get("/orgs/{org_id}/agents", response_model=List[AgentSummaryResponse], summary="List agents")
+async def list_agents(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    """List all blueprint agents in an org."""
+    rows = await agents_q.list_agents(session, org_id)
+    return [
+        AgentSummaryResponse(
+            id=str(r.id),
+            display_name=r.display_name,
+            created_at=r.created_at,
+            updated_at=r.updated_at,
+        )
+        for r in rows
+    ]
+
+
 @router.post("/orgs/{org_id}/agents", response_model=AgentDetailResponse, status_code=201,
              summary="Create agent")
 async def create_agent(
@@ -129,21 +144,6 @@ async def create_agent(
         await blueprint_files.bulk_insert(session, bulk_rows)
 
     return await _to_detail(session, row)
-
-
-@router.get("/orgs/{org_id}/agents", response_model=List[AgentSummaryResponse], summary="List agents")
-async def list_agents(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
-    """List all blueprint agents in an org."""
-    rows = await agents_q.list_agents(session, org_id)
-    return [
-        AgentSummaryResponse(
-            id=str(r.id),
-            display_name=r.display_name,
-            created_at=r.created_at,
-            updated_at=r.updated_at,
-        )
-        for r in rows
-    ]
 
 
 @router.get("/agents/{agent_id}", response_model=AgentDetailResponse, summary="Get agent", responses=_404)

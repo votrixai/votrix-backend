@@ -69,17 +69,22 @@ def decode_prefixed(s: str) -> uuid.UUID:
 _ALL_PREFIXES = frozenset({
     "org", "agent", "user", "link",
     "integ", "tool", "bai", "bat", "file",
+    "sess", "evt",
 })
 
 # Field name → prefix for foreign-key fields in response JSON
 _FK_FIELD_PREFIX: dict[str, str] = {
     "org_id": "org",
     "blueprint_agent_id": "agent",
+    "agent_id": "agent",  # e.g. sessions / public summaries (not only blueprint_agent_id)
     "end_user_account_id": "user",
     "user_account_id": "user",
+    "user_id": "user",  # e.g. sessions list — same entity as end_user_account_id
     "agent_integration_id": "integ",
     "agent_integration_tool_id": "tool",
     "blueprint_agent_integration_id": "bai",
+    "session_id": "sess",
+    "event_id": "evt",
 }
 
 # ── Detection helpers ─────────────────────────────────────────
@@ -102,7 +107,7 @@ def _is_prefixed_id(s: str) -> bool:
 # ── Path-based entity prefix for the bare ``id`` field ────────
 
 _ROUTE_WORDS = frozenset({
-    "orgs", "agents", "users", "integrations", "tools",
+    "orgs", "agents", "users", "integrations", "tools", "sessions",
     "files", "read", "grep", "glob", "tree", "mkdir", "mv", "upload", "chat",
     "docs", "swagger",
 })
@@ -123,6 +128,8 @@ def _id_prefix_from_path(path: str) -> str:
         return "agent"
     if last == "users":
         return "user"
+    if last == "sessions":
+        return "sess"
     if last == "integrations":
         # /agents/{id}/integrations → bai
         return "bai"
@@ -172,7 +179,7 @@ def _decode_request_body(obj: Any) -> Any:
 # ── Path segment decoder ─────────────────────────────────────
 
 def _decode_path_segment(seg: str) -> str:
-    """Decode a path segment if it's a prefixed short ID or raw UUID."""
+    """Decode a path segment if it's a prefixed short ID or raw UUID (for FastAPI uuid params)."""
     if _is_uuid_str(seg):
         return seg  # already a UUID string, pass through
     if _is_prefixed_id(seg):
@@ -216,16 +223,13 @@ class ShortIdMiddleware(BaseHTTPMiddleware):
                         data = _decode_request_body(data)
                         new_body = json.dumps(data).encode("utf-8")
 
-                        # Clear cached body and replace receive
+                        # Replace cached body only. Do NOT replace ``request._receive`` with a
+                        # synthetic receive that always returns ``http.request``: after the body
+                        # is consumed, Starlette's BaseHTTPMiddleware ``wrapped_receive`` forwards
+                        # further reads to ``request._receive`` for disconnect detection (e.g.
+                        # StreamingResponse / SSE). A receive that keeps emitting ``http.request``
+                        # causes: RuntimeError: Unexpected message received: http.request
                         request._body = new_body
-
-                        async def _receive():
-                            return {
-                                "type": "http.request",
-                                "body": new_body,
-                                "more_body": False,
-                            }
-                        request._receive = _receive
                     except (json.JSONDecodeError, ValueError):
                         pass
 
@@ -275,6 +279,7 @@ _PARAM_PREFIX: dict[str, str] = {
     "blueprint_agent_id": "agent",
     "integration_id": "integ",
     "tool_id": "tool",
+    "session_id": "sess",
 }
 
 # Map request/response schema property names → prefix

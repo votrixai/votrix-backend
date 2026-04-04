@@ -55,7 +55,8 @@ class ToolAssembler:
             ai = AgentIntegration(**item) if isinstance(item, dict) else item
 
             integration = self._resolve_integration(ai.integration_slug, REGISTRY)
-            enabled = ai.enabled_tool_slugs if ai.enabled_tool_slugs else None
+            # Empty list = no tools enabled (explicit); do not coerce to None.
+            enabled = list(ai.enabled_tool_slugs or [])
 
             if integration.provider_slug == "platform":
                 # Platform handler splits active/deferred at the tool level

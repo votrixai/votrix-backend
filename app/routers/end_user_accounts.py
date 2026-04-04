@@ -60,6 +60,22 @@ def _to_detail(row) -> EndUserAccountDetailResponse:
 
 # ── Account CRUD (org-scoped: list, create) ──────────────────
 
+@router.get("/orgs/{org_id}/users", response_model=List[EndUserAccountSummaryResponse],
+            summary="List end user accounts")
+async def list_end_users(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
+    """List all end user accounts in an org."""
+    accounts = await list_end_user_accounts(session, org_id)
+    return [
+        EndUserAccountSummaryResponse(
+            id=str(a.id),
+            display_name=a.display_name,
+            sandbox=a.sandbox,
+            created_at=a.created_at,
+        )
+        for a in accounts
+    ]
+
+
 @router.post("/orgs/{org_id}/users", response_model=EndUserAccountDetailResponse, status_code=201,
              summary="Create end user account")
 async def create_end_user(
@@ -75,22 +91,6 @@ async def create_end_user(
     )
     await session.commit()
     return _to_detail(account)
-
-
-@router.get("/orgs/{org_id}/users", response_model=List[EndUserAccountSummaryResponse],
-            summary="List end user accounts")
-async def list_end_users(org_id: uuid.UUID, session: AsyncSession = Depends(get_session)):
-    """List all end user accounts in an org."""
-    accounts = await list_end_user_accounts(session, org_id)
-    return [
-        EndUserAccountSummaryResponse(
-            id=str(a.id),
-            display_name=a.display_name,
-            sandbox=a.sandbox,
-            created_at=a.created_at,
-        )
-        for a in accounts
-    ]
 
 
 # ── Account CRUD (flat: get, update, delete) ─────────────────

@@ -12,6 +12,7 @@ SSE event format:
     data: {"type": "error", "message": "..."}
 """
 import json
+import logging
 import uuid
 from typing import AsyncGenerator
 
@@ -25,6 +26,8 @@ from app.db.queries import sessions as sessions_q
 from app.llm.engine.agent_engine import AgentEngine
 from app.models.chat import ChatRequest
 from app.models.session import SessionEventType
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agents", tags=["chat"])
 
@@ -53,6 +56,12 @@ async def chat(
         event_type=SessionEventType.user_message,
         event_body=body.message,
     )
+    logger.info(
+        "User message agent_id=%s session_id=%s: %s",
+        agent_id,
+        body.session_id,
+        body.message[:200].replace("\n", " "),
+    )
 
     engine = AgentEngine(agent_id, body.user_id, body.session_id, db_session)
     await engine.setup(agent)
@@ -65,10 +74,19 @@ async def chat(
                 kind = event["event"]
 
                 if kind == "on_chat_model_stream":
-                    token = event["data"]["chunk"].content
-                    if token and isinstance(token, str):
-                        ai_tokens.append(token)
-                        yield _sse({"type": "token", "content": token})
+                    content = event["data"]["chunk"].content
+                    if isinstance(content, str):
+                        frag = content
+                    elif isinstance(content, list):
+                        frag = "".join(
+                            b.get("text", "") for b in content
+                            if isinstance(b, dict) and b.get("type") == "text"
+                        )
+                    else:
+                        frag = ""
+                    if frag:
+                        ai_tokens.append(frag)
+                        yield _sse({"type": "token", "content": frag})
 
                 elif kind == "on_tool_start":
                     tool_name = event["name"]
@@ -101,17 +119,30 @@ async def chat(
                     })
 
             # Persist the complete AI reply after streaming finishes.
-            if ai_tokens:
+            reply_text = "".join(ai_tokens)
+            logger.info(
+                "AI reply agent_id=%s session_id=%s (%d chars): %s",
+                agent_id,
+                body.session_id,
+                len(reply_text),
+                reply_text[:400].replace("\n", " "),
+            )
+            if reply_text:
                 await sessions_q.append_event(
                     db_session,
                     body.session_id,
                     event_type=SessionEventType.ai_message,
-                    event_body="".join(ai_tokens),
+                    event_body=reply_text,
                 )
 
             yield _sse({"type": "done"})
 
         except Exception as e:
+            logger.exception(
+                "Chat stream failed agent_id=%s session_id=%s",
+                agent_id,
+                body.session_id,
+            )
             await sessions_q.append_event(
                 db_session,
                 body.session_id,

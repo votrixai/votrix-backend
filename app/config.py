@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # LLM
     openai_api_key: str = ""
     anthropic_api_key: str = ""
+    google_api_key: str = ""  # Gemini (tool_search deferred-tool ranking)
 
     # Composio
     composio_api_key: str = ""

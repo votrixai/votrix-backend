@@ -15,10 +15,13 @@ import uuid
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple, Type
 
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import BaseTool, StructuredTool
+from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.db.queries import user_files as user_files_q
 from app.models.integration import Integration, Tool
 
@@ -61,6 +64,15 @@ class ViewInput(BaseModel):
 class ToolSearchInput(BaseModel):
     query: str = Field(..., description="Keyword to search for relevant tools (e.g. 'web search', 'browser')")
     limit: int = Field(5, description="Maximum number of tools to return", ge=1, le=20)
+
+
+class _ToolSearchRankResponse(BaseModel):
+    """Structured LLM output: exact deferred-tool names only."""
+
+    tool_names: List[str] = Field(
+        ...,
+        description="Tool names exactly as listed in the catalog, most relevant first",
+    )
 
 
 # slug → Pydantic input class (used directly as LangChain args_schema)
@@ -140,38 +152,70 @@ PLATFORM_INTEGRATION = Integration(
     tools=_PLATFORM_TOOLS,
 )
 
-# tool_search is auto-injected by ToolAssembler when any deferred tools are present.
-TOOL_SEARCH = Tool(
-    name="tool_search",
-    description=(
-        "Search for and activate deferred tools by keyword. "
-        "Call this before using any search or browser tools."
-    ),
-    input_schema={
-        "type": "object",
-        "properties": {
-            "query": {"type": "string", "description": "Search query to find relevant tools"},
-            "limit": {"type": "integer", "description": "Maximum number of results to return", "default": 5, "minimum": 1, "maximum": 20},
-        },
-        "required": ["query"],
-    },
-)
-
 
 def make_tool_search(deferred_tools: List[BaseTool]) -> BaseTool:
     """
-    Build the tool_search StructuredTool with a closure over the full deferred
-    tool list.  Called by ToolAssembler after all providers have been loaded.
+    Build tool_search (injected by ToolAssembler whenever deferred tools exist).
+
+    Ranks deferred tools with Gemini 3 Flash from a name/description catalog, then falls
+    back to substring match if the API key is missing or the call fails.
 
     The returned dict uses the `__activate_tools__` protocol key so that
     tools_node can apply the state update without coupling to this tool's name.
     """
     async def handler(query: str, limit: int = 5) -> dict:
-        q = query.lower()
-        matches = [
-            t for t in deferred_tools
-            if q in t.name.lower() or q in (t.description or "").lower()
-        ][:limit]
+        matches: List[BaseTool] = []
+
+        if deferred_tools:
+            by_name = {t.name: t for t in deferred_tools}
+            catalog_lines = [
+                f"- {t.name}: {(t.description or '').strip().replace(chr(10), ' ')}"
+                for t in deferred_tools
+            ]
+            catalog = "\n".join(catalog_lines)
+            llm = ChatGoogleGenerativeAI(
+                model="gemini-3-flash-preview",
+                temperature=0,
+            )
+            structured = llm.with_structured_output(_ToolSearchRankResponse)
+            sys = SystemMessage(
+                content=(
+                    "You pick which tools best match the user's search query. "
+                    "You MUST only output tool names that appear verbatim in the catalog "
+                    f"(the token after '- ' and before ':'). Return at most {limit} names, "
+                    "most relevant first. If none apply, return an empty list."
+                )
+            )
+            human = HumanMessage(content=f"Query:\n{query}\n\nCatalog:\n{catalog}")
+            try:
+                out: _ToolSearchRankResponse = await structured.ainvoke([sys, human])
+                seen: set[str] = set()
+                for raw in out.tool_names:
+                    name = (raw or "").strip()
+                    t = by_name.get(name)
+                    if t is None:
+                        if name:
+                            logger.warning(
+                                "tool_search: LLM returned unknown tool name %r (not in catalog)",
+                                name,
+                            )
+                        continue
+                    if name not in seen:
+                        seen.add(name)
+                        matches.append(t)
+                        if len(matches) >= limit:
+                            break
+            except Exception as exc:
+                logger.warning("tool_search Gemini ranking failed, using heuristic: %s", exc)
+                matches = []
+
+        if not matches:
+            q = query.lower()
+            matches = [
+                t for t in deferred_tools
+                if q in t.name.lower() or q in (t.description or "").lower()
+            ][:limit]
+
         return {
             "__activate_tools__": [t.name for t in matches],
             "tools": [{"name": t.name, "description": t.description} for t in matches],
@@ -179,7 +223,10 @@ def make_tool_search(deferred_tools: List[BaseTool]) -> BaseTool:
 
     return StructuredTool(
         name="tool_search",
-        description=TOOL_SEARCH.description,
+        description=(
+            "Search for and activate deferred tools by keyword. "
+            "Call this before using any search or browser tools."
+        ),
         args_schema=ToolSearchInput,
         coroutine=handler,
     )
@@ -274,9 +321,8 @@ async def load_tools(
     """
     from app.integrations.handlers.composio import load_by_tools
 
-    tools = integration.tools
-    if enabled_tool_slugs:
-        tools = [t for t in tools if t.name in enabled_tool_slugs]
+    slugs = list(enabled_tool_slugs or [])
+    tools = [t for t in integration.tools if t.name in slugs]
 
     ctx = FileContext(
         session=session,

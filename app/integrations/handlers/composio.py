@@ -132,18 +132,14 @@ async def load_tools(
         return []
     try:
         composio = await _get_composio(api_key)
-        if enabled_tool_slugs:
-            return await asyncio.to_thread(
-                composio.tools.get,
-                user_id=user_id,
-                tools=enabled_tool_slugs,
-            )
-        else:
-            return await asyncio.to_thread(
-                composio.tools.get,
-                user_id=user_id,
-                toolkits=[integration.slug],
-            )
+        slugs = list(enabled_tool_slugs or [])
+        if not slugs:
+            return []
+        return await asyncio.to_thread(
+            composio.tools.get,
+            user_id=user_id,
+            tools=slugs,
+        )
     except Exception as exc:
         logger.error("composio load_tools failed (%s): %s", integration.slug, exc)
         return []
