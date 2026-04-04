@@ -128,13 +128,10 @@ async def load_tools_cached(
     if not api_key or not slugs:
         return []
 
-    hit = [s for s in slugs if not _is_stale(s)]
     missing = [s for s in slugs if _is_stale(s)]
 
-    fetch_ms = 0.0
     if missing:
         composio = await _get_composio(api_key)
-        t_fetch = time.perf_counter()
         try:
             fetched = await asyncio.to_thread(
                 composio.tools.get_raw_composio_tools,
@@ -143,11 +140,10 @@ async def load_tools_cached(
             _populate_cache(fetched)
         except Exception as exc:
             logger.error("load_tools_cached fetch_failed slugs=%s error=%s", missing, exc)
-        fetch_ms = (time.perf_counter() - t_fetch) * 1000
 
     tool_objects = [_tool_schema_cache[s] for s in slugs if s in _tool_schema_cache]
     if not tool_objects:
-        logger.warning("load_tools_cached no_schemas hit=%d miss=%d slugs=%s", len(hit), len(missing), slugs)
+        logger.warning("load_tools_cached no_schemas slugs=%s", slugs)
         return []
 
     composio = await _get_composio(api_key)
@@ -156,7 +152,6 @@ async def load_tools_cached(
         user_id=user_id,
         dangerously_skip_version_check=True,
     )
-    t_wrap = time.perf_counter()
     try:
         result = await asyncio.to_thread(
             composio.tools.provider.wrap_tools,
@@ -166,12 +161,6 @@ async def load_tools_cached(
     except Exception as exc:
         logger.error("load_tools_cached wrap_failed error=%s", exc)
         return []
-    wrap_ms = (time.perf_counter() - t_wrap) * 1000
-
-    logger.info(
-        "load_tools_cached hit=%d miss=%d fetch_ms=%.0f wrap_ms=%.0f",
-        len(hit), len(missing), fetch_ms, wrap_ms,
-    )
     return result
 
 

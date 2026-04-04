@@ -118,17 +118,34 @@ class WSHandler:
 
                         elif kind == "on_tool_start":
                             self._phase = "tools"
+                            # Same id for start/end: model tool_call id from event data, not graph run_id.
+                            _d = event.get("data")
+                            _tcid = ""
+                            if isinstance(_d, dict):
+                                _t = _d.get("tool_call_id")
+                                if _t is not None and str(_t).strip():
+                                    _tcid = str(_t)
+                            if not _tcid and event.get("run_id") is not None:
+                                _tcid = str(event["run_id"])
                             await self._send({
                                 "type": "tool_start",
-                                "tool_call_id": event.get("run_id", ""),
+                                "tool_call_id": _tcid,
                                 "name": event["name"],
                             })
 
                         elif kind == "on_tool_end":
                             self._phase = "model"
+                            _d = event.get("data")
+                            _tcid = ""
+                            if isinstance(_d, dict):
+                                _t = _d.get("tool_call_id")
+                                if _t is not None and str(_t).strip():
+                                    _tcid = str(_t)
+                            if not _tcid and event.get("run_id") is not None:
+                                _tcid = str(event["run_id"])
                             await self._send({
                                 "type": "tool_end",
-                                "tool_call_id": event.get("run_id", ""),
+                                "tool_call_id": _tcid,
                             })
 
                         if self._cancel_event.is_set():

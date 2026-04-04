@@ -1,8 +1,14 @@
 """Application settings loaded from environment variables."""
 
 from functools import lru_cache
+from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+
+# LangSmith / LangChain read tracing flags from os.environ, not from Pydantic.
+# pydantic-settings only maps declared fields; it does not export the whole .env.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 
 class Settings(BaseSettings):

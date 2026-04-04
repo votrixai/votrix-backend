@@ -205,9 +205,9 @@ def test_chat_sse_tool_then_text(monkeypatch, chat_app):
 
             # First: a tool call round (no text tokens)
             yield {"event": "on_tool_start", "name": "search", "run_id": "t1",
-                   "data": {"input": {"query": "emails"}}}
+                   "data": {"tool_call_id": "tc-search", "input": {"query": "emails"}}}
             yield {"event": "on_tool_end", "name": "search", "run_id": "t1",
-                   "data": {"output": "results"}}
+                   "data": {"tool_call_id": "tc-search", "output": "results"}}
             # Then: model final text reply as Anthropic list-format content
             yield {"event": "on_chat_model_stream",
                    "data": {"chunk": Chunk([{"type": "text", "text": "Done"}])},

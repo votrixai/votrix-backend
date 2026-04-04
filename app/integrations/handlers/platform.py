@@ -252,8 +252,14 @@ def _make_view_handler(ctx: FileContext):
         if entries:
             return {
                 "status": True,
+                "path": path,
                 "entries": [
-                    {"name": e.name, "type": e.type, "size_bytes": e.size_bytes}
+                    {
+                        "name": e.name,
+                        "path": e.path,
+                        "type": e.type.value,
+                        "size_bytes": e.size_bytes,
+                    }
                     for e in entries
                 ],
             }

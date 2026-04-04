@@ -1,5 +1,6 @@
 from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
+from langchain_core.runnables.config import get_config_list
 
 from app.llm.engine.state import GraphState
 
@@ -16,13 +17,26 @@ async def call_tools(state: GraphState, config: RunnableConfig) -> dict:
     tool_messages: list[ToolMessage] = []
     active_tools_updates: dict[str, str] = {}  # tool_name → anchor AIMessage.id
 
-    for tool_call in last_message.tool_calls:
+    tool_calls = last_message.tool_calls
+    # Propagate graph RunnableConfig so astream_events emits on_tool_start / on_tool_end
+    # (matches langgraph.prebuilt.ToolNode — ainvoke without config is invisible to the stream).
+    call_configs = get_config_list(config, len(tool_calls))
+
+    for tool_call, call_config in zip(tool_calls, call_configs, strict=True):
         name = tool_call["name"]
         tool = tools_by_name.get(name)
         try:
             if tool is None:
                 raise ValueError(f"Unknown tool: {name}")
-            result = await tool.ainvoke(tool_call["args"])
+            # So astream_events on_tool_* carry the model's tool_call id (pairs start/end; SSE can match).
+            cfg = dict(call_config) if call_config else {}
+            md = dict(cfg.get("metadata") or {})
+            md["tool_call_id"] = tool_call["id"]
+            cfg["metadata"] = md
+            conf = dict(cfg.get("configurable") or {})
+            conf["tool_call_id"] = tool_call["id"]
+            cfg["configurable"] = conf
+            result = await tool.ainvoke(tool_call["args"], cfg)
 
             # Protocol: any handler returning {"__activate_tools__": [...]} will
             # have those deferred tools activated for subsequent model calls.
