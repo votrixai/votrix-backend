@@ -8,7 +8,7 @@ from supabase import create_client, Client
 
 from app.config import get_settings
 
-BUCKET = "files"
+BUCKET = "public-files"
 
 # MIME types treated as text (stored inline in Postgres)
 _TEXT_PREFIXES = ("text/",)
@@ -62,15 +62,7 @@ async def delete_file(bucket: str, path: str) -> None:
     client.storage.from_(bucket).remove([path])
 
 
-async def copy_file(bucket: str, src_path: str, dst_path: str, mime_type: str = "application/octet-stream") -> str:
-    """Copy a file within Supabase Storage by downloading and re-uploading."""
-    data = await download_file(bucket, src_path)
-    await upload_file(bucket, dst_path, data, mime_type)
-    return dst_path
-
-
-def get_signed_url(bucket: str, path: str, expires_in: int = 3600) -> str:
-    """Generate a signed download URL for a storage file."""
+def get_public_url(bucket: str, path: str) -> str:
+    """Return the permanent public URL for a storage file (bucket must be public)."""
     client = _get_client()
-    res = client.storage.from_(bucket).create_signed_url(path, expires_in)
-    return res["signedURL"]
+    return client.storage.from_(bucket).get_public_url(path)

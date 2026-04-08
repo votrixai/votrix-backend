@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import posixpath
 import re
+import secrets
 import uuid
 from typing import Any, Dict, List, Optional, cast
 
@@ -19,7 +20,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.blueprint_files import BlueprintFile, NodeType
 from app.db.schemas.fs import FileGrepRow  # grep only — aggregated dict rows
 from app.models.files import classify_file
+from app.short_id import encode as encode_short_id
 from app.storage import BUCKET, is_text_mime, upload_file as storage_upload, delete_file as storage_delete
+
+
+def _make_storage_path(blueprint_agent_id: uuid.UUID, path: str) -> str:
+    """Generate an opaque, unguessable storage path for a public bucket.
+
+    Format: ``blueprints/{agent_sid}{path}_{salt}``. The short-id prefix
+    aids debugging; the random salt makes the URL impossible to guess even if
+    the agent UUID and logical path are known.
+    """
+    agent_sid = encode_short_id(blueprint_agent_id)
+    salt = secrets.token_urlsafe(8)
+    return f"blueprints/{agent_sid}{path}_{salt}"
 
 
 def _derive_fields(path: str, name: str, content: str = "", size_bytes: int = 0) -> Dict[str, Any]:
@@ -123,7 +137,7 @@ async def write_file(
             size = len(binary_data)
         else:
             # Binary file → upload to Supabase Storage
-            storage_path = f"blueprints/{blueprint_agent_id}{path}"
+            storage_path = _make_storage_path(blueprint_agent_id, path)
             await storage_upload(BUCKET, storage_path, binary_data, mime_type)
             content = None
             size = len(binary_data)
@@ -354,32 +368,23 @@ async def rm_rf(session: AsyncSession, blueprint_agent_id: uuid.UUID, path: str)
 async def mv(
     session: AsyncSession, blueprint_agent_id: uuid.UUID, old_path: str, new_path: str
 ) -> None:
-    """Move/rename a file or directory. Also updates children and Storage paths."""
+    """Move/rename a file or directory.
+
+    Only updates the logical ``path`` columns in Postgres. ``storage_path`` is
+    opaque and stays put — the public URL remains valid across renames.
+    """
     new_name = posixpath.basename(new_path)
     new_derived = _derive_fields(new_path, new_name)
-
-    # Handle storage_path update for the moved file itself
-    root_check = (
-        await session.execute(
-            select(BlueprintFile.storage_path, BlueprintFile.mime_type)
-            .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id, BlueprintFile.path == old_path)
-        )
-    ).mappings().first()
-    root_updates = {"path": new_path, "name": new_name, **new_derived}
-    if root_check and root_check["storage_path"]:
-        new_storage = f"blueprints/{blueprint_agent_id}{new_path}"
-        await _move_storage_object(root_check["storage_path"], new_storage, root_check["mime_type"])
-        root_updates["storage_path"] = new_storage
 
     stmt = (
         update(BlueprintFile)
         .where(BlueprintFile.blueprint_agent_id == blueprint_agent_id, BlueprintFile.path == old_path)
-        .values(**root_updates)
+        .values(path=new_path, name=new_name, **new_derived)
     )
     await session.execute(stmt)
 
     children_stmt = (
-        select(BlueprintFile.id, BlueprintFile.path, BlueprintFile.name, BlueprintFile.storage_path, BlueprintFile.mime_type)
+        select(BlueprintFile.id, BlueprintFile.path, BlueprintFile.name)
         .where(
             BlueprintFile.blueprint_agent_id == blueprint_agent_id,
             BlueprintFile.path.like(f"{old_path}/%"),
@@ -389,26 +394,14 @@ async def mv(
     for child in children:
         child_new_path = new_path + child["path"][len(old_path):]
         child_derived = _derive_fields(child_new_path, child["name"])
-        child_updates = {"path": child_new_path, **child_derived}
-        if child["storage_path"]:
-            new_child_storage = f"blueprints/{blueprint_agent_id}{child_new_path}"
-            await _move_storage_object(child["storage_path"], new_child_storage, child["mime_type"])
-            child_updates["storage_path"] = new_child_storage
         child_stmt = (
             update(BlueprintFile)
             .where(BlueprintFile.id == child["id"])
-            .values(**child_updates)
+            .values(path=child_new_path, **child_derived)
         )
         await session.execute(child_stmt)
 
     await session.commit()
-
-
-async def _move_storage_object(old_storage_path: str, new_storage_path: str, mime_type: str = "application/octet-stream") -> None:
-    """Move a Storage object by copying then deleting the original."""
-    from app.storage import copy_file
-    await copy_file(BUCKET, old_storage_path, new_storage_path, mime_type)
-    await storage_delete(BUCKET, old_storage_path)
 
 
 async def stat(
