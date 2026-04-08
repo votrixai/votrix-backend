@@ -1,0 +1,73 @@
+# Twitter / X OAuth Setup
+
+Twitter uses OAuth 2.0 with PKCE. The Composio `TWITTER` toolkit handles the full auth flow.
+
+---
+
+## Prerequisites
+
+The admin needs:
+- A Twitter/X account (personal or brand account)
+- For posting on behalf of a brand: they should be logged into the brand account before authorizing
+
+---
+
+## Step 1 — Initiate Twitter Connection
+
+用 `tool_search("composio manage connections twitter")` 找到 OAuth 发起工具，启动 Twitter 授权流程。
+
+The tool returns an authorization URL. Send it to the admin:
+
+> "To connect Twitter/X, please open this link and authorize access: [url]"
+
+Wait for the admin to confirm before proceeding.
+
+---
+
+## Step 2 — Verify Connection
+
+After confirmation, search for an action to retrieve the connected account details:
+
+```
+tool_search("twitter get user")
+```
+
+Execute to retrieve:
+- `twitter_user_id`
+- `username` (the @handle)
+- `name` (display name)
+
+---
+
+## Step 3 — 写入 marketing-context.md
+
+将账号信息写入 `user-files/marketing-context.md` 的 `## 已连接平台 → Twitter` 部分：
+
+```
+### Twitter
+- 用户名：{username}
+- User ID：{twitter_user_id}
+```
+
+---
+
+## What Twitter Can Do After Connection
+
+| Capability | Available |
+|---|---|
+| Post tweets (text) | Yes |
+| Post tweets with media | Yes |
+| Post threads | Yes (sequential tweets) |
+| Delete tweets | Yes |
+| Read tweet analytics (impressions, engagements) | Yes — via Twitter API v2 |
+| Read follower count | Yes |
+| Read mentions and replies | Yes |
+| Schedule tweets natively | No — agent handles timing |
+
+---
+
+## Twitter API Rate Limits (relevant to us)
+
+- **Free tier**: 1,500 tweets/month write limit
+- **Basic tier**: 3,000 tweets/month
+- Post at most 1–3 times per day to stay well within limits and avoid appearing spammy

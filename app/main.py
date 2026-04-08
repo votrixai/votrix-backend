@@ -12,10 +12,11 @@ from scalar_fastapi import get_scalar_api_reference
 from app.config import get_settings
 from app.db.engine import dispose_engine, init_engine
 from app.llm.engine import AgentEngine
-from app.routers import agent_files, agents, chat, end_user_accounts, integrations, orgs, sessions, user_files, user_runtime
+from app.routers import agent_files, agents, chat, end_user_accounts, integrations, notifications, orgs, schedules, sessions, user_files, user_runtime
 from app.routers.agents import load_default_blueprint_files
 from app.short_id import ShortIdMiddleware, patch_openapi
 from app.ws import router as ws_router
+from app.ws.notifications_router import router as notifications_ws_router
 from app.integrations import catalog as composio_catalog
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,10 @@ async def lifespan(app: FastAPI):
     logger.info("LLM engine initialized")
 
     asyncio.create_task(composio_catalog.refresh_cache(settings.composio_api_key))
+
+    from app.scheduler.loop import scheduler_loop
+    asyncio.create_task(scheduler_loop())
+    logger.info("Scheduler loop started")
 
     yield
 
@@ -77,6 +82,9 @@ app.include_router(user_files.router)
 app.include_router(integrations.router)
 app.include_router(chat.router)
 app.include_router(sessions.router)
+app.include_router(schedules.router)
+app.include_router(notifications.router)
+app.include_router(notifications_ws_router)
 app.include_router(user_runtime.router)
 app.include_router(ws_router.router)
 
