@@ -43,7 +43,7 @@ from app.models.files import (
     file_list_entry_from_blueprint,
     tree_entry_from_blueprint,
 )
-from app.storage import BUCKET, get_signed_url, is_text_mime
+from app.storage import BUCKET, get_public_url, is_text_mime
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ async def read_file(
     if not file:
         raise HTTPException(status_code=404, detail=f"File not found: {path}")
     download_url = (
-        get_signed_url(BUCKET, file.storage_path) if file.storage_path else None
+        get_public_url(BUCKET, file.storage_path) if file.storage_path else None
     )
     return file_content_from_blueprint(file, download_url=download_url)
 
@@ -130,7 +130,7 @@ async def edit_file(
     if not file:
         raise HTTPException(status_code=404, detail=f"File not found: {body.path}")
     download_url = (
-        get_signed_url(BUCKET, file.storage_path) if file.storage_path else None
+        get_public_url(BUCKET, file.storage_path) if file.storage_path else None
     )
     return file_content_from_blueprint(file, download_url=download_url)
 

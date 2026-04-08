@@ -15,6 +15,8 @@ from app.db.models.blueprint_files import NodeType
 from app.db.queries import blueprint_files as bf
 from app.db.queries import user_files as uf
 from app.db.queries.end_user_agents import replicate_blueprint_to_user, link_agent
+from app.short_id import encode as encode_short_id
+from app.storage import BUCKET
 
 
 # ── Fixtures ─────────────────────────────────────────────────
@@ -67,11 +69,6 @@ def mock_storage():
     async def _delete(bucket, path):
         store.pop(path, None)
 
-    async def _copy(bucket, src, dst, mime_type="application/octet-stream"):
-        if src in store:
-            store[dst] = {"data": store[src]["data"], "mime_type": mime_type}
-        return dst
-
     with (
         patch("app.db.queries.blueprint_files.storage_upload", side_effect=_upload),
         patch("app.db.queries.blueprint_files.storage_delete", side_effect=_delete),
@@ -83,9 +80,7 @@ def mock_storage():
         patch("app.storage.upload_file", side_effect=_upload),
         patch("app.storage.download_file", side_effect=_download),
         patch("app.storage.delete_file", side_effect=_delete),
-        patch("app.storage.copy_file", side_effect=_copy),
         patch("app.db.queries.end_user_agents.download_file", side_effect=_download),
-        patch("app.routers.agents.download_file", side_effect=_download),
     ):
         yield store
 
@@ -109,15 +104,16 @@ class TestBlueprintBinaryWrite:
 
     async def test_write_binary_uploads_to_storage(self, session, agent_id, mock_storage):
         data = b"\x89PNG fake image"
-        await bf.write_file(
+        row = await bf.write_file(
             session, agent_id, "/img.png",
             mime_type="image/png",
             binary_data=data,
         )
-        # Verify it's in mock storage
-        expected_key = f"blueprints/{agent_id}/img.png"
-        assert expected_key in mock_storage
-        assert mock_storage[expected_key]["data"] == data
+        # Verify it's in mock storage at the salted opaque path
+        assert row.storage_path in mock_storage
+        assert mock_storage[row.storage_path]["data"] == data
+        assert row.storage_path.startswith(f"blueprints/{encode_short_id(agent_id)}")
+        assert "/img.png_" in row.storage_path  # logical name + salt separator
 
     async def test_write_text_no_storage_path(self, session, agent_id, mock_storage):
         row = await bf.write_file(session, agent_id, "/readme.md", "# Hello")
@@ -187,9 +183,9 @@ class TestBlueprintBinaryOverwrite:
         f = await bf.read_file(session, agent_id, "/img.png")
         assert f.content is None
         assert f.storage_path is not None
-        # Old storage cleaned, new one present
-        key = f"blueprints/{agent_id}/img.png"
-        assert mock_storage[key]["data"] == b"v2"
+        # Old storage cleaned, only the new one (with fresh salt) remains
+        assert len(mock_storage) == 1
+        assert mock_storage[f.storage_path]["data"] == b"v2"
 
     async def test_overwrite_text_with_binary(self, session, agent_id, mock_storage):
         await bf.write_file(session, agent_id, "/f.txt", "text content")
@@ -282,21 +278,24 @@ class TestBlueprintBinaryDelete:
 
 
 class TestBlueprintBinaryMv:
-    async def test_mv_binary_updates_storage(self, session, agent_id, mock_storage):
-        await bf.write_file(
+    async def test_mv_binary_keeps_storage_path(self, session, agent_id, mock_storage):
+        """mv only updates the logical path; storage_path is opaque and stays put."""
+        original = await bf.write_file(
             session, agent_id, "/old.png",
             mime_type="image/png", binary_data=b"img",
         )
-        old_key = f"blueprints/{agent_id}/old.png"
-        assert old_key in mock_storage
+        original_storage = original.storage_path
+        assert original_storage in mock_storage
 
         await bf.mv(session, agent_id, "/old.png", "/new.png")
-        new_key = f"blueprints/{agent_id}/new.png"
-        assert old_key not in mock_storage
-        assert new_key in mock_storage
+
+        # Storage object untouched — same key, same data, single object
+        assert original_storage in mock_storage
+        assert mock_storage[original_storage]["data"] == b"img"
+        assert len(mock_storage) == 1
 
         f = await bf.read_file(session, agent_id, "/new.png")
-        assert f.storage_path == new_key
+        assert f.storage_path == original_storage
 
     async def test_mv_text_no_storage_op(self, session, agent_id, mock_storage):
         await bf.write_file(session, agent_id, "/old.md", "content")
@@ -390,19 +389,24 @@ class TestUserBinaryDelete:
 
 
 class TestUserBinaryMv:
-    async def test_mv_binary(self, session, user_ids, mock_storage):
+    async def test_mv_binary_keeps_storage_path(self, session, user_ids, mock_storage):
+        """mv only updates the logical path; storage_path is opaque and stays put."""
         aid, uid = user_ids
-        await uf.write_file(
+        original = await uf.write_file(
             session, aid, uid, "/old.bin",
             mime_type="application/octet-stream", binary_data=b"data",
         )
-        old_key = f"users/{uid}/{aid}/old.bin"
-        assert old_key in mock_storage
+        original_storage = original.storage_path
+        assert original_storage in mock_storage
 
         await uf.mv(session, aid, uid, "/old.bin", "/new.bin")
-        new_key = f"users/{uid}/{aid}/new.bin"
-        assert old_key not in mock_storage
-        assert new_key in mock_storage
+
+        # Storage object untouched
+        assert original_storage in mock_storage
+        assert len(mock_storage) == 1
+
+        f = await uf.read_file(session, aid, uid, "/new.bin")
+        assert f.storage_path == original_storage
 
 
 # ══════════════════════════════════════════════════════════════
@@ -434,8 +438,8 @@ class TestReplicationBinary:
         f = await uf.read_file(session, aid, uid, "/logo.png")
         assert f.content is None
         assert f.storage_path is not None
-        # User storage path is different from blueprint storage path
-        assert f.storage_path.startswith(f"users/{uid}/")
+        # User storage path uses short-id-encoded user prefix
+        assert f.storage_path.startswith(f"users/{encode_short_id(uid)}/")
 
     async def test_replicate_mixed(self, session, user_ids, mock_storage):
         aid, uid = user_ids
@@ -647,7 +651,7 @@ class TestSeedFromBinary:
                 if content_row:
                     if content_row.storage_path:
                         from app.storage import download_file
-                        data = await download_file("files", content_row.storage_path)
+                        data = await download_file(BUCKET, content_row.storage_path)
                         await bf.write_file(
                             session, new_id, f.path,
                             mime_type=content_row.mime_type or "application/octet-stream",
@@ -681,7 +685,7 @@ class TestSeedFromBinary:
                 content_row = await bf.read_file(session, src_aid, f.path)
                 if content_row and content_row.storage_path:
                     from app.storage import download_file
-                    data = await download_file("files", content_row.storage_path)
+                    data = await download_file(BUCKET, content_row.storage_path)
                     await bf.write_file(
                         session, new_id, f.path,
                         mime_type=content_row.mime_type or "application/octet-stream",
