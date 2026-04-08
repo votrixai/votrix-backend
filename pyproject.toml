@@ -27,6 +27,7 @@ dependencies = [
     "langchain-anthropic>=0.3",
     "langchain-openai>=0.3",
     "langchain-google-genai>=2.0",
+    "google-genai>=1.0",
     "langgraph>=0.2",
     "langgraph-checkpoint-postgres>=2.0",
     "psycopg[binary,pool]>=3.1",
@@ -35,6 +36,8 @@ dependencies = [
     "composio-langchain==0.11.4",
     "composio-anthropic==0.11.4",
     "composio-langgraph==0.11.4",
+    # Cron expression parsing for scheduler
+    "croniter>=3.0",
 ]
 
 [project.optional-dependencies]
