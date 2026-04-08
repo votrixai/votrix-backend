@@ -174,13 +174,17 @@ async def write_file(
 
 async def edit_file(
     session: AsyncSession, blueprint_agent_id: uuid.UUID,
-    user_account_id: uuid.UUID, path: str, old_str: str, new_str: str
+    user_account_id: uuid.UUID, path: str, old_str: str, new_str: str,
+    replace_all: bool = False,
 ) -> Optional[UserFile]:
-    """Replace first occurrence of old_str with new_str in file content."""
+    """Replace old_str with new_str in file content. Replaces first occurrence unless replace_all is True."""
     file = await read_file(session, blueprint_agent_id, user_account_id, path)
     if not file or not file.content or old_str not in file.content:
         return None
-    updated_content = file.content.replace(old_str, new_str, 1)
+    if replace_all:
+        updated_content = file.content.replace(old_str, new_str)
+    else:
+        updated_content = file.content.replace(old_str, new_str, 1)
     return await write_file(
         session, blueprint_agent_id, user_account_id, path, updated_content,
         file.mime_type,

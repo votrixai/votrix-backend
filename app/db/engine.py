@@ -20,7 +20,12 @@ def init_engine(database_url: str | None = None) -> None:
     url = database_url or get_settings().database_url
     if not url:
         raise ValueError("DATABASE_URL is required")
-    _engine = create_async_engine(url, echo=False, pool_pre_ping=True)
+    _engine = create_async_engine(
+        url,
+        echo=False,
+        pool_pre_ping=True,
+        connect_args={"statement_cache_size": 0},
+    )
     _session_factory = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
 
 
