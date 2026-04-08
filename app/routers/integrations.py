@@ -106,7 +106,6 @@ async def list_integrations_endpoint(
 ):
     """List all available integrations. Platform integrations always appear first."""
     results: list[IntegrationSummaryResponse] = []
-
     for integration in list_integrations():
         s = _summary_from_registry(integration)
         if search and search.lower() not in s.slug.lower() and search.lower() not in s.display_name.lower():

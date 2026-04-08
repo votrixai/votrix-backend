@@ -130,15 +130,35 @@ async def refresh_cache(api_key: str) -> None:
         from composio_langchain import LangchainProvider
 
         composio = Composio(provider=LangchainProvider(), api_key=api_key)
-        items = await asyncio.to_thread(composio.toolkits.get)
+
+        # Composio toolkits list is paginated; fetch all pages via cursor.
+        all_items = []
+        cursor = None
+        page_count = 0
+        while True:
+            page = await asyncio.to_thread(
+                composio.toolkits.list,
+                cursor=cursor,
+                limit=1000,
+                managed_by="all",
+            )
+            page_count += 1
+            all_items.extend(page.items or [])
+            cursor = page.next_cursor
+            if not cursor:
+                break
 
         _cache = {
             _normalise(i)["slug"]: _normalise(i)
-            for i in items
+            for i in all_items
             if getattr(i, "slug", None)
         }
         _last_refreshed = datetime.now(timezone.utc)
-        logger.info("Composio cache refreshed: %d toolkits", len(_cache))
+        logger.info(
+            "Composio cache refreshed: %d toolkits (%d page(s))",
+            len(_cache),
+            page_count,
+        )
 
     except Exception as exc:
         logger.error("Composio cache refresh failed: %s", exc)
