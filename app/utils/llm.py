@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 
-from app.config import get_settings
-
-if TYPE_CHECKING:
-    from app.config import Settings
+from app.config import Settings, get_settings
 
 
 def _is_gemini_model(model_name: str) -> bool:

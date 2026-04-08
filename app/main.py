@@ -14,6 +14,7 @@ from app.db.engine import dispose_engine, init_engine
 from app.llm.engine import AgentEngine
 from app.routers import agent_files, agents, chat, end_user_accounts, integrations, notifications, orgs, schedules, sessions, user_files, user_runtime
 from app.routers.agents import load_default_blueprint_files
+from app.scheduler.loop import scheduler_loop
 from app.short_id import ShortIdMiddleware, patch_openapi
 from app.ws import router as ws_router
 from app.ws.notifications_router import router as notifications_ws_router
@@ -45,7 +46,6 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(composio_catalog.refresh_cache(settings.composio_api_key))
 
-    from app.scheduler.loop import scheduler_loop
     asyncio.create_task(scheduler_loop())
     logger.info("Scheduler loop started")
 

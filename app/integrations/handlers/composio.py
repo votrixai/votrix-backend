@@ -19,6 +19,8 @@ import logging
 import time
 from typing import Any, Dict, List, Optional
 
+from composio import Composio
+from composio_langchain import LangchainProvider
 from langchain_core.tools import BaseTool
 
 from app.models.integration import Integration
@@ -36,8 +38,6 @@ async def _get_composio(api_key: str):
     global _composio
     async with _lock:
         if _composio is None:
-            from composio import Composio
-            from composio_langchain import LangchainProvider
             _composio = Composio(provider=LangchainProvider(), api_key=api_key)
     return _composio
 

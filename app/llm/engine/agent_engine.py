@@ -4,20 +4,20 @@ import time
 from typing import AsyncGenerator, ClassVar
 from uuid import UUID
 
-logger = logging.getLogger(__name__)
-
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
-from app.utils.llm import build_chat_model
 from app.db.models.blueprint_agents import BlueprintAgent
 from app.llm.engine.graph import build_graph
 from app.llm.history.checkpoint_manager import CheckpointManager
 from app.llm.history.compactor import Compactor
 from app.llm.prompt.builder import build_system_prompt
 from app.llm.tools.loader import load_tools
+from app.utils.llm import build_chat_model
+
+logger = logging.getLogger(__name__)
 
 
 class AgentEngine:

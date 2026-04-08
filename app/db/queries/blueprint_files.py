@@ -13,7 +13,7 @@ import secrets
 import uuid
 from typing import Any, Dict, List, Optional, cast
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +21,7 @@ from app.db.models.blueprint_files import BlueprintFile, NodeType
 from app.db.schemas.fs import FileGrepRow  # grep only — aggregated dict rows
 from app.models.files import classify_file
 from app.short_id import encode as encode_short_id
-from app.storage import BUCKET, is_text_mime, upload_file as storage_upload, delete_file as storage_delete
+from app.storage import BUCKET, delete_file as storage_delete, download_file, is_text_mime, upload_file as storage_upload
 
 
 def _make_storage_path(blueprint_agent_id: uuid.UUID, path: str) -> str:
@@ -464,7 +464,6 @@ async def bulk_delete(
         for p in paths:
             conditions.append(BlueprintFile.path.like(f"{p}/%"))
 
-    from sqlalchemy import or_
     where_clause = or_(*conditions)
 
     storage_stmt = (
@@ -521,7 +520,6 @@ async def cp(
             if child.type == NodeType.directory:
                 row = await mkdir(session, blueprint_agent_id, child_dest)
             elif child.storage_path:
-                from app.storage import download_file
                 data = await download_file(BUCKET, child.storage_path)
                 row = await write_file(
                     session, blueprint_agent_id, child_dest,
@@ -537,7 +535,6 @@ async def cp(
             created.append(row)
     else:
         if source.storage_path:
-            from app.storage import download_file
             data = await download_file(BUCKET, source.storage_path)
             row = await write_file(
                 session, blueprint_agent_id, dest_path,

@@ -9,6 +9,9 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.db.models.blueprint_files import BlueprintFile as _BlueprintFile
+from app.db.models.user_files import UserFile as _UserFile
+
 
 class NodeType(str, Enum):
     file = "file"
@@ -156,9 +159,6 @@ class TreeEntry(BaseModel):
 
 
 # ── ORM → HTTP response (used by file routers) ─────────────────
-
-from app.db.models.blueprint_files import BlueprintFile as _BlueprintFile
-from app.db.models.user_files import UserFile as _UserFile
 
 
 def _api_node_type(t) -> NodeType:

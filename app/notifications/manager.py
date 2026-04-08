@@ -25,6 +25,7 @@ from collections import defaultdict
 from typing import Any, Dict
 
 from fastapi import WebSocket
+from fastapi.websockets import WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,6 @@ class NotificationManager:
         Keep the connection alive, handling pings and disconnects.
         Exits when the client disconnects.
         """
-        from fastapi.websockets import WebSocketDisconnect
         try:
             while True:
                 data = await websocket.receive_text()

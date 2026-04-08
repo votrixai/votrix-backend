@@ -27,7 +27,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db.queries import user_files as user_files_q
+from app.db.queries.schedules import create_schedule, delete_schedule, list_schedules
+from app.integrations.handlers.composio import load_tools_cached
 from app.models.integration import Integration, Tool
+from app.storage import BUCKET, get_public_url, upload_file
 
 logger = logging.getLogger(__name__)
 
@@ -431,8 +434,6 @@ def _make_grep_handler(ctx: PlatformContext):
 
 def _make_image_generate_handler(ctx: PlatformContext):
     async def handler(prompt: str, aspect_ratio: str = "1:1") -> dict:
-        from app.storage import upload_file, get_public_url, BUCKET
-
         settings = get_settings()
         api_key = getattr(settings, "google_api_key", None) or getattr(settings, "GEMINI_API_KEY", None)
         if not api_key:
@@ -483,7 +484,6 @@ def _make_image_generate_handler(ctx: PlatformContext):
 
 def _make_cron_create_handler(ctx: PlatformContext):
     async def handler(cron_expr: str, message: str, description: str = "") -> dict:
-        from app.db.queries.schedules import create_schedule
         try:
             job = await create_schedule(
                 ctx.session, ctx.blueprint_agent_id, ctx.user_id,
@@ -505,7 +505,6 @@ def _make_cron_create_handler(ctx: PlatformContext):
 
 def _make_cron_delete_handler(ctx: PlatformContext):
     async def handler(job_id: str) -> dict:
-        from app.db.queries.schedules import delete_schedule
         try:
             deleted = await delete_schedule(
                 ctx.session, uuid.UUID(job_id), ctx.blueprint_agent_id, ctx.user_id
@@ -521,7 +520,6 @@ def _make_cron_delete_handler(ctx: PlatformContext):
 
 def _make_cron_list_handler(ctx: PlatformContext):
     async def handler() -> dict:
-        from app.db.queries.schedules import list_schedules
         try:
             jobs = await list_schedules(ctx.session, ctx.blueprint_agent_id, ctx.user_id)
             return {
@@ -587,8 +585,6 @@ async def load_tools(
     Tools whose name is in _DEFERRED_TOOL_NAMES are placed in deferred_tools
     and are not bound to the LLM until the user activates them via tool_search.
     """
-    from app.integrations.handlers.composio import load_tools_cached
-
     slugs = list(enabled_tool_slugs or [])
     tools = [t for t in integration.tools if t.name in slugs]
 

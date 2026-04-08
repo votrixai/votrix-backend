@@ -8,6 +8,8 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
+from app.short_id import encode_prefixed
+
 
 class Base(DeclarativeBase):
     pass
@@ -35,5 +37,4 @@ class UUIDPrimaryKeyMixin:
 
     @hybrid_property
     def short_id(self) -> str:
-        from app.short_id import encode_prefixed
         return encode_prefixed(self.id, self._short_id_prefix)

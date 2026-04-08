@@ -12,6 +12,7 @@ from app.db.queries import schedules as schedules_q
 from app.db.queries import sessions as sessions_q
 from app.llm.engine.agent_engine import AgentEngine
 from app.models.session import SessionEventType
+from app.notifications.manager import notification_manager
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,5 @@ async def run_job(job: UserAgentSchedule) -> None:
         )
 
     # Push to any active WebSocket connections (outside DB session — fire and forget)
-    from app.notifications.manager import notification_manager
     payload = _notification_payload(job, notification.id)
     await notification_manager.push(job.user_id, payload)

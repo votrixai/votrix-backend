@@ -11,6 +11,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.schedules import UserAgentSchedule
+from app.db.queries.sessions import upsert_session
 
 _VALID_MINUTES = {0, 15, 30, 45}
 _STALE_THRESHOLD_SECONDS = 1800  # 30 minutes — skip stale jobs rather than firing late
@@ -54,8 +55,6 @@ async def create_schedule(
     description: str = "",
     session_id: uuid.UUID = None,
 ) -> UserAgentSchedule:
-    from app.db.queries.sessions import upsert_session
-
     _validate_cron(cron_expr)
 
     sid = session_id or uuid.uuid4()

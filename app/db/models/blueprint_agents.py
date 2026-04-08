@@ -2,15 +2,13 @@
 
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, List, Optional
-
-if TYPE_CHECKING:
-    from app.db.models.blueprint_agent_integrations import BlueprintAgentIntegration
+from typing import List, Optional
 
 from sqlalchemy import DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.db.models.blueprint_agent_integrations import BlueprintAgentIntegration
 from app.db.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 

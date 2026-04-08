@@ -16,7 +16,7 @@ from app.db.queries import blueprint_files as bf
 from app.db.queries import user_files as uf
 from app.db.queries.end_user_agents import replicate_blueprint_to_user, link_agent
 from app.short_id import encode as encode_short_id
-from app.storage import BUCKET
+from app.storage import BUCKET, download_file
 
 
 # ── Fixtures ─────────────────────────────────────────────────
@@ -650,7 +650,6 @@ class TestSeedFromBinary:
                 content_row = await bf.read_file(session, src_aid, f.path)
                 if content_row:
                     if content_row.storage_path:
-                        from app.storage import download_file
                         data = await download_file(BUCKET, content_row.storage_path)
                         await bf.write_file(
                             session, new_id, f.path,
@@ -684,7 +683,6 @@ class TestSeedFromBinary:
             if f.type != NodeType.directory:
                 content_row = await bf.read_file(session, src_aid, f.path)
                 if content_row and content_row.storage_path:
-                    from app.storage import download_file
                     data = await download_file(BUCKET, content_row.storage_path)
                     await bf.write_file(
                         session, new_id, f.path,

@@ -27,6 +27,7 @@ from app.db.queries import sessions as sessions_q
 from app.llm.engine.agent_engine import AgentEngine
 from app.models.chat import ChatRequest
 from app.models.session import SessionEventType
+from app.storage import BUCKET, get_public_url, upload_file
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,6 @@ async def upload_chat_image(
     file: UploadFile = File(...),
 ):
     """Upload an image for use as vision input in chat. Returns a public URL."""
-    from app.storage import upload_file, get_public_url, BUCKET
 
     data = await file.read()
     mime_type = file.content_type or "image/jpeg"

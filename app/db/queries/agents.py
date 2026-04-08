@@ -15,6 +15,7 @@ from app.db.models.blueprint_agents import BlueprintAgent
 from app.db.models.blueprint_agent_integrations import BlueprintAgentIntegration
 from app.db.models.blueprint_files import BlueprintFile
 from app.db.models.user_files import UserFile
+from app.db.queries import orgs as orgs_q
 from app.storage import BUCKET, delete_file as storage_delete
 
 
@@ -198,5 +199,4 @@ async def delete_agent_integration(
 
 async def get_org_integration_slugs(session: AsyncSession, org_id: uuid.UUID) -> List[str]:
     """Helper used by agent_integrations router to check org's activated slugs."""
-    from app.db.queries import orgs as orgs_q
     return await orgs_q.get_org_integration_slugs(session, org_id)

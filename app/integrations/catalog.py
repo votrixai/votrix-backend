@@ -26,6 +26,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
+from composio import Composio
+from composio_langchain import LangchainProvider
 from app.models.integration import Integration, Provider, ProviderType
 from app.integrations.handlers.platform import PLATFORM_INTEGRATION
 
@@ -126,9 +128,6 @@ async def refresh_cache(api_key: str) -> None:
         return
 
     try:
-        from composio import Composio
-        from composio_langchain import LangchainProvider
-
         composio = Composio(provider=LangchainProvider(), api_key=api_key)
 
         # Composio toolkits list is paginated; fetch all pages via cursor.
