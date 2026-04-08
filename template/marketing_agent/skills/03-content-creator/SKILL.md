@@ -72,16 +72,18 @@ Hook 公式参考见 `skills/03-content-creator/references/post-templates.md`。
 
 1. 根据帖子主题 + `图片风格` 字段构建 image prompt
 2. 调用 `image_generate`，选择对应平台的 `aspect_ratio`
-3. 如果 admin 不满意，调整 prompt 重新生成，最多 3 次
+3. 工具返回 `public_url`，将 url 告知 admin 并写入草稿的 `## 配图路径` 字段
+4. 如果 admin 不满意，根据反馈调整 prompt 重新生成，最多 3 次
 
 ```
 image_generate(
   prompt="...",
   aspect_ratio="1:1"   # 根据平台选择
 )
+# 返回: {"status": true, "public_url": "https://...", "aspect_ratio": "1:1"}
 ```
 
-返回 base64 图片，展示给 admin 确认。
+不需要调用 `image_upload`，图片已自动上传，直接使用返回的 `public_url`。
 
 ---
 
@@ -109,7 +111,7 @@ image_generate(
 [附带链接，无则留空]
 
 ## 配图路径
-[Supabase storage path，无则留空]
+[image_generate 返回的 public_url，无则留空]
 ```
 
 每个平台一个文件，不合并。

@@ -17,7 +17,7 @@ import time
 import uuid
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,6 +31,29 @@ from app.models.session import SessionEventType
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agents", tags=["chat"])
+
+
+@router.post("/{agent_id}/chat/image")
+async def upload_chat_image(
+    agent_id: uuid.UUID,
+    user_id: uuid.UUID = Form(...),
+    file: UploadFile = File(...),
+):
+    """Upload an image for use as vision input in chat. Returns a public URL."""
+    from app.storage import upload_file, get_public_url, BUCKET
+
+    data = await file.read()
+    mime_type = file.content_type or "image/jpeg"
+    ext = mime_type.split("/")[-1].split(";")[0]  # strip params e.g. "jpeg; charset=..."
+    storage_path = f"{user_id}/chat-images/{uuid.uuid4()}.{ext}"
+
+    try:
+        await upload_file(BUCKET, storage_path, data, mime_type)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+
+    public_url = get_public_url(BUCKET, storage_path)
+    return {"public_url": public_url}
 
 
 @router.post("/{agent_id}/chat")
@@ -76,7 +99,7 @@ async def chat(
         ai_tokens: list[str] = []
 
         try:
-            async for event in engine.astream(body.message):
+            async for event in engine.astream(body.message, images=body.images):
                 kind = event["event"]
 
                 if kind == "on_chat_model_stream":

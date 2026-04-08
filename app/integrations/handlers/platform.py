@@ -38,10 +38,11 @@ _DEFERRED_TOOL_NAMES: frozenset[str] = frozenset({"web_search", "web_fetch"})
 # ── Context ───────────────────────────────────────────────────────────────────
 
 @dataclass
-class FileContext:
+class PlatformContext:
     session: AsyncSession
     blueprint_agent_id: uuid.UUID
     user_id: uuid.UUID
+    session_id: uuid.UUID
 
 
 # ── Pydantic input models ─────────────────────────────────────────────────────
@@ -90,14 +91,6 @@ class ImageGenerateInput(BaseModel):
     )
 
 
-class ImageUploadInput(BaseModel):
-    image_data: str = Field(..., description="Base64-encoded image bytes (from image_generate output)")
-    storage_path: str = Field(
-        ...,
-        description="Relative storage path for the image, e.g. 'images/2024-01-15-instagram.png'",
-    )
-    mime_type: str = Field("image/png", description="MIME type of the image, e.g. 'image/png' or 'image/jpeg'")
-
 
 class CronCreateInput(BaseModel):
     cron_expr: str = Field(
@@ -145,7 +138,6 @@ _INPUT_SCHEMAS: Dict[str, Type[BaseModel]] = {
     "cron_delete":     CronDeleteInput,
     "cron_list":       CronListInput,
     "image_generate":  ImageGenerateInput,
-    "image_upload":    ImageUploadInput,
 }
 
 
@@ -228,15 +220,6 @@ _PLATFORM_TOOLS = [
             "Supports aspect ratios: 1:1 (feed), 9:16 (Stories/Reels), 16:9 (Twitter/LinkedIn), 4:5 (Instagram portrait)."
         ),
         input_schema=ImageGenerateInput.model_json_schema(),
-    ),
-    Tool(
-        name="image_upload",
-        description=(
-            "Upload a base64-encoded image to Supabase Storage and return a public URL. "
-            "Use after image_generate to get a URL suitable for Instagram, Facebook, or any platform "
-            "that requires a hosted image URL instead of base64 data."
-        ),
-        input_schema=ImageUploadInput.model_json_schema(),
     ),
     Tool(
         name="cron_create",
@@ -351,7 +334,7 @@ def make_tool_search(deferred_tools: List[BaseTool]) -> BaseTool:
 
 # ── Handler factories ─────────────────────────────────────────────────────────
 
-def _make_read_handler(ctx: FileContext):
+def _make_read_handler(ctx: PlatformContext):
     async def handler(file_path: str, limit: Optional[int] = None, offset: Optional[int] = None):
         node = await user_files_q.read_file(
             ctx.session, ctx.blueprint_agent_id, ctx.user_id, file_path
@@ -368,7 +351,7 @@ def _make_read_handler(ctx: FileContext):
     return handler
 
 
-def _make_write_handler(ctx: FileContext):
+def _make_write_handler(ctx: PlatformContext):
     async def handler(file_path: str, content: str):
         try:
             await user_files_q.write_file(
@@ -381,7 +364,7 @@ def _make_write_handler(ctx: FileContext):
     return handler
 
 
-def _make_edit_handler(ctx: FileContext):
+def _make_edit_handler(ctx: PlatformContext):
     async def handler(file_path: str, old_string: str, new_string: str = "", replace_all: bool = False):
         result = await user_files_q.edit_file(
             ctx.session, ctx.blueprint_agent_id, ctx.user_id,
@@ -393,7 +376,7 @@ def _make_edit_handler(ctx: FileContext):
     return handler
 
 
-def _make_glob_handler(ctx: FileContext):
+def _make_glob_handler(ctx: PlatformContext):
     async def handler(pattern: str, path: Optional[str] = None):
         full_pattern = f"{path.rstrip('/')}/{pattern.lstrip('/')}" if path else pattern
         nodes = await user_files_q.glob(
@@ -406,7 +389,7 @@ def _make_glob_handler(ctx: FileContext):
     return handler
 
 
-def _make_grep_handler(ctx: FileContext):
+def _make_grep_handler(ctx: PlatformContext):
     async def handler(
         pattern: str,
         path: Optional[str] = None,
@@ -446,10 +429,12 @@ def _make_grep_handler(ctx: FileContext):
     return handler
 
 
-def _make_image_generate_handler(_ctx: FileContext):
+def _make_image_generate_handler(ctx: PlatformContext):
     async def handler(prompt: str, aspect_ratio: str = "1:1") -> dict:
+        from app.storage import upload_file, get_public_url, BUCKET
+
         settings = get_settings()
-        api_key = getattr(settings, "GEMINI_API_KEY", None) or getattr(settings, "GOOGLE_API_KEY", None)
+        api_key = getattr(settings, "google_api_key", None) or getattr(settings, "GEMINI_API_KEY", None)
         if not api_key:
             return {"status": False, "message": "No Gemini API key configured"}
 
@@ -465,7 +450,7 @@ def _make_image_generate_handler(_ctx: FileContext):
             client = genai.Client(api_key=api_key)
             full_prompt = f"{prompt}\n\nImage dimensions: {size}. High quality, suitable for social media."
             response = client.models.generate_content(
-                model="gemini-2.0-flash-preview-image-generation",
+                model="gemini-3.1-flash-image-preview",
                 contents=full_prompt,
                 config=genai_types.GenerateContentConfig(
                     response_modalities=["IMAGE"],
@@ -473,11 +458,19 @@ def _make_image_generate_handler(_ctx: FileContext):
             )
             for part in response.candidates[0].content.parts:
                 if part.inline_data and part.inline_data.mime_type.startswith("image/"):
-                    b64 = base64.b64encode(part.inline_data.data).decode()
+                    raw = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    ext = mime_type.split("/")[-1]
+                    storage_path = f"{ctx.user_id}/images/{uuid.uuid4()}.{ext}"
+                    try:
+                        await upload_file(BUCKET, storage_path, raw, mime_type)
+                        public_url = get_public_url(BUCKET, storage_path)
+                    except Exception as upload_exc:
+                        logger.error("image_generate: upload failed: %s", upload_exc)
+                        return {"status": False, "message": f"Upload failed: {upload_exc}"}
                     return {
                         "status": True,
-                        "mime_type": part.inline_data.mime_type,
-                        "data": b64,
+                        "public_url": public_url,
                         "aspect_ratio": aspect_ratio,
                     }
             return {"status": False, "message": "No image returned from Gemini"}
@@ -488,46 +481,14 @@ def _make_image_generate_handler(_ctx: FileContext):
     return handler
 
 
-def _make_image_upload_handler(ctx: FileContext):
-    async def handler(image_data: str, storage_path: str, mime_type: str = "image/png") -> dict:
-        from app.storage import upload_file, get_signed_url, BUCKET
-
-        try:
-            raw = base64.b64decode(image_data)
-        except Exception as exc:
-            return {"status": False, "message": f"Invalid base64 data: {exc}"}
-
-        full_path = f"{ctx.user_id}/{storage_path.lstrip('/')}"
-
-        try:
-            await upload_file(BUCKET, full_path, raw, mime_type)
-        except Exception as exc:
-            logger.error("image_upload failed: %s", exc)
-            return {"status": False, "message": str(exc)}
-
-        try:
-            # 1-hour signed URL — sufficient for platform APIs to fetch the image
-            public_url = get_signed_url(BUCKET, full_path, expires_in=3600)
-        except Exception as exc:
-            logger.error("image_upload get_signed_url failed: %s", exc)
-            return {"status": False, "message": f"Upload succeeded but could not generate URL: {exc}"}
-
-        return {
-            "status": True,
-            "storage_path": full_path,
-            "public_url": public_url,
-        }
-
-    return handler
-
-
-def _make_cron_create_handler(ctx: FileContext):
+def _make_cron_create_handler(ctx: PlatformContext):
     async def handler(cron_expr: str, message: str, description: str = "") -> dict:
         from app.db.queries.schedules import create_schedule
         try:
             job = await create_schedule(
                 ctx.session, ctx.blueprint_agent_id, ctx.user_id,
                 cron_expr=cron_expr, message=message, description=description,
+                session_id=ctx.session_id,
             )
             return {
                 "status": True,
@@ -542,7 +503,7 @@ def _make_cron_create_handler(ctx: FileContext):
     return handler
 
 
-def _make_cron_delete_handler(ctx: FileContext):
+def _make_cron_delete_handler(ctx: PlatformContext):
     async def handler(job_id: str) -> dict:
         from app.db.queries.schedules import delete_schedule
         try:
@@ -558,7 +519,7 @@ def _make_cron_delete_handler(ctx: FileContext):
     return handler
 
 
-def _make_cron_list_handler(ctx: FileContext):
+def _make_cron_list_handler(ctx: PlatformContext):
     async def handler() -> dict:
         from app.db.queries.schedules import list_schedules
         try:
@@ -592,7 +553,6 @@ _HANDLER_FACTORIES = {
     "glob":            _make_glob_handler,
     "grep":            _make_grep_handler,
     "image_generate":  _make_image_generate_handler,
-    "image_upload":    _make_image_upload_handler,
     "cron_create":     _make_cron_create_handler,
     "cron_delete":     _make_cron_delete_handler,
     "cron_list":       _make_cron_list_handler,
@@ -601,7 +561,7 @@ _HANDLER_FACTORIES = {
 
 # ── Tool assembly ─────────────────────────────────────────────────────────────
 
-def _make_local_tool(tool: Tool, ctx: FileContext) -> BaseTool:
+def _make_local_tool(tool: Tool, ctx: PlatformContext) -> BaseTool:
     return StructuredTool(
         name=tool.name,
         description=tool.description,
@@ -618,6 +578,7 @@ async def load_tools(
     user_id: str,
     agent_id: uuid.UUID,
     session: AsyncSession,
+    session_id: uuid.UUID = None,
     api_key: str = "",
 ) -> Tuple[List[BaseTool], List[BaseTool]]:
     """
@@ -631,10 +592,11 @@ async def load_tools(
     slugs = list(enabled_tool_slugs or [])
     tools = [t for t in integration.tools if t.name in slugs]
 
-    ctx = FileContext(
+    ctx = PlatformContext(
         session=session,
         blueprint_agent_id=agent_id,
         user_id=uuid.UUID(user_id),
+        session_id=session_id or uuid.uuid4(),
     )
     active: List[BaseTool] = []
     deferred: List[BaseTool] = []

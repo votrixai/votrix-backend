@@ -107,7 +107,7 @@ class AgentEngine:
         t0 = time.perf_counter()
         self._system_prompts, bundle = await asyncio.gather(
             build_system_prompt(self._agent_id, self._end_user_id, self._db_session),
-            load_tools(self._agent_id, self._end_user_id, self._db_session, agent=agent),
+            load_tools(self._agent_id, self._end_user_id, self._db_session, agent=agent, session_id=self._session_id),
         )
         logger.info(
             "engine_setup agent_id=%s gather_ms=%.0f base_tools=%d deferred_tools=%d",
@@ -123,11 +123,13 @@ class AgentEngine:
     async def astream(
         self,
         message: str,
+        images: list[str] | None = None,
         cancel_event: asyncio.Event | None = None,
     ) -> AsyncGenerator[dict, None]:
         """
         Stream one turn. Yields raw LangChain event dicts.
         cancel_event: WS only — passed to model_node to abort mid-stream.
+        images: list of public URLs to include as vision input for this turn.
 
         Relevant event["event"] values:
             on_chat_model_stream  → token (model node uses astream so these fire)
@@ -137,9 +139,18 @@ class AgentEngine:
         After streaming completes, prune stale checkpoint rows for this thread
         so the checkpoints table never accumulates more than one row per session.
         """
+        if images:
+            content: list = [
+                {"type": "image_url", "image_url": {"url": url}} for url in images
+            ]
+            content.append({"type": "text", "text": message})
+            human_msg = HumanMessage(content=content)
+        else:
+            human_msg = HumanMessage(content=message)
+
         thread_id = str(self._session_id)
         async for event in self._graph.astream_events(
-            {"messages": [HumanMessage(content=message)], "tool_call_count": 0},
+            {"messages": [human_msg], "tool_call_count": 0},
             config={
                 "configurable": {
                     "thread_id": thread_id,

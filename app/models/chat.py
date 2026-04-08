@@ -9,3 +9,4 @@ class ChatRequest(BaseModel):
     user_id: uuid.UUID
     session_id: uuid.UUID
     message: str
+    images: list[str] = []  # Supabase public URLs

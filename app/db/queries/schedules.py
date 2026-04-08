@@ -52,14 +52,14 @@ async def create_schedule(
     cron_expr: str,
     message: str,
     description: str = "",
+    session_id: uuid.UUID = None,
 ) -> UserAgentSchedule:
     from app.db.queries.sessions import upsert_session
 
     _validate_cron(cron_expr)
 
-    # Each job gets one persistent session — all firings share the same thread
-    session_id = uuid.uuid4()
-    await upsert_session(session, session_id, agent_id, user_id)
+    sid = session_id or uuid.uuid4()
+    await upsert_session(session, sid, agent_id, user_id)
 
     row = UserAgentSchedule(
         agent_id=agent_id,
@@ -68,7 +68,7 @@ async def create_schedule(
         cron_expr=cron_expr,
         description=description,
         enabled=True,
-        session_id=session_id,
+        session_id=sid,
         next_run_at=_next_run(cron_expr),
     )
     session.add(row)

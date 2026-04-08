@@ -49,6 +49,7 @@ class ToolAssembler:
         user_id: str,
         agent_id: Optional[uuid.UUID] = None,
         session: Optional[AsyncSession] = None,
+        session_id: Optional[uuid.UUID] = None,
     ) -> None:
         """Load all tools. Must be called before get_active_tools()."""
         for item in agent_integrations:
@@ -67,6 +68,7 @@ class ToolAssembler:
                     user_id=user_id,
                     agent_id=agent_id,
                     session=session,
+                    session_id=session_id,
                     api_key=self._api_key,
                 )
                 if ai.deferred:

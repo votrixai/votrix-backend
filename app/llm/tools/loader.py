@@ -21,6 +21,7 @@ async def load_tools(
     end_user_id: UUID,
     session: AsyncSession,
     agent: BlueprintAgent | None = None,
+    session_id: UUID | None = None,
 ) -> ToolBundle:
     """Load tools for a given (agent, user) pair via ToolAssembler.
 
@@ -48,6 +49,7 @@ async def load_tools(
         user_id=str(end_user_id),
         agent_id=agent_id,
         session=session,
+        session_id=session_id,
     )
     return ToolBundle(
         base_tools=assembler.get_active_tools(),
