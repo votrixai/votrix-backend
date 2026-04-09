@@ -5,6 +5,7 @@ from langchain_core.tools import BaseTool
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.db.engine import get_session_factory
 from app.db.queries import agents as agents_q
 from app.db.models.blueprint_agents import BlueprintAgent
 from app.llm.tools.assembler import ToolAssembler
@@ -49,6 +50,7 @@ async def load_tools(
         user_id=str(end_user_id),
         agent_id=agent_id,
         session=session,
+        session_factory=get_session_factory(),
         session_id=session_id,
     )
     return ToolBundle(

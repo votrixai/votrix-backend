@@ -23,6 +23,9 @@ class Settings(BaseSettings):
 
     # Composio
     composio_api_key: str = ""
+    # Composio entity id for the votrix official connected account (shared org key, not per end-user).
+    # All API-key-backed toolkits (Tavily search/extract/crawl, etc.) run under this entity.
+    composio_official_user_id: str = "votrix-ai-official"
 
     # Supabase Storage
     supabase_url: str = ""

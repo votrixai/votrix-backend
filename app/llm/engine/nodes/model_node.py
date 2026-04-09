@@ -1,7 +1,5 @@
 import asyncio
 
-import asyncio
-
 from langchain_core.messages import AIMessage, AIMessageChunk, SystemMessage, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
@@ -18,7 +16,6 @@ async def call_model(state: GraphState, config: RunnableConfig) -> dict:
     deferred_tools_map: dict = configurable.get("deferred_tools_map", {})
     system_prompts: list[str] = configurable.get("system_prompts", [])
     max_tool_rounds: int = configurable.get("max_tool_rounds", DEFAULT_MAX_TOOL_ROUNDS)
-    cancel_event: asyncio.Event | None = configurable.get("cancel_event")
     cancel_event: asyncio.Event | None = configurable.get("cancel_event")
 
     # Guard: if tool_call_count has reached the limit, skip LLM invocation and

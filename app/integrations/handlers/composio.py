@@ -164,6 +164,97 @@ async def load_tools_cached(
     return result
 
 
+def _partition_tavily_slugs(slugs: List[str]) -> tuple[List[str], List[str]]:
+    """Tavily actions use a shared Composio user; other tools use the session user."""
+    tavily: List[str] = []
+    rest: List[str] = []
+    for s in slugs:
+        (tavily if s.upper().startswith("TAVILY") else rest).append(s)
+    return tavily, rest
+
+
+async def load_tools_cached_for_session(
+    api_key: str,
+    user_id: str,
+    slugs: List[str],
+    *,
+    composio_official_user_id: str = "",
+) -> List[BaseTool]:
+    """
+    Like load_tools_cached, but routes Tavily action slugs to composio_official_user_id
+    when non-empty so a single Composio connected account can back all users.
+
+    Composio wraps one execute_user_id per batch; mixing Tavily with other apps
+    requires two load_tools_cached calls.
+    """
+    tid = composio_official_user_id.strip()
+    if not tid:
+        return await load_tools_cached(api_key, user_id, slugs)
+    tavily_slugs, other_slugs = _partition_tavily_slugs(slugs)
+    merged: List[BaseTool] = []
+    if tavily_slugs:
+        merged.extend(await load_tools_cached(api_key, tid, tavily_slugs))
+    if other_slugs:
+        merged.extend(await load_tools_cached(api_key, user_id, other_slugs))
+    return merged
+
+
+async def initiate_connection(api_key: str, toolkit_slug: str, user_id: str) -> dict:
+    """
+    Initiate a Composio managed OAuth connection for a toolkit.
+
+    Uses composio-managed auth (auto-creates auth config if one doesn't exist).
+    Returns { connection_id, redirect_url } on success.
+    Returns { already_connected: True } if the user already has an active connection.
+    Returns { error } on failure.
+    """
+    if not api_key:
+        return {"error": "No Composio API key configured"}
+    composio = await _get_composio(api_key)
+    try:
+        req = await asyncio.to_thread(
+            composio.toolkits.authorize,
+            user_id=user_id,
+            toolkit=toolkit_slug,
+        )
+        return {
+            "connection_id": req.id,
+            "redirect_url": req.redirect_url,
+        }
+    except Exception as exc:
+        msg = str(exc)
+        if "Multiple connected" in msg:
+            # Already has an active connection — not an error
+            return {"already_connected": True, "connection_id": None, "redirect_url": None}
+        if "NoAuthApp" in msg or "does not require authentication" in msg:
+            # Toolkit works without auth (e.g. yelp) — tell agent to use it directly
+            return {"no_auth_required": True}
+        if "DefaultAuthConfigNotFound" in msg or "does not have managed credentials" in msg:
+            # Toolkit needs custom OAuth credentials (e.g. twitter) — can't use managed auth
+            return {"custom_auth_required": True}
+        logger.error("initiate_connection toolkit=%s user=%s error=%s", toolkit_slug, user_id, exc)
+        return {"error": msg}
+
+
+async def execute_action(api_key: str, user_id: str, action: str, params: dict) -> dict:
+    """Execute a single Composio action and return its raw result."""
+    if not api_key:
+        return {"error": "No Composio API key configured"}
+    composio = await _get_composio(api_key)
+    try:
+        result = await asyncio.to_thread(
+            composio.tools.execute,
+            action,
+            params,
+            user_id=user_id,
+            dangerously_skip_version_check=True,
+        )
+        return result if isinstance(result, dict) else {"result": result}
+    except Exception as exc:
+        logger.error("execute_action action=%s error=%s", action, exc)
+        return {"error": str(exc)}
+
+
 # ── toolkit_exists (still used by agent integration validation routes) ─────────
 
 async def toolkit_exists(api_key: str, slug: str) -> bool:

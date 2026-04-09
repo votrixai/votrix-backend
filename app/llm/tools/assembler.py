@@ -21,8 +21,9 @@ import uuid
 from typing import Dict, List, Optional, Union
 
 from langchain_core.tools import BaseTool
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.config import get_settings
 from app.models.agent import AgentIntegration
 from app.models.integration import Integration
 from app.integrations.catalog import REGISTRY
@@ -49,9 +50,15 @@ class ToolAssembler:
         user_id: str,
         agent_id: Optional[uuid.UUID] = None,
         session: Optional[AsyncSession] = None,
+        session_factory: Optional[async_sessionmaker[AsyncSession]] = None,
         session_id: Optional[uuid.UUID] = None,
     ) -> None:
         """Load all tools. Must be called before get_active_tools()."""
+        # Shared mutable list passed to the platform handler so _make_tool_search_handler
+        # can close over it. Populated in-place after all integrations are processed,
+        # by which time the list ref inside the handler's closure is fully up-to-date.
+        shared_deferred: List[BaseTool] = []
+
         for item in agent_integrations:
             ai = AgentIntegration(**item) if isinstance(item, dict) else item
 
@@ -67,9 +74,10 @@ class ToolAssembler:
                     enabled_tool_slugs=enabled,
                     user_id=user_id,
                     agent_id=agent_id,
-                    session=session,
+                    session_factory=session_factory,
                     session_id=session_id,
                     api_key=self._api_key,
+                    deferred_tools_ref=shared_deferred,
                 )
                 if ai.deferred:
                     self._deferred_tools.extend(active + deferred)
@@ -78,10 +86,11 @@ class ToolAssembler:
                     self._deferred_tools.extend(deferred)
 
             elif integration.provider_slug == "composio":
-                tools = await composio_handler.load_tools_cached(
+                tools = await composio_handler.load_tools_cached_for_session(
                     api_key=self._api_key,
                     user_id=user_id,
                     slugs=list(enabled),
+                    composio_official_user_id=get_settings().composio_official_user_id,
                 )
                 if ai.deferred:
                     self._deferred_tools.extend(tools)
@@ -106,11 +115,11 @@ class ToolAssembler:
                 )
                 continue
 
-        # Inject tool_search into active tools whenever there are deferred tools.
-        if self._deferred_tools:
-            self._active_tools.append(
-                platform_handler.make_tool_search(self._deferred_tools)
-            )
+        # Populate the shared ref so _make_tool_search_handler sees the full deferred list.
+        shared_deferred[:] = self._deferred_tools
+        # Prune tool_search from active if nothing is deferred — no point exposing it.
+        if not self._deferred_tools:
+            self._active_tools = [t for t in self._active_tools if t.name != "tool_search"]
 
     def get_active_tools(self) -> List[BaseTool]:
         """Base tools bound to the LLM from turn 1 (includes tool_search if deferred tools exist)."""

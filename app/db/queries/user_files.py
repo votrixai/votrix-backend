@@ -264,6 +264,8 @@ async def glob(
     user_account_id: uuid.UUID, pattern: str
 ) -> List[UserFile]:
     """Match user files by glob pattern."""
+    if pattern and not pattern.startswith("/"):
+        pattern = f"/{pattern}"
     if "**" in pattern:
         prefix = pattern.split("**")[0].rstrip("/")
         name_part = pattern.split("**")[-1].lstrip("/")

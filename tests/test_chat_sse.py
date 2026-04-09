@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from contextlib import asynccontextmanager
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -11,21 +12,22 @@ import pytest
 from fastapi import FastAPI
 from starlette.testclient import TestClient
 
-from app.db.engine import get_session
 from app.models.session import SessionEventType
 from app.routers import chat as chat_module
 
 
 @pytest.fixture
-def chat_app():
+def chat_app(monkeypatch):
     """Minimal app with chat router only — no DB pool / LangGraph lifespan."""
-    app = FastAPI()
-    app.include_router(chat_module.router)
 
-    async def override_session():
+    @asynccontextmanager
+    async def mock_session_scope():
         yield AsyncMock()
 
-    app.dependency_overrides[get_session] = override_session
+    monkeypatch.setattr(chat_module, "session_scope", mock_session_scope)
+
+    app = FastAPI()
+    app.include_router(chat_module.router)
     return app
 
 
@@ -67,7 +69,7 @@ def test_chat_sse_streams_string_tokens_and_done(monkeypatch, chat_app):
         async def setup(self, agent):
             pass
 
-        async def astream(self, message: str):
+        async def astream(self, message: str, images=None, cancel_event=None):
             class Chunk:
                 def __init__(self, content):
                     self.content = content
@@ -141,7 +143,7 @@ def test_chat_sse_list_content_blocks_yield_tokens(monkeypatch, chat_app):
         async def setup(self, agent):
             pass
 
-        async def astream(self, message: str):
+        async def astream(self, message: str, images=None, cancel_event=None):
             class Chunk:
                 def __init__(self, content):
                     self.content = content
@@ -198,7 +200,7 @@ def test_chat_sse_tool_then_text(monkeypatch, chat_app):
         async def setup(self, agent):
             pass
 
-        async def astream(self, message: str):
+        async def astream(self, message: str, images=None, cancel_event=None):
             class Chunk:
                 def __init__(self, content):
                     self.content = content
@@ -263,7 +265,7 @@ def test_chat_sse_error_event_on_engine_failure(monkeypatch, chat_app):
         async def setup(self, agent):
             pass
 
-        async def astream(self, message: str):
+        async def astream(self, message: str, images=None, cancel_event=None):
             raise RuntimeError("boom")
             yield  # pragma: no cover
 

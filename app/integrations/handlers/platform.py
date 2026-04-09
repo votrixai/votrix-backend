@@ -14,7 +14,7 @@ import base64
 import fnmatch
 import logging
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Literal, Optional, Tuple, Type
 
 from google import genai
@@ -23,12 +23,14 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.tools import BaseTool, StructuredTool
 from langchain_google_genai import ChatGoogleGenerativeAI
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.config import get_settings
+from app.db.queries import agents as agents_q
 from app.db.queries import user_files as user_files_q
 from app.db.queries.schedules import create_schedule, delete_schedule, list_schedules
-from app.integrations.handlers.composio import load_tools_cached
+from app.config import get_settings
+from app.integrations.handlers.composio import execute_action, initiate_connection, load_tools_cached_for_session
 from app.models.integration import Integration, Tool
 from app.storage import BUCKET, get_public_url, upload_file
 
@@ -42,10 +44,16 @@ _DEFERRED_TOOL_NAMES: frozenset[str] = frozenset({"web_search", "web_fetch"})
 
 @dataclass
 class PlatformContext:
-    session: AsyncSession
+    session_factory: async_sessionmaker[AsyncSession]
     blueprint_agent_id: uuid.UUID
     user_id: uuid.UUID
     session_id: uuid.UUID
+    api_key: str = ""
+    official_user_id: str = ""
+    # Shared mutable ref populated by ToolAssembler after all integrations load.
+    # _make_tool_search_handler closes over this list; it is empty at build time
+    # but fully populated by the time any user message arrives at runtime.
+    deferred_tools_ref: List[BaseTool] = field(default_factory=list)
 
 
 # ── Pydantic input models ─────────────────────────────────────────────────────
@@ -116,9 +124,51 @@ class CronListInput(BaseModel):
     pass
 
 
+class WebSearchInput(BaseModel):
+    query: str = Field(..., description="Search query")
+    search_depth: Literal["basic", "advanced"] = Field("basic", description="basic is faster; advanced is more thorough")
+    max_results: int = Field(5, ge=1, le=10, description="Maximum number of results")
+    include_domains: Optional[List[str]] = Field(None, description="Restrict results to these domains")
+    exclude_domains: Optional[List[str]] = Field(None, description="Exclude results from these domains")
+
+
+class WebFetchInput(BaseModel):
+    url: str = Field(..., description="URL to extract content from")
+
+
+class WebCrawlInput(BaseModel):
+    url: str = Field(..., description="Starting URL to crawl from")
+    max_depth: int = Field(2, ge=1, le=5, description="Maximum link depth to follow")
+    max_pages: int = Field(
+        10,
+        ge=1,
+        le=50,
+        description=(
+            "Cap on how many links the crawler may process (maps to Tavily crawl `limit`). "
+            "Not every site yields pages—SPAs or pages with few discoverable links often return []."
+        ),
+    )
+    instructions: Optional[str] = Field(None, description="Natural language guidance for which pages to prioritize")
+
+
 class ToolSearchInput(BaseModel):
     query: str = Field(..., description="Keyword to search for relevant tools (e.g. 'web search', 'browser')")
     limit: int = Field(5, description="Maximum number of tools to return", ge=1, le=20)
+
+
+class ManageConnectionInput(BaseModel):
+    toolkit: str = Field(
+        ...,
+        description="Composio toolkit slug to connect via OAuth, e.g. 'gmail', 'googlecalendar', 'notion'",
+    )
+
+
+class SearchToolkitsInput(BaseModel):
+    query: Optional[str] = Field(
+        None,
+        description="Keyword to find relevant toolkits (name or slug). Leave empty to list all enabled toolkits.",
+    )
+    limit: int = Field(10, ge=1, le=50, description="Maximum number of toolkits to return")
 
 
 class _ToolSearchRankResponse(BaseModel):
@@ -130,6 +180,15 @@ class _ToolSearchRankResponse(BaseModel):
     )
 
 
+class _ToolkitSearchRankResponse(BaseModel):
+    """Structured LLM output: exact toolkit slugs from the agent's enabled catalog."""
+
+    toolkit_slugs: List[str] = Field(
+        ...,
+        description="Toolkit slugs exactly as listed in the catalog, most relevant first",
+    )
+
+
 # slug → Pydantic input class (used directly as LangChain args_schema)
 _INPUT_SCHEMAS: Dict[str, Type[BaseModel]] = {
     "read":            ReadInput,
@@ -137,10 +196,16 @@ _INPUT_SCHEMAS: Dict[str, Type[BaseModel]] = {
     "edit":            EditInput,
     "glob":            GlobInput,
     "grep":            GrepInput,
-    "cron_create":     CronCreateInput,
-    "cron_delete":     CronDeleteInput,
-    "cron_list":       CronListInput,
-    "image_generate":  ImageGenerateInput,
+    "web_search":      WebSearchInput,
+    "web_fetch":       WebFetchInput,
+    "web_crawl":       WebCrawlInput,
+    "cron_create":        CronCreateInput,
+    "cron_delete":        CronDeleteInput,
+    "cron_list":          CronListInput,
+    "image_generate":     ImageGenerateInput,
+    "manage_connection":  ManageConnectionInput,
+    "search_toolkits":    SearchToolkitsInput,
+    "tool_search":        ToolSearchInput,
 }
 
 
@@ -181,25 +246,26 @@ _PLATFORM_TOOLS = [
     ),
     Tool(
         name="web_search",
-        description="Search the web",
-        input_schema={
-            "type": "object",
-            "properties": {"query": {"type": "string", "description": "Search query"}},
-            "required": ["query"],
-        },
-        provider_slug="composio",
-        provider_config={"app_id": "TAVILY", "action": "TAVILY_SEARCH"},
+        description=(
+            "Search the web. Supports depth control (basic/advanced), result count, "
+            "and domain allow/block lists."
+        ),
+        input_schema=WebSearchInput.model_json_schema(),
     ),
     Tool(
         name="web_fetch",
-        description="Fetch the contents of a web page at a given URL.",
-        input_schema={
-            "type": "object",
-            "properties": {"url": {"type": "string", "description": "URL to fetch"}},
-            "required": ["url"],
-        },
-        provider_slug="composio",
-        provider_config={"app_id": "FIRECRAWL", "action": "SCRAPE_URL"},
+        description="Extract clean text content from a web page at a given URL.",
+        input_schema=WebFetchInput.model_json_schema(),
+    ),
+    Tool(
+        name="web_crawl",
+        description=(
+            "Crawl a website starting from a URL, following links across multiple pages. "
+            "Use when you need content from several pages of a site, not just one. "
+            "Many JavaScript-heavy sites return no pages—use web_fetch on specific URLs if crawl is empty. "
+            "Supports depth and natural-language crawl instructions."
+        ),
+        input_schema=WebCrawlInput.model_json_schema(),
     ),
     Tool(
         name="bash_tool",
@@ -243,6 +309,32 @@ _PLATFORM_TOOLS = [
         description="List all active scheduled jobs for the current agent and user.",
         input_schema=CronListInput.model_json_schema(),
     ),
+    Tool(
+        name="tool_search",
+        description=(
+            "Discover and activate additional tools that are not yet available. "
+            "Call this when you need a capability you currently lack. "
+            "Activated tools become available immediately in the same session."
+        ),
+        input_schema=ToolSearchInput.model_json_schema(),
+    ),
+    Tool(
+        name="manage_connection",
+        description=(
+            "Authorize a service integration for the user. "
+            "Call this before using an integration that requires account access. "
+            "Returns an authorization URL — share it with the user to complete the connection."
+        ),
+        input_schema=ManageConnectionInput.model_json_schema(),
+    ),
+    Tool(
+        name="search_toolkits",
+        description=(
+            "List or search the integrations enabled for this agent. "
+            "Call this to discover which services are available and what actions each supports."
+        ),
+        input_schema=SearchToolkitsInput.model_json_schema(),
+    ),
 ]
 
 PLATFORM_INTEGRATION = Integration(
@@ -256,17 +348,19 @@ PLATFORM_INTEGRATION = Integration(
 )
 
 
-def make_tool_search(deferred_tools: List[BaseTool]) -> BaseTool:
+def _make_tool_search_handler(ctx: PlatformContext):
     """
-    Build tool_search (injected by ToolAssembler whenever deferred tools exist).
+    Handler factory for tool_search.
 
-    Ranks deferred tools with Gemini 3 Flash from a name/description catalog, then falls
-    back to substring match if the API key is missing or the call fails.
+    Reads ctx.deferred_tools_ref — a shared mutable list that ToolAssembler
+    populates (in-place) after all integrations have been loaded. Because the
+    handler is only called at runtime (on a user message), the list is fully
+    populated by then even though it was empty when this handler was registered.
 
-    The returned dict uses the `__activate_tools__` protocol key so that
-    tools_node can apply the state update without coupling to this tool's name.
+    Returns __activate_tools__ so tools_node can bind them to the LLM.
     """
     async def handler(query: str, limit: int = 5) -> dict:
+        deferred_tools = ctx.deferred_tools_ref
         matches: List[BaseTool] = []
 
         if deferred_tools:
@@ -276,22 +370,18 @@ def make_tool_search(deferred_tools: List[BaseTool]) -> BaseTool:
                 for t in deferred_tools
             ]
             catalog = "\n".join(catalog_lines)
-            llm = ChatGoogleGenerativeAI(
-                model="gemini-3-flash-preview",
-                temperature=0,
-            )
+            llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=0)
             structured = llm.with_structured_output(_ToolSearchRankResponse)
-            sys = SystemMessage(
-                content=(
-                    "You pick which tools best match the user's search query. "
-                    "You MUST only output tool names that appear verbatim in the catalog "
-                    f"(the token after '- ' and before ':'). Return at most {limit} names, "
-                    "most relevant first. If none apply, return an empty list."
-                )
-            )
-            human = HumanMessage(content=f"Query:\n{query}\n\nCatalog:\n{catalog}")
             try:
-                out: _ToolSearchRankResponse = await structured.ainvoke([sys, human])
+                out: _ToolSearchRankResponse = await structured.ainvoke([
+                    SystemMessage(content=(
+                        "You pick which tools best match the user's search query. "
+                        "You MUST only output tool names that appear verbatim in the catalog "
+                        f"(the token after '- ' and before ':'). Return at most {limit} names, "
+                        "most relevant first. If none apply, return an empty list."
+                    )),
+                    HumanMessage(content=f"Query:\n{query}\n\nCatalog:\n{catalog}"),
+                ])
                 seen: set[str] = set()
                 for raw in out.tool_names:
                     name = (raw or "").strip()
@@ -310,7 +400,6 @@ def make_tool_search(deferred_tools: List[BaseTool]) -> BaseTool:
                             break
             except Exception as exc:
                 logger.warning("tool_search Gemini ranking failed, using heuristic: %s", exc)
-                matches = []
 
         if not matches:
             q = query.lower()
@@ -323,25 +412,17 @@ def make_tool_search(deferred_tools: List[BaseTool]) -> BaseTool:
             "__activate_tools__": [t.name for t in matches],
             "tools": [{"name": t.name, "description": t.description} for t in matches],
         }
-
-    return StructuredTool(
-        name="tool_search",
-        description=(
-            "Search for and activate deferred tools by keyword. "
-            "Call this before using any search or browser tools."
-        ),
-        args_schema=ToolSearchInput,
-        coroutine=handler,
-    )
+    return handler
 
 
 # ── Handler factories ─────────────────────────────────────────────────────────
 
 def _make_read_handler(ctx: PlatformContext):
     async def handler(file_path: str, limit: Optional[int] = None, offset: Optional[int] = None):
-        node = await user_files_q.read_file(
-            ctx.session, ctx.blueprint_agent_id, ctx.user_id, file_path
-        )
+        async with ctx.session_factory() as session:
+            node = await user_files_q.read_file(
+                session, ctx.blueprint_agent_id, ctx.user_id, file_path
+            )
         if not node or node.type != "file":
             return {"status": False, "message": f"File not found: {file_path}"}
         content = node.content or ""
@@ -357,9 +438,10 @@ def _make_read_handler(ctx: PlatformContext):
 def _make_write_handler(ctx: PlatformContext):
     async def handler(file_path: str, content: str):
         try:
-            await user_files_q.write_file(
-                ctx.session, ctx.blueprint_agent_id, ctx.user_id, file_path, content
-            )
+            async with ctx.session_factory() as session:
+                await user_files_q.write_file(
+                    session, ctx.blueprint_agent_id, ctx.user_id, file_path, content
+                )
             return {"status": True, "message": f"Wrote {file_path}"}
         except Exception as exc:
             logger.error("write failed: %s", exc)
@@ -369,10 +451,11 @@ def _make_write_handler(ctx: PlatformContext):
 
 def _make_edit_handler(ctx: PlatformContext):
     async def handler(file_path: str, old_string: str, new_string: str = "", replace_all: bool = False):
-        result = await user_files_q.edit_file(
-            ctx.session, ctx.blueprint_agent_id, ctx.user_id,
-            file_path, old_string, new_string, replace_all=replace_all,
-        )
+        async with ctx.session_factory() as session:
+            result = await user_files_q.edit_file(
+                session, ctx.blueprint_agent_id, ctx.user_id,
+                file_path, old_string, new_string, replace_all=replace_all,
+            )
         if result is None:
             return {"status": False, "message": "old_string not found or file does not exist"}
         return {"status": True, "message": f"Edited {file_path}"}
@@ -381,10 +464,11 @@ def _make_edit_handler(ctx: PlatformContext):
 
 def _make_glob_handler(ctx: PlatformContext):
     async def handler(pattern: str, path: Optional[str] = None):
-        full_pattern = f"{path.rstrip('/')}/{pattern.lstrip('/')}" if path else pattern
-        nodes = await user_files_q.glob(
-            ctx.session, ctx.blueprint_agent_id, ctx.user_id, full_pattern
-        )
+        full_pattern = f"{path.rstrip('/')}/{pattern.lstrip('/')}" if path else f"/{pattern.lstrip('/')}"
+        async with ctx.session_factory() as session:
+            nodes = await user_files_q.glob(
+                session, ctx.blueprint_agent_id, ctx.user_id, full_pattern
+            )
         return {
             "status": True,
             "matches": [n.path for n in nodes],
@@ -401,10 +485,11 @@ def _make_grep_handler(ctx: PlatformContext):
         i: bool = False,
         head_limit: int = 250,
     ):
-        rows = await user_files_q.grep(
-            ctx.session, ctx.blueprint_agent_id, ctx.user_id, pattern,
-            case_insensitive=i,
-        )
+        async with ctx.session_factory() as session:
+            rows = await user_files_q.grep(
+                session, ctx.blueprint_agent_id, ctx.user_id, pattern,
+                case_insensitive=i,
+            )
 
         # Filter by path prefix
         if path:
@@ -429,6 +514,44 @@ def _make_grep_handler(ctx: PlatformContext):
                     for r in rows
                 ],
             }
+    return handler
+
+
+def _make_web_search_handler(ctx: PlatformContext):
+    async def handler(
+        query: str,
+        search_depth: str = "basic",
+        max_results: int = 5,
+        include_domains: Optional[List[str]] = None,
+        exclude_domains: Optional[List[str]] = None,
+    ) -> dict:
+        params = {"query": query, "search_depth": search_depth, "max_results": max_results}
+        if include_domains:
+            params["include_domains"] = include_domains
+        if exclude_domains:
+            params["exclude_domains"] = exclude_domains
+        return await execute_action(ctx.api_key, ctx.official_user_id, "TAVILY_SEARCH", params)
+    return handler
+
+
+def _make_web_fetch_handler(ctx: PlatformContext):
+    async def handler(url: str) -> dict:
+        return await execute_action(ctx.api_key, ctx.official_user_id, "TAVILY_EXTRACT", {"urls": [url]})
+    return handler
+
+
+def _make_web_crawl_handler(ctx: PlatformContext):
+    async def handler(
+        url: str,
+        max_depth: int = 2,
+        max_pages: int = 10,
+        instructions: Optional[str] = None,
+    ) -> dict:
+        # Composio Tavily crawl expects `limit` (links to process), not `max_pages`.
+        params = {"url": url, "max_depth": max_depth, "limit": max_pages}
+        if instructions:
+            params["instructions"] = instructions
+        return await execute_action(ctx.api_key, ctx.official_user_id, "TAVILY_CRAWL", params)
     return handler
 
 
@@ -485,11 +608,12 @@ def _make_image_generate_handler(ctx: PlatformContext):
 def _make_cron_create_handler(ctx: PlatformContext):
     async def handler(cron_expr: str, message: str, description: str = "") -> dict:
         try:
-            job = await create_schedule(
-                ctx.session, ctx.blueprint_agent_id, ctx.user_id,
-                cron_expr=cron_expr, message=message, description=description,
-                session_id=ctx.session_id,
-            )
+            async with ctx.session_factory() as session:
+                job = await create_schedule(
+                    session, ctx.blueprint_agent_id, ctx.user_id,
+                    cron_expr=cron_expr, message=message, description=description,
+                    session_id=ctx.session_id,
+                )
             return {
                 "status": True,
                 "job_id": str(job.id),
@@ -506,9 +630,10 @@ def _make_cron_create_handler(ctx: PlatformContext):
 def _make_cron_delete_handler(ctx: PlatformContext):
     async def handler(job_id: str) -> dict:
         try:
-            deleted = await delete_schedule(
-                ctx.session, uuid.UUID(job_id), ctx.blueprint_agent_id, ctx.user_id
-            )
+            async with ctx.session_factory() as session:
+                deleted = await delete_schedule(
+                    session, uuid.UUID(job_id), ctx.blueprint_agent_id, ctx.user_id
+                )
             if deleted:
                 return {"status": True, "message": f"Job {job_id} deleted"}
             return {"status": False, "message": "Job not found"}
@@ -521,7 +646,8 @@ def _make_cron_delete_handler(ctx: PlatformContext):
 def _make_cron_list_handler(ctx: PlatformContext):
     async def handler() -> dict:
         try:
-            jobs = await list_schedules(ctx.session, ctx.blueprint_agent_id, ctx.user_id)
+            async with ctx.session_factory() as session:
+                jobs = await list_schedules(session, ctx.blueprint_agent_id, ctx.user_id)
             return {
                 "status": True,
                 "jobs": [
@@ -544,16 +670,140 @@ def _make_cron_list_handler(ctx: PlatformContext):
     return handler
 
 
+def _make_manage_connection_handler(ctx: PlatformContext):
+    async def handler(toolkit: str) -> dict:
+        result = await initiate_connection(ctx.api_key, toolkit, str(ctx.user_id))
+        if "error" in result:
+            return {"status": False, "message": result["error"]}
+        if result.get("already_connected"):
+            return {
+                "status": True,
+                "already_connected": True,
+                "message": f"{toolkit} is already connected. You can use its tools directly.",
+            }
+        if result.get("no_auth_required"):
+            return {
+                "status": True,
+                "no_auth_required": True,
+                "message": f"{toolkit} does not require authorization. You can use its tools directly.",
+            }
+        if result.get("custom_auth_required"):
+            return {
+                "status": False,
+                "custom_auth_required": True,
+                "message": f"{toolkit} requires custom OAuth credentials and cannot be connected automatically. Ask the user to configure it.",
+            }
+        redirect_url = result.get("redirect_url")
+        if redirect_url:
+            return {
+                "status": True,
+                "already_connected": False,
+                "connection_id": result.get("connection_id"),
+                "redirect_url": redirect_url,
+                "message": f"Please visit this URL to connect {toolkit}: {redirect_url}",
+            }
+        return {
+            "status": True,
+            "already_connected": False,
+            "connection_id": result.get("connection_id"),
+            "redirect_url": None,
+            "message": f"Connection initiated for {toolkit}. No browser redirect required.",
+        }
+    return handler
+
+
+def _make_search_toolkits_handler(ctx: PlatformContext):
+    async def handler(query: Optional[str] = None, limit: int = 10) -> dict:
+        # lazy import to avoid circular dependency (catalog imports PLATFORM_INTEGRATION from this file)
+        from app.integrations.catalog import get_cached_toolkit_meta
+
+        # 1. Pull this agent's enabled integrations from DB, strip platform itself
+        async with ctx.session_factory() as session:
+            rows = await agents_q.get_agent_integrations(session, ctx.blueprint_agent_id)
+        rows = [r for r in rows if r.integration_slug != "platform"]
+
+        # 2. Enrich each row with catalog metadata
+        catalog_items = []
+        for r in rows:
+            meta = get_cached_toolkit_meta(r.integration_slug) or {}
+            catalog_items.append({
+                "slug": r.integration_slug,
+                "name": meta.get("name", r.integration_slug),
+                "description": meta.get("description", ""),
+                "enabled_tools": list(r.enabled_tool_slugs or []),
+            })
+
+        # No query → return everything
+        if not query:
+            return {"status": True, "toolkits": catalog_items[:limit], "total": len(catalog_items)}
+
+        # 3. LLM ranking (same pattern as make_tool_search)
+        by_slug = {item["slug"]: item for item in catalog_items}
+        catalog_lines = [
+            f"- {item['slug']}: {(item['name'] + '. ' + item['description']).strip()}"
+            for item in catalog_items
+        ]
+        catalog = "\n".join(catalog_lines)
+
+        matches: List[dict] = []
+        llm = ChatGoogleGenerativeAI(model="gemini-3-flash-preview", temperature=0)
+        structured = llm.with_structured_output(_ToolkitSearchRankResponse)
+        try:
+            out: _ToolkitSearchRankResponse = await structured.ainvoke([
+                SystemMessage(content=(
+                    "Pick which toolkits best match the query. "
+                    "Only output slugs that appear verbatim in the catalog "
+                    f"(token after '- ' and before ':'). Return at most {limit}, most relevant first. "
+                    "If none apply, return an empty list."
+                )),
+                HumanMessage(content=f"Query:\n{query}\n\nCatalog:\n{catalog}"),
+            ])
+            seen: set[str] = set()
+            for slug in out.toolkit_slugs:
+                slug = (slug or "").strip()
+                item = by_slug.get(slug)
+                if item is None:
+                    if slug:
+                        logger.warning("search_toolkits: LLM returned unknown slug %r", slug)
+                    continue
+                if slug not in seen:
+                    seen.add(slug)
+                    matches.append(item)
+                    if len(matches) >= limit:
+                        break
+        except Exception as exc:
+            logger.warning("search_toolkits LLM ranking failed, using heuristic: %s", exc)
+
+        # 4. Fallback to substring match
+        if not matches:
+            q = query.lower()
+            matches = [
+                item for item in catalog_items
+                if q in item["slug"].lower()
+                or q in item["name"].lower()
+                or q in item["description"].lower()
+            ][:limit]
+
+        return {"status": True, "toolkits": matches, "total": len(matches)}
+    return handler
+
+
 _HANDLER_FACTORIES = {
-    "read":            _make_read_handler,
-    "write":           _make_write_handler,
-    "edit":            _make_edit_handler,
-    "glob":            _make_glob_handler,
-    "grep":            _make_grep_handler,
-    "image_generate":  _make_image_generate_handler,
-    "cron_create":     _make_cron_create_handler,
-    "cron_delete":     _make_cron_delete_handler,
-    "cron_list":       _make_cron_list_handler,
+    "read":               _make_read_handler,
+    "write":              _make_write_handler,
+    "edit":               _make_edit_handler,
+    "glob":               _make_glob_handler,
+    "grep":               _make_grep_handler,
+    "web_search":         _make_web_search_handler,
+    "web_fetch":          _make_web_fetch_handler,
+    "web_crawl":          _make_web_crawl_handler,
+    "image_generate":     _make_image_generate_handler,
+    "cron_create":        _make_cron_create_handler,
+    "cron_delete":        _make_cron_delete_handler,
+    "cron_list":          _make_cron_list_handler,
+    "manage_connection":  _make_manage_connection_handler,
+    "search_toolkits":    _make_search_toolkits_handler,
+    "tool_search":        _make_tool_search_handler,
 }
 
 
@@ -575,9 +825,10 @@ async def load_tools(
     enabled_tool_slugs: Optional[List[str]],
     user_id: str,
     agent_id: uuid.UUID,
-    session: AsyncSession,
+    session_factory: async_sessionmaker[AsyncSession],
     session_id: uuid.UUID = None,
     api_key: str = "",
+    deferred_tools_ref: Optional[List[BaseTool]] = None,
 ) -> Tuple[List[BaseTool], List[BaseTool]]:
     """
     Returns (active_tools, deferred_tools).
@@ -589,10 +840,13 @@ async def load_tools(
     tools = [t for t in integration.tools if t.name in slugs]
 
     ctx = PlatformContext(
-        session=session,
+        session_factory=session_factory,
         blueprint_agent_id=agent_id,
         user_id=uuid.UUID(user_id),
         session_id=session_id or uuid.uuid4(),
+        api_key=api_key,
+        official_user_id=get_settings().composio_official_user_id,
+        deferred_tools_ref=deferred_tools_ref if deferred_tools_ref is not None else [],
     )
     active: List[BaseTool] = []
     deferred: List[BaseTool] = []
@@ -621,10 +875,36 @@ async def load_tools(
             else:
                 logger.warning("composio tool %s has no action in provider_config", tool.name)
 
+    official_uid = get_settings().composio_official_user_id
     if composio_active_actions:
-        active.extend(await load_tools_cached(api_key, user_id, composio_active_actions))
+        active.extend(
+            await load_tools_cached_for_session(
+                api_key,
+                user_id,
+                composio_active_actions,
+                composio_official_user_id=official_uid,
+            )
+        )
 
     if composio_deferred_actions:
-        deferred.extend(await load_tools_cached(api_key, user_id, [a for a, _ in composio_deferred_actions]))
+        deferred.extend(
+            await load_tools_cached_for_session(
+                api_key,
+                user_id,
+                [a for a, _ in composio_deferred_actions],
+                composio_official_user_id=official_uid,
+            )
+        )
+
+    # Always inject meta tools regardless of enabled_tool_slugs.
+    # tool_search, manage_connection, search_toolkits are unconditional platform
+    # capabilities available in every session. tool_search may be pruned by
+    # ToolAssembler afterward if no deferred tools exist.
+    _META_TOOLS = ("tool_search", "manage_connection", "search_toolkits")
+    already_active = {t.name for t in active}
+    meta_defs = {t.name: t for t in _PLATFORM_TOOLS if t.name in _META_TOOLS}
+    for name in _META_TOOLS:
+        if name in meta_defs and name not in already_active:
+            active.append(_make_local_tool(meta_defs[name], ctx))
 
     return active, deferred

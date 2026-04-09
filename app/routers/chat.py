@@ -11,15 +11,16 @@ SSE event format:
     data: {"type": "done"}
     data: {"type": "error", "message": "..."}
 """
+import asyncio
+import contextlib
 import json
 import logging
 import time
 import uuid
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session, session_scope
 from app.db.queries import agents as agents_q
@@ -32,6 +33,18 @@ from app.storage import BUCKET, get_public_url, upload_file
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agents", tags=["chat"])
+
+
+async def _watch_client_disconnect(request: Request, cancel_event: asyncio.Event) -> None:
+    """Set cancel_event when the client closes the SSE connection (cooperative LLM stop)."""
+    try:
+        while True:
+            if await request.is_disconnected():
+                cancel_event.set()
+                return
+            await asyncio.sleep(0.2)
+    except asyncio.CancelledError:
+        raise
 
 
 @router.post("/{agent_id}/chat/image")
@@ -60,33 +73,34 @@ async def upload_chat_image(
 async def chat(
     agent_id: uuid.UUID,
     body: ChatRequest,
-    db_session: AsyncSession = Depends(get_session),
+    request: Request,
 ):
     t_start = time.perf_counter()
 
-    agent = await agents_q.get_agent(db_session, agent_id)
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
+    # Keep DB work in a short-lived scope. Do not hold the request session across SSE:
+    # client disconnect cancels the stream and would interrupt pool return (noisy CancelledError).
+    async with session_scope() as db_session:
+        agent = await agents_q.get_agent(db_session, agent_id)
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
 
-    # Ensure session row exists before streaming starts.
-    await sessions_q.upsert_session(db_session, body.session_id, agent_id, body.user_id)
+        await sessions_q.upsert_session(db_session, body.session_id, agent_id, body.user_id)
 
-    # Record the user's message.
-    await sessions_q.append_event(
-        db_session,
-        body.session_id,
-        event_type=SessionEventType.user_message,
-        event_body=body.message,
-    )
-    logger.info(
-        "User message agent_id=%s session_id=%s: %s",
-        agent_id,
-        body.session_id,
-        body.message[:200],
-    )
+        await sessions_q.append_event(
+            db_session,
+            body.session_id,
+            event_type=SessionEventType.user_message,
+            event_body=body.message,
+        )
+        logger.info(
+            "User message agent_id=%s session_id=%s: %s",
+            agent_id,
+            body.session_id,
+            body.message[:200],
+        )
 
-    engine = AgentEngine(agent_id, body.user_id, body.session_id, db_session)
-    await engine.setup(agent)
+        engine = AgentEngine(agent_id, body.user_id, body.session_id, db_session)
+        await engine.setup(agent)
 
     logger.info(
         "chat_setup agent_id=%s session_id=%s setup_ms=%.0f",
@@ -97,9 +111,15 @@ async def chat(
 
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
+        cancel_event = asyncio.Event()
+        watch_task = asyncio.create_task(_watch_client_disconnect(request, cancel_event))
 
         try:
-            async for event in engine.astream(body.message, images=body.images):
+            async for event in engine.astream(
+                body.message,
+                images=body.images,
+                cancel_event=cancel_event,
+            ):
                 kind = event["event"]
 
                 if kind == "on_chat_model_stream":
@@ -246,6 +266,14 @@ async def chat(
 
             yield f"data: {json.dumps({'type': 'done'}, default=str)}\n\n"
 
+        except asyncio.CancelledError:
+            logger.info(
+                "Chat stream cancelled (client disconnected) agent_id=%s session_id=%s",
+                agent_id,
+                body.session_id,
+            )
+            raise
+
         except Exception as e:
             logger.exception(
                 "Chat stream failed agent_id=%s session_id=%s",
@@ -260,6 +288,11 @@ async def chat(
                     event_body=str(e),
                 )
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, default=str)}\n\n"
+
+        finally:
+            watch_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await watch_task
 
     return StreamingResponse(
         event_stream(),

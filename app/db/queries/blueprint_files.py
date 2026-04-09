@@ -243,6 +243,8 @@ async def glob(
     session: AsyncSession, blueprint_agent_id: uuid.UUID, pattern: str
 ) -> List[BlueprintFile]:
     """Match base files by glob pattern. Supports *.md, skills/**/*.md, etc."""
+    if pattern and not pattern.startswith("/"):
+        pattern = f"/{pattern}"
     if "**" in pattern:
         prefix = pattern.split("**")[0].rstrip("/")
         name_part = pattern.split("**")[-1].lstrip("/")
