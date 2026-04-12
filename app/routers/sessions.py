@@ -25,7 +25,7 @@ async def list_sessions(
 ):
     rows = await sessions_q.list_sessions(db, user_id)
     return [
-        SessionResponse(id=r.id, user_id=r.user_id, agent_slug=r.agent_slug, created_at=r.created_at)
+        SessionResponse(id=r.id, user_id=r.user_id, created_at=r.created_at)
         for r in rows
     ]
 
@@ -42,7 +42,6 @@ async def get_session_detail(
     return SessionDetailResponse(
         id=session.id,
         user_id=session.user_id,
-        agent_slug=session.agent_slug,
         created_at=session.created_at,
         events=[
             SessionEventResponse(

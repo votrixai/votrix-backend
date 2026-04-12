@@ -7,7 +7,7 @@ from pydantic import BaseModel
 class SessionResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
-    agent_slug: str
+
     created_at: datetime
 
 
@@ -21,6 +21,6 @@ class SessionEventResponse(BaseModel):
 class SessionDetailResponse(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
-    agent_slug: str
+
     created_at: datetime
     events: list[SessionEventResponse]
