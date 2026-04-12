@@ -32,20 +32,15 @@ _SENTINEL = object()
 
 
 def _stream_in_thread(
-    agent_id: str,
-    env_id: str,
     message: str,
     user_id: str,
     out: queue.Queue,
+    anthropic_session_id: str,
 ) -> None:
     """Blocking stream loop — runs in a daemon thread."""
     try:
         client = get_client()
-
-        session = client.beta.sessions.create(
-            agent=agent_id,
-            environment_id=env_id,
-        )
+        session_id = anthropic_session_id
 
         idle = False
         first = True
@@ -54,11 +49,11 @@ def _stream_in_thread(
         while not idle:
             try:
                 with client.beta.sessions.events.stream(
-                    session.id, timeout=_STREAM_TIMEOUT
+                    session_id, timeout=_STREAM_TIMEOUT
                 ) as event_stream:
                     if first:
                         client.beta.sessions.events.send(
-                            session.id,
+                            session_id,
                             events=[
                                 {
                                     "type": "user.message",
@@ -112,7 +107,7 @@ def _stream_in_thread(
                                                 "content": [{"type": "text", "text": json.dumps(result)}],
                                             })
                                     if results:
-                                        client.beta.sessions.events.send(session.id, events=results)
+                                        client.beta.sessions.events.send(session_id, events=results)
                                     break  # restart stream loop
                                 else:
                                     out.put({"type": "done"})
@@ -137,9 +132,15 @@ def _stream_in_thread(
         out.put(_SENTINEL)
 
 
+def create_anthropic_session(agent_id: str, env_id: str) -> str:
+    """Create a new Anthropic session, return its ID. Call once per conversation."""
+    client = get_client()
+    session = client.beta.sessions.create(agent=agent_id, environment_id=env_id)
+    return session.id
+
+
 async def stream(
-    agent_id: str,
-    env_id: str,
+    anthropic_session_id: str,
     message: str,
     user_id: str,
 ) -> AsyncGenerator[dict, None]:
@@ -147,7 +148,7 @@ async def stream(
     out: queue.Queue = queue.Queue()
     t = threading.Thread(
         target=_stream_in_thread,
-        args=(agent_id, env_id, message, user_id, out),
+        args=(message, user_id, out, anthropic_session_id),
         daemon=True,
     )
     t.start()

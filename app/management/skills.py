@@ -20,7 +20,9 @@ import json
 import zipfile
 from pathlib import Path
 
-from app.client import get_client
+import httpx
+
+from app.config import get_settings
 
 SKILLS_DIR = Path(__file__).parents[2] / "skills"
 _REGISTRY_PATH = Path(__file__).parents[2] / ".skills_registry.json"
@@ -33,6 +35,9 @@ def _skill_dir(slug: str) -> Path:
     return path
 
 
+_FIXED_DATE = (2024, 1, 1, 0, 0, 0)  # deterministic zip timestamps
+
+
 def _build_zip(skill_dir: Path) -> bytes:
     """Zip all files under skill_dir into a single ZIP with one top-level folder."""
     buf = io.BytesIO()
@@ -40,7 +45,8 @@ def _build_zip(skill_dir: Path) -> bytes:
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         for f in sorted(skill_dir.iterdir()):
             if f.is_file():
-                zf.writestr(f"{folder}/{f.name}", f.read_bytes())
+                info = zipfile.ZipInfo(filename=f"{folder}/{f.name}", date_time=_FIXED_DATE)
+                zf.writestr(info, f.read_bytes())
     return buf.getvalue()
 
 
@@ -58,23 +64,38 @@ def _write_registry(registry: dict) -> None:
     _REGISTRY_PATH.write_text(json.dumps(registry, indent=2))
 
 
+def _skills_headers() -> dict:
+    return {
+        "x-api-key": get_settings().anthropic_api_key,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "skills-2025-10-02",
+    }
+
+
 def _upload_new(zip_bytes: bytes, display_title: str) -> str:
-    """Create new skill via SDK, returns skill_id."""
-    client = get_client()
-    result = client.beta.skills.create(
-        display_title=display_title,
-        files=[("skill.zip", zip_bytes, "application/zip")],
-    )
-    return result.id
+    """Create new skill via raw httpx (SDK sends wrong beta header for skills)."""
+    with httpx.Client(timeout=30) as hclient:
+        resp = hclient.post(
+            "https://api.anthropic.com/v1/skills",
+            headers=_skills_headers(),
+            data={"display_title": display_title},
+            files=[("files[]", ("skill.zip", zip_bytes, "application/zip"))],
+        )
+    if not resp.is_success:
+        raise RuntimeError(f"Skill upload failed {resp.status_code}: {resp.text}")
+    return resp.json()["id"]
 
 
 def _upload_version(skill_id: str, zip_bytes: bytes) -> None:
-    """Upload new version of existing skill via SDK."""
-    client = get_client()
-    client.beta.skills.versions.create(
-        skill_id,
-        files=[("skill.zip", zip_bytes, "application/zip")],
-    )
+    """Upload new version of existing skill via raw httpx."""
+    with httpx.Client(timeout=30) as hclient:
+        resp = hclient.post(
+            f"https://api.anthropic.com/v1/skills/{skill_id}/versions",
+            headers=_skills_headers(),
+            files=[("files[]", ("skill.zip", zip_bytes, "application/zip"))],
+        )
+    if not resp.is_success:
+        raise RuntimeError(f"Skill version upload failed {resp.status_code}: {resp.text}")
 
 
 def get_or_upload(slug: str) -> str:

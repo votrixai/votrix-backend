@@ -15,8 +15,6 @@ SSE event format:
 
 import json
 import logging
-import uuid
-from pathlib import Path
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -54,14 +52,20 @@ async def chat(
 
     env_id = get_env_id()
 
-    # Log session + user message
-    await sessions_q.create_session(db, body.session_id, body.user_id)
+    db_session = await sessions_q.get_session(db, body.session_id)
+    if db_session is None or not db_session.session_id:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Session not found — call POST /users/{body.user_id}/sessions first",
+        )
+    anthropic_session_id = db_session.session_id
+
     await sessions_q.append_event(db, body.session_id, "user_message", body.message)
 
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
         try:
-            async for event in runtime.stream(user.agent_id, env_id, body.message, str(user.id)):
+            async for event in runtime.stream(anthropic_session_id, body.message, str(user.id)):
                 if event["type"] == "token":
                     ai_tokens.append(event["content"])
                 elif event["type"] == "done":

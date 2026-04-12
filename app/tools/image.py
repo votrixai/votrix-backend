@@ -72,7 +72,18 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
         )
         for part in response.candidates[0].content.parts:
             if part.inline_data and part.inline_data.mime_type.startswith("image/"):
-                url = upload_image(part.inline_data.data, part.inline_data.mime_type, user_id)
+                try:
+                    url = upload_image(part.inline_data.data, part.inline_data.mime_type, user_id)
+                except Exception as upload_exc:
+                    logger.warning("Supabase upload failed (%s) — saving locally", upload_exc)
+                    import uuid
+                    from pathlib import Path
+                    ext = part.inline_data.mime_type.split("/")[-1]
+                    out_dir = Path(__file__).parents[2] / "scripts" / "generated_images"
+                    out_dir.mkdir(exist_ok=True)
+                    img_path = out_dir / f"{uuid.uuid4()}.{ext}"
+                    img_path.write_bytes(part.inline_data.data)
+                    url = f"file://{img_path}"
                 return {"status": True, "url": url, "aspect_ratio": aspect_ratio}
 
         return {"status": False, "message": "No image returned from Gemini"}

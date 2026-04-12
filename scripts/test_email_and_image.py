@@ -62,7 +62,7 @@ def provision(display_name: str = "E2E Test User") -> tuple[str, str]:
     return agent_id, env_id
 
 
-def chat(agent_id: str, env_id: str, message: str) -> None:
+def chat(agent_id: str, env_id: str, message: str, session_id: str | None = None) -> None:
     from app.runtime.sessions import _stream_in_thread, _SENTINEL
 
     _out(f"\n{'─'*60}\n")
@@ -73,6 +73,7 @@ def chat(agent_id: str, env_id: str, message: str) -> None:
     t = threading.Thread(
         target=_stream_in_thread,
         args=(agent_id, env_id, message, COMPOSIO_USER_ID, out),
+        kwargs={"session_id": session_id},
         daemon=True,
     )
     t.start()
@@ -105,12 +106,21 @@ def watch_and_chat(agent_id: str, env_id: str) -> None:
     """
     Tail test_input.txt.  Each non-empty line triggers one chat() call.
     Already-existing lines at startup are skipped.
+    A single Anthropic session is shared across all turns for conversation continuity.
     """
+    from app.client import get_client
+
     # Ensure input file exists
     INPUT_FILE.touch()
 
+    # Create one session for the whole conversation
+    client = get_client()
+    session = client.beta.sessions.create(agent=agent_id, environment_id=env_id)
+    session_id = session.id
+
     _out(f"\n[ready] Watching {INPUT_FILE}\n")
     _out(f"[ready] Output → {OUTPUT_FILE}\n")
+    _out(f"[ready] Session {session_id}\n")
     _out(f"[ready] Write a message to {INPUT_FILE.name} to chat. Ctrl-C to quit.\n\n")
 
     # Seek to end so we only react to new lines
@@ -123,7 +133,7 @@ def watch_and_chat(agent_id: str, env_id: str) -> None:
                 if line:
                     message = line.rstrip("\n")
                     if message.strip():
-                        chat(agent_id, env_id, message)
+                        chat(agent_id, env_id, message, session_id=session_id)
                 else:
                     time.sleep(0.3)
         except KeyboardInterrupt:
