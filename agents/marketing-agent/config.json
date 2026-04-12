@@ -1,0 +1,7 @@
+{
+  "slug": "marketing-agent",
+  "name": "Marketing Agent",
+  "model": "claude-sonnet-4-6",
+  "skills": ["gmail-drafting"],
+  "integrations": ["gmail", "googlecalendar", "instagram"]
+}
