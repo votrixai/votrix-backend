@@ -1,0 +1,36 @@
+
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[provision] slug=marketing-agent  composio_user=votrix-claude-managed-agent-test
+[provision] slug=marketing-agent  composio_user=votrix-claude-managed-agent-test
+────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────
+Traceback (most recent call last):
+  File "/home/zyue/project/votrix/votrix-backend/scripts/test_email_and_image.py", line 148, in <module>
+    agent_id, env_id = provision()
+                       ^^^^^^^^^^^
+  File "/home/zyue/project/votrix/votrix-backend/scripts/test_email_and_image.py", line 52, in provision
+    agent_id = provisioning.create_user_agent(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zyue/project/votrix/votrix-backend/app/management/provisioning.py", line 103, in create_user_agent
+    skill_ids = skills.get_or_upload_all(config.get("skills", []))
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zyue/project/votrix/votrix-backend/app/management/skills.py", line 117, in get_or_upload_all
+    return {slug: get_or_upload(slug) for slug in slugs}
+                  ^^^^^^^^^^^^^^^^^^^
+  File "/home/zyue/project/votrix/votrix-backend/app/management/skills.py", line 97, in get_or_upload
+    skill_id = _upload_new(zip_bytes, display_title)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zyue/project/votrix/votrix-backend/app/management/skills.py", line 64, in _upload_new
+    result = client.beta.skills.create(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zyue/project/votrix/votrix-backend/.venv/lib/python3.12/site-packages/anthropic/resources/beta/skills/skills.py", line 137, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/home/zyue/project/votrix/votrix-backend/.venv/lib/python3.12/site-packages/anthropic/_base_client.py", line 1368, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/zyue/project/votrix/votrix-backend/.venv/lib/python3.12/site-packages/anthropic/_base_client.py", line 1141, in request
+    raise self._make_status_error_from_response(err.response) from None
+anthropic.PermissionDeniedError: Error code: 403 - {'error': {'type': 'forbidden', 'message': 'Request not allowed'}}

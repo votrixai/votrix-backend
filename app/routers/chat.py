@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session, session_scope
 from app.db.queries import sessions as sessions_q
 from app.db.queries import users as users_q
-from app.management.agents import _read_cache
+from app.management.environments import get_or_create as get_env_id
 from app.models.chat import ChatRequest
 from app.runtime import sessions as runtime
 
@@ -52,14 +52,7 @@ async def chat(
             detail=f"User agent not provisioned — call POST /users/{body.user_id}/provision first",
         )
 
-    # env_id comes from the template build cache (shared across all user agents)
-    template_cache = _read_cache(agent_slug)
-    env_id = template_cache.get("env_id")
-    if not env_id:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Agent template '{agent_slug}' not built — run: python -m app.management.run --agent {agent_slug}",
-        )
+    env_id = get_env_id()
 
     # Log session + user message
     await sessions_q.create_session(db, body.session_id, body.user_id)
@@ -68,7 +61,7 @@ async def chat(
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
         try:
-            async for event in runtime.stream(user.agent_id, env_id, body.message):
+            async for event in runtime.stream(user.agent_id, env_id, body.message, str(user.id)):
                 if event["type"] == "token":
                     ai_tokens.append(event["content"])
                 elif event["type"] == "done":
