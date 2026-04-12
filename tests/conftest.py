@@ -1,7 +1,14 @@
 import os
+import tempfile
 
 # Must be set before app imports so get_settings() lru_cache picks them up
 os.environ.setdefault("ANTHROPIC_API_KEY", "sk-test-key")
+
+# Create a temp SQLite file for the test session and point settings at it
+_tmp_db_fd, _tmp_db_path = tempfile.mkstemp(suffix=".db")
+os.close(_tmp_db_fd)
+_TEST_DB_URL = f"sqlite+aiosqlite:///{_tmp_db_path}"
+os.environ["DATABASE_URL"] = _TEST_DB_URL
 
 import pytest
 from httpx import AsyncClient, ASGITransport
@@ -10,16 +17,15 @@ from sqlalchemy.pool import NullPool
 from unittest.mock import patch
 
 from app.main import app
-from app.config import get_settings
 from app.db.models.base import Base
 import app.db.engine as db_engine_module
 
 
 def _make_nullpool_engine():
     return create_async_engine(
-        get_settings().database_url,
+        _TEST_DB_URL,
+        connect_args={"check_same_thread": False},
         poolclass=NullPool,
-        connect_args={"statement_cache_size": 0},
     )
 
 
@@ -35,6 +41,10 @@ async def create_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
+    try:
+        os.unlink(_tmp_db_path)
+    except OSError:
+        pass
 
 
 @pytest.fixture(autouse=True)
