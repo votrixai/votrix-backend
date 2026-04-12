@@ -11,9 +11,8 @@ async def create_session(
     db: AsyncSession,
     session_id: uuid.UUID,
     user_id: uuid.UUID,
-    agent_slug: str,
 ) -> Session:
-    session = Session(id=session_id, user_id=user_id, agent_slug=agent_slug)
+    session = Session(id=session_id, user_id=user_id)
     db.add(session)
     await db.commit()
     await db.refresh(session)
@@ -25,12 +24,12 @@ async def get_session(db: AsyncSession, session_id: uuid.UUID) -> Session | None
     return result.scalar_one_or_none()
 
 
-async def save_anthropic_session_id(
-    db: AsyncSession, session_id: uuid.UUID, anthropic_session_id: str
+async def save_provider_session_id(
+    db: AsyncSession, session_id: uuid.UUID, provider_session_id: str
 ) -> None:
     session = await get_session(db, session_id)
     if session:
-        session.anthropic_session_id = anthropic_session_id
+        session.session_id = provider_session_id
         await db.commit()
 
 

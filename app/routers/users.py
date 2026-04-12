@@ -2,10 +2,10 @@
 User management routes.
 
 POST   /users                       create user
-GET    /users                       list users (optional ?agent_slug= filter)
+GET    /users                       list users
 GET    /users/{id}                  get user
 DELETE /users/{id}                  delete user
-POST   /users/{id}/provision        provision per-user Anthropic agent (idempotent)
+POST   /users/{id}/provision        provision per-user managed agent (idempotent)
 """
 
 import uuid
@@ -26,28 +26,25 @@ async def create_user(
     body: CreateUserRequest,
     db: AsyncSession = Depends(get_session),
 ):
-    user = await users_q.create_user(db, body.display_name, body.agent_slug)
+    user = await users_q.create_user(db, body.display_name)
     return UserResponse(
         id=user.id,
         display_name=user.display_name,
-        agent_slug=user.agent_slug,
-        anthropic_agent_id=user.anthropic_agent_id,
+        agent_id=user.agent_id,
         created_at=user.created_at,
     )
 
 
 @router.get("", response_model=list[UserResponse])
 async def list_users(
-    agent_slug: str | None = None,
     db: AsyncSession = Depends(get_session),
 ):
-    rows = await users_q.list_users(db, agent_slug=agent_slug)
+    rows = await users_q.list_users(db)
     return [
         UserResponse(
             id=r.id,
             display_name=r.display_name,
-            agent_slug=r.agent_slug,
-            anthropic_agent_id=r.anthropic_agent_id,
+            agent_id=r.agent_id,
             created_at=r.created_at,
         )
         for r in rows
@@ -65,8 +62,7 @@ async def get_user(
     return UserResponse(
         id=user.id,
         display_name=user.display_name,
-        agent_slug=user.agent_slug,
-        anthropic_agent_id=user.anthropic_agent_id,
+        agent_id=user.agent_id,
         created_at=user.created_at,
     )
 
@@ -74,30 +70,32 @@ async def get_user(
 @router.post("/{user_id}/provision", response_model=ProvisionResponse)
 async def provision_user(
     user_id: uuid.UUID,
+    agent_slug: str,
     db: AsyncSession = Depends(get_session),
 ):
     """
-    Create a per-user Anthropic managed agent for this user.
+    Create a per-user managed agent for this user.
     Idempotent — returns existing agent_id if already provisioned.
+    agent_slug: the agent template to provision against (e.g. "marketing-agent")
     """
     user = await users_q.get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user.anthropic_agent_id:
+    if user.agent_id:
         return ProvisionResponse(
-            anthropic_agent_id=user.anthropic_agent_id,
+            agent_id=user.agent_id,
             provisioned=False,
         )
 
     agent_id = provisioning.create_user_agent(
-        slug=user.agent_slug,
+        slug=agent_slug,
         user_id=str(user.id),
         display_name=user.display_name,
     )
-    await users_q.set_anthropic_agent_id(db, user.id, agent_id)
+    await users_q.set_agent_id(db, user.id, agent_id)
 
-    return ProvisionResponse(anthropic_agent_id=agent_id, provisioned=True)
+    return ProvisionResponse(agent_id=agent_id, provisioned=True)
 
 
 @router.delete("/{user_id}", status_code=204)

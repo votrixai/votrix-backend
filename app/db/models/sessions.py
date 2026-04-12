@@ -17,9 +17,12 @@ class Session(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
-    agent_slug: Mapped[str] = mapped_column(Text, nullable=False)
-    # Anthropic-side session ID — set once created, used for reconnects
-    anthropic_session_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Provider-agnostic session ID — set once created, used for reconnects
+    session_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # AI provider snapshotted at session creation (e.g. "anthropic")
+    provider: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Managed agent ID snapshotted at session creation
+    agent_id: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class SessionEvent(UUIDPrimaryKeyMixin, Base):
