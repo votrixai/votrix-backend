@@ -45,11 +45,8 @@ async def chat(
     user = await users_q.get_user(db, body.user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if user.agent_slug != agent_slug:
-        raise HTTPException(status_code=400, detail="User is not connected to this agent")
-
     # Require provisioning before chat
-    if not user.anthropic_agent_id:
+    if not user.agent_id:
         raise HTTPException(
             status_code=409,
             detail=f"User agent not provisioned — call POST /users/{body.user_id}/provision first",
@@ -65,13 +62,13 @@ async def chat(
         )
 
     # Log session + user message
-    await sessions_q.create_session(db, body.session_id, body.user_id, agent_slug)
+    await sessions_q.create_session(db, body.session_id, body.user_id)
     await sessions_q.append_event(db, body.session_id, "user_message", body.message)
 
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
         try:
-            async for event in runtime.stream(user.anthropic_agent_id, env_id, body.message):
+            async for event in runtime.stream(user.agent_id, env_id, body.message):
                 if event["type"] == "token":
                     ai_tokens.append(event["content"])
                 elif event["type"] == "done":

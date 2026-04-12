@@ -1,7 +1,7 @@
 """
 Per-user agent provisioning.
 
-create_user_agent(slug, user_id, display_name) → anthropic_agent_id
+create_user_agent(slug, user_id, display_name) → agent_id
 
 What it does:
   1. Read agents/{slug}/config.json  (integrations, skills, model)

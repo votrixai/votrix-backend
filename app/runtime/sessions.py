@@ -30,7 +30,7 @@ _SENTINEL = object()
 
 
 def _stream_in_thread(
-    anthropic_agent_id: str,
+    agent_id: str,
     env_id: str,
     message: str,
     out: queue.Queue,
@@ -40,7 +40,7 @@ def _stream_in_thread(
         client = get_client()
 
         session = client.beta.sessions.create(
-            agent=anthropic_agent_id,
+            agent=agent_id,
             environment_id=env_id,
         )
 
@@ -108,7 +108,7 @@ def _stream_in_thread(
 
 
 async def stream(
-    anthropic_agent_id: str,
+    agent_id: str,
     env_id: str,
     message: str,
 ) -> AsyncGenerator[dict, None]:
@@ -116,7 +116,7 @@ async def stream(
     out: queue.Queue = queue.Queue()
     t = threading.Thread(
         target=_stream_in_thread,
-        args=(anthropic_agent_id, env_id, message, out),
+        args=(agent_id, env_id, message, out),
         daemon=True,
     )
     t.start()
