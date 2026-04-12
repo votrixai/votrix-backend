@@ -12,7 +12,11 @@ _session_factory: async_sessionmaker[AsyncSession] | None = None
 def get_engine():
     global _engine
     if _engine is None:
-        _engine = create_async_engine(get_settings().database_url, pool_pre_ping=True)
+        _engine = create_async_engine(
+            get_settings().database_url,
+            pool_pre_ping=True,
+            connect_args={"statement_cache_size": 0},  # required for PgBouncer transaction mode
+        )
     return _engine
 
 

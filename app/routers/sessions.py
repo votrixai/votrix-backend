@@ -1,8 +1,9 @@
 """
-Session history routes.
+Session routes.
 
-GET  /users/{user_id}/sessions              list sessions for a user
-GET  /sessions/{session_id}                 get session + events
+POST   /users/{user_id}/sessions            create session (allocates Anthropic session)
+GET    /users/{user_id}/sessions            list sessions for a user
+GET    /sessions/{session_id}               get session + events
 DELETE /sessions/{session_id}               delete session
 """
 
@@ -13,9 +14,41 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session
 from app.db.queries import sessions as sessions_q
-from app.models.session import SessionDetailResponse, SessionEventResponse, SessionResponse
+from app.db.queries import users as users_q
+from app.management.environments import get_or_create as get_env_id
+from app.models.session import SessionCreateResponse, SessionDetailResponse, SessionEventResponse, SessionResponse
+from app.runtime.sessions import create_anthropic_session
 
 router = APIRouter(tags=["sessions"])
+
+
+@router.post("/users/{user_id}/sessions", response_model=SessionCreateResponse, status_code=201)
+async def create_session(
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_session),
+):
+    user = await users_q.get_user(db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.agent_id:
+        raise HTTPException(
+            status_code=409,
+            detail=f"User agent not provisioned — call POST /users/{user_id}/provision first",
+        )
+
+    env_id = get_env_id()
+    anthropic_session_id = create_anthropic_session(user.agent_id, env_id)
+
+    session_id = uuid.uuid4()
+    db_session = await sessions_q.create_session(db, session_id, user_id)
+    await sessions_q.save_provider_session_id(db, session_id, anthropic_session_id)
+
+    return SessionCreateResponse(
+        id=db_session.id,
+        user_id=db_session.user_id,
+        anthropic_session_id=anthropic_session_id,
+        created_at=db_session.created_at,
+    )
 
 
 @router.get("/users/{user_id}/sessions", response_model=list[SessionResponse])
