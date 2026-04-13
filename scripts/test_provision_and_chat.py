@@ -65,10 +65,10 @@ async def run_provision() -> tuple[uuid.UUID, str]:
         user_id=str(user.id),
         display_name=user.display_name,
     )
-    print(f"[provision] anthropic_agent_id = {agent_id}")
+    print(f"[provision] agent_id = {agent_id}")
 
     async with session_scope() as db:
-        await users_q.set_anthropic_agent_id(db, user.id, agent_id)
+        await users_q.set_agent_id(db, user.id, agent_id)
         print(f"[provision] saved to DB")
 
     return user.id, agent_id
@@ -76,13 +76,13 @@ async def run_provision() -> tuple[uuid.UUID, str]:
 
 # ─── Step 4: Chat ─────────────────────────────────────────────────────────────
 
-def run_chat(anthropic_agent_id: str, env_id: str) -> None:
+def run_chat(agent_id: str, env_id: str) -> None:
     import queue
     import threading
     from app.runtime.sessions import _stream_in_thread, _SENTINEL
 
     print(f"\n{'─'*60}")
-    print(f"[chat] agent_id : {anthropic_agent_id}")
+    print(f"[chat] agent_id : {agent_id}")
     print(f"[chat] env_id   : {env_id}")
     print(f"[chat] message  : {TEST_MESSAGE}")
     print(f"{'─'*60}\n")
@@ -90,7 +90,7 @@ def run_chat(anthropic_agent_id: str, env_id: str) -> None:
     out: queue.Queue = queue.Queue()
     t = threading.Thread(
         target=_stream_in_thread,
-        args=(anthropic_agent_id, env_id, TEST_MESSAGE, out),
+        args=(agent_id, env_id, TEST_MESSAGE, out),
         daemon=True,
     )
     t.start()
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         run_build(force=args.force_build)
 
     # Step 2+3: create user + provision
-    user_id, anthropic_agent_id = asyncio.run(run_provision())
+    user_id, agent_id = asyncio.run(run_provision())
 
     # Read env_id from template cache
     from app.management.agents import _read_cache
@@ -140,4 +140,4 @@ if __name__ == "__main__":
     env_id = template_cache["env_id"]
 
     # Step 4: chat
-    run_chat(anthropic_agent_id, env_id)
+    run_chat(agent_id, env_id)

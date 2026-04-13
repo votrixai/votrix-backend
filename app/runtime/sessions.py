@@ -16,45 +16,45 @@ SSE event dict format:
 from __future__ import annotations
 
 import asyncio
+import json
 import queue
 import threading
 import time
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator
 
 import httpx
 
 from app.client import get_client
+from app.tools import execute as execute_tool
 
 _STREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 _SENTINEL = object()
 
 
 def _stream_in_thread(
-    agent_id: str,
-    env_id: str,
     message: str,
+    user_id: str,
     out: queue.Queue,
+    session_id: str,
 ) -> None:
     """Blocking stream loop — runs in a daemon thread."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
         client = get_client()
 
-        session = client.beta.sessions.create(
-            agent=agent_id,
-            environment_id=env_id,
-        )
-
         idle = False
         first = True
+        pending_tools: dict[str, Any] = {}  # event_id → agent.custom_tool_use event
 
         while not idle:
             try:
                 with client.beta.sessions.events.stream(
-                    session.id, timeout=_STREAM_TIMEOUT
+                    session_id, timeout=_STREAM_TIMEOUT
                 ) as event_stream:
                     if first:
                         client.beta.sessions.events.send(
-                            session.id,
+                            session_id,
                             events=[
                                 {
                                     "type": "user.message",
@@ -84,10 +84,36 @@ def _stream_in_thread(
                                     "output": str(getattr(event, "content", "")),
                                 })
 
+                            case "agent.custom_tool_use":
+                                pending_tools[event.id] = event
+                                out.put({
+                                    "type": "tool_start",
+                                    "name": event.name,
+                                    "input": event.input,
+                                })
+
                             case "session.status_idle":
-                                out.put({"type": "done"})
-                                idle = True
-                                break
+                                if event.stop_reason.type == "requires_action":
+                                    results = []
+                                    for event_id in event.stop_reason.event_ids:
+                                        tool_event = pending_tools.pop(event_id, None)
+                                        if tool_event:
+                                            result = loop.run_until_complete(
+                                                execute_tool(tool_event.name, tool_event.input, user_id)
+                                            )
+                                            out.put({"type": "tool_end", "output": json.dumps(result)})
+                                            results.append({
+                                                "type": "user.custom_tool_result",
+                                                "custom_tool_use_id": event_id,
+                                                "content": [{"type": "text", "text": json.dumps(result)}],
+                                            })
+                                    if results:
+                                        client.beta.sessions.events.send(session_id, events=results)
+                                    break  # restart stream loop
+                                else:
+                                    out.put({"type": "done"})
+                                    idle = True
+                                    break
 
                             case "session.error" | "error":
                                 out.put({"type": "error", "message": str(event)})
@@ -104,24 +130,32 @@ def _stream_in_thread(
     except Exception as exc:
         out.put({"type": "error", "message": str(exc)})
     finally:
+        loop.close()
         out.put(_SENTINEL)
 
 
+def create_session(agent_id: str, env_id: str) -> str:
+    """Create a new Anthropic session, return its ID. Call once per conversation."""
+    client = get_client()
+    session = client.beta.sessions.create(agent=agent_id, environment_id=env_id)
+    return session.id
+
+
 async def stream(
-    agent_id: str,
-    env_id: str,
+    session_id: str,
     message: str,
+    user_id: str,
 ) -> AsyncGenerator[dict, None]:
     """Async generator — yields SSE event dicts, never blocks the event loop."""
     out: queue.Queue = queue.Queue()
     t = threading.Thread(
         target=_stream_in_thread,
-        args=(agent_id, env_id, message, out),
+        args=(message, user_id, out, session_id),
         daemon=True,
     )
     t.start()
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     while True:
         event = await loop.run_in_executor(None, out.get)
         if event is _SENTINEL:

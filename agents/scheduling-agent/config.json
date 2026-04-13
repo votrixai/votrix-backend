@@ -1,0 +1,8 @@
+{
+  "slug": "scheduling-agent",
+  "name": "Scheduling Agent",
+  "model": "claude-sonnet-4-6",
+  "skills": ["calendar-scheduling"],
+  "integrations": ["googlecalendar"],
+  "tools": []
+}

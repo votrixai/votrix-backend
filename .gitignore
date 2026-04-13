@@ -1,5 +1,8 @@
 .env
 .venv/
+uv.lock
+.env_cache.json
+.skills_registry.json
 __pycache__/
 *.pyc
 .pytest_cache/

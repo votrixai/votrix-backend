@@ -15,6 +15,13 @@ class SessionResponse(BaseModel):
     created_at: datetime
 
 
+class SessionCreateResponse(BaseModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    session_id: str
+    created_at: datetime
+
+
 class SessionEventResponse(BaseModel):
     event_index: int
     type: str
