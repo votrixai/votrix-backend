@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 from dotenv import load_dotenv
 load_dotenv()
 
-AGENT_SLUG = "marketing-agent"
+AGENT_ID = "marketing-agent"
 TEST_MESSAGE = "Hi! Can you help me draft a short email to a potential client introducing our marketing services?"
 
 
@@ -29,9 +29,9 @@ TEST_MESSAGE = "Hi! Can you help me draft a short email to a potential client in
 def run_build(force: bool = False) -> None:
     from app.build.run import build
     print(f"\n{'─'*60}")
-    print(f"[build] provisioning {AGENT_SLUG} (force={force})")
+    print(f"[build] provisioning {AGENT_ID} (force={force})")
     print(f"{'─'*60}")
-    build(AGENT_SLUG, force=force)
+    build(AGENT_ID, force=force)
 
 
 # ─── Step 2: Chat (direct SDK, no HTTP) ───────────────────────────────────────
@@ -42,7 +42,7 @@ def run_chat() -> None:
     import threading
     from app.runtime.sessions import _stream_in_thread, _load_cache
 
-    cache = _load_cache(AGENT_SLUG)
+    cache = _load_cache(AGENT_ID)
     print(f"\n{'─'*60}")
     print(f"[chat] agent_id : {cache['agent_id']}")
     print(f"[chat] env_id   : {cache['env_id']}")
@@ -52,7 +52,7 @@ def run_chat() -> None:
     out: queue.Queue = queue.Queue()
     t = threading.Thread(
         target=_stream_in_thread,
-        args=(AGENT_SLUG, TEST_MESSAGE, out),
+        args=(AGENT_ID, TEST_MESSAGE, out),
         daemon=True,
     )
     t.start()

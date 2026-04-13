@@ -1,7 +1,7 @@
 """
 Chat endpoint — SSE streaming via Anthropic managed sessions.
 
-POST /agents/{agent_slug}/chat
+POST /agents/{agent_id}/chat
 
 Request body: { user_id, session_id, message }
 
@@ -32,9 +32,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/agents", tags=["chat"])
 
 
-@router.post("/{agent_slug}/chat")
+@router.post("/{agent_id}/chat")
 async def chat(
-    agent_slug: str,
+    agent_id: str,
     body: ChatRequest,
     db: AsyncSession = Depends(get_session),
 ):
