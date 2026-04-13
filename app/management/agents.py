@@ -1,14 +1,14 @@
 """
 Provision or sync an agent template into Anthropic's managed agent API.
 
-provision(slug) — first-time setup:
+provision(agent_id) — first-time setup:
   1. Upload skills listed in config.json
   2. Get or create cloud environment
   3. Assemble system prompt from IDENTITY.md + SOUL.md
   4. Call client.beta.agents.create()
-  5. Write {agent_id, env_id, version} to agents/{slug}/.cache.json
+  5. Write {agent_id, env_id, version} to agents/{agent_id}/.cache.json
 
-sync(slug) — re-sync after config change:
+sync(agent_id) — re-sync after config change:
   1. Re-upload skills (no-op if content unchanged)
   2. Call client.beta.agents.update() with current version (optimistic lock)
   3. Update .cache.json with new version
@@ -30,31 +30,31 @@ _AGENT_TOOLSET = {
 }
 
 
-def _agent_dir(slug: str) -> Path:
-    path = AGENTS_DIR / slug
+def _agent_dir(agent_id: str) -> Path:
+    path = AGENTS_DIR / agent_id
     if not path.is_dir():
         raise FileNotFoundError(f"Agent directory not found: {path}")
     return path
 
 
-def _read_config(slug: str) -> dict:
-    config_path = _agent_dir(slug) / "config.json"
+def _read_config(agent_id: str) -> dict:
+    config_path = _agent_dir(agent_id) / "config.json"
     return json.loads(config_path.read_text())
 
 
-def _read_cache(slug: str) -> dict:
-    p = _agent_dir(slug) / ".cache.json"
+def _read_cache(agent_id: str) -> dict:
+    p = _agent_dir(agent_id) / ".cache.json"
     return json.loads(p.read_text()) if p.exists() else {}
 
 
-def _write_cache(slug: str, data: dict) -> None:
-    p = _agent_dir(slug) / ".cache.json"
+def _write_cache(agent_id: str, data: dict) -> None:
+    p = _agent_dir(agent_id) / ".cache.json"
     p.write_text(json.dumps(data, indent=2))
 
 
-def _build_system(slug: str) -> str:
+def _build_system(agent_id: str) -> str:
     """Concatenate IDENTITY.md + SOUL.md from the agent directory."""
-    agent_dir = _agent_dir(slug)
+    agent_dir = _agent_dir(agent_id)
     parts = []
     for name in ("IDENTITY.md", "SOUL.md"):
         p = agent_dir / name
@@ -72,14 +72,14 @@ def _skill_entries(skill_ids: dict[str, str]) -> list[dict]:
     return [{"type": "custom", "skill_id": sid, "version": "latest"} for sid in skill_ids.values()]
 
 
-def provision(slug: str) -> None:
+def provision(agent_id: str) -> None:
     """Create the managed agent in Anthropic and cache its IDs."""
-    config = _read_config(slug)
+    config = _read_config(agent_id)
 
-    print(f"[build:{slug}] provisioning...")
+    print(f"[build:{agent_id}] provisioning...")
     skill_ids = skills.get_or_upload_all(config.get("skills", []))
-    env_id = environments.get_or_create(slug)
-    system = _build_system(slug)
+    env_id = environments.get_or_create(agent_id)
+    system = _build_system(agent_id)
     tools = _build_tools(config)
 
     client = get_client()
@@ -92,23 +92,23 @@ def provision(slug: str) -> None:
     )
 
     cache = {"agent_id": agent.id, "env_id": env_id, "version": agent.version}
-    _write_cache(slug, cache)
-    print(f"[build:{slug}] provisioned → agent_id={agent.id} version={agent.version}")
+    _write_cache(agent_id, cache)
+    print(f"[build:{agent_id}] provisioned → agent_id={agent.id} version={agent.version}")
 
 
-def sync(slug: str) -> None:
+def sync(agent_id: str) -> None:
     """Update an already-provisioned agent after config/skill changes."""
-    config = _read_config(slug)
-    cache = _read_cache(slug)
+    config = _read_config(agent_id)
+    cache = _read_cache(agent_id)
 
     if not cache.get("agent_id"):
-        print(f"[build:{slug}] no cache found — running provision instead")
-        provision(slug)
+        print(f"[build:{agent_id}] no cache found — running provision instead")
+        provision(agent_id)
         return
 
-    print(f"[build:{slug}] syncing...")
+    print(f"[build:{agent_id}] syncing...")
     skill_ids = skills.get_or_upload_all(config.get("skills", []))
-    system = _build_system(slug)
+    system = _build_system(agent_id)
     tools = _build_tools(config)
 
     client = get_client()
@@ -123,5 +123,5 @@ def sync(slug: str) -> None:
     )
 
     cache["version"] = updated.version
-    _write_cache(slug, cache)
-    print(f"[build:{slug}] synced → version={updated.version}")
+    _write_cache(agent_id, cache)
+    print(f"[build:{agent_id}] synced → version={updated.version}")

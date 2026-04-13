@@ -1,7 +1,7 @@
 """
 Chat endpoint — SSE streaming via Anthropic managed sessions.
 
-POST /agents/{agent_slug}/chat
+POST /agents/{agent_id}/chat
 
 Request body: { user_id, session_id, message }
 
@@ -35,9 +35,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/agents", tags=["chat"])
 
 
-@router.post("/{agent_slug}/chat")
+@router.post("/{agent_id}/chat")
 async def chat(
-    agent_slug: str,
+    agent_id: str,
     body: ChatRequest,
     db: AsyncSession = Depends(get_session),
 ):
@@ -53,12 +53,12 @@ async def chat(
         )
 
     # env_id comes from the template build cache (shared across all user agents)
-    template_cache = _read_cache(agent_slug)
+    template_cache = _read_cache(agent_id)
     env_id = template_cache.get("env_id")
     if not env_id:
         raise HTTPException(
             status_code=500,
-            detail=f"Agent template '{agent_slug}' not built — run: python -m app.management.run --agent {agent_slug}",
+            detail=f"Agent template '{agent_id}' not built — run: python -m app.management.run --agent {agent_id}",
         )
 
     # Log session + user message

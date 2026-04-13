@@ -1,7 +1,7 @@
 """
 Upload skill markdown files to Anthropic /v1/skills.
 
-Each skill lives in skills/{slug}/ with SKILL.md (required) plus any
+Each skill lives in skills/{skill_name}/ with SKILL.md (required) plus any
 other .md files (e.g. REFERENCE.md).  A .cache.json file in the same
 directory stores {skill_id, content_hash} so we skip re-uploading
 unchanged skills.
@@ -27,8 +27,8 @@ SKILLS_DIR = Path(__file__).parents[2] / "skills"
 _ANTHROPIC_BETA = "skills-2025-10-02"
 
 
-def _skill_dir(slug: str) -> Path:
-    path = SKILLS_DIR / slug
+def _skill_dir(skill_name: str) -> Path:
+    path = SKILLS_DIR / skill_name
     if not path.is_dir():
         raise FileNotFoundError(f"Skill directory not found: {path}")
     return path
@@ -79,30 +79,30 @@ def _upload(zip_bytes: bytes, display_title: str) -> str:
     return resp.json()["id"]
 
 
-def get_or_upload(slug: str) -> str:
+def get_or_upload(skill_name: str) -> str:
     """Return cached skill_id or upload the skill and cache the result."""
-    skill_dir = _skill_dir(slug)
+    skill_dir = _skill_dir(skill_name)
     zip_bytes = _build_zip(skill_dir)
     chash = _content_hash(zip_bytes)
 
     cache = _read_cache(skill_dir)
     if cache.get("content_hash") == chash and cache.get("skill_id"):
-        print(f"  [skill:{slug}] cached {cache['skill_id']}")
+        print(f"  [skill:{skill_name}] cached {cache['skill_id']}")
         return cache["skill_id"]
 
     # skill_id exists but content changed — reuse existing skill, just update hash
     if cache.get("skill_id"):
-        print(f"  [skill:{slug}] content changed, reusing existing {cache['skill_id']}")
+        print(f"  [skill:{skill_name}] content changed, reusing existing {cache['skill_id']}")
         _write_cache(skill_dir, cache["skill_id"], chash)
         return cache["skill_id"]
 
-    display_title = slug.replace("-", " ").title()
+    display_title = skill_name.replace("-", " ").title()
     skill_id = _upload(zip_bytes, display_title)
     _write_cache(skill_dir, skill_id, chash)
-    print(f"  [skill:{slug}] uploaded → {skill_id}")
+    print(f"  [skill:{skill_name}] uploaded → {skill_id}")
     return skill_id
 
 
-def get_or_upload_all(slugs: list[str]) -> dict[str, str]:
-    """Upload all listed skills; returns {slug: skill_id}."""
-    return {slug: get_or_upload(slug) for slug in slugs}
+def get_or_upload_all(skill_names: list[str]) -> dict[str, str]:
+    """Upload all listed skills; returns {skill_name: skill_id}."""
+    return {skill_name: get_or_upload(skill_name) for skill_name in skill_names}

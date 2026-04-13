@@ -70,13 +70,13 @@ async def get_user(
 @router.post("/{user_id}/provision", response_model=ProvisionResponse)
 async def provision_user(
     user_id: uuid.UUID,
-    agent_slug: str,
+    agent_id: str,
     db: AsyncSession = Depends(get_session),
 ):
     """
     Create a per-user managed agent for this user.
     Idempotent — returns existing agent_id if already provisioned.
-    agent_slug: the agent template to provision against (e.g. "marketing-agent")
+    agent_id: the agent template to provision against (e.g. "marketing-agent")
     """
     user = await users_q.get_user(db, user_id)
     if not user:
@@ -88,14 +88,14 @@ async def provision_user(
             provisioned=False,
         )
 
-    agent_id = provisioning.create_user_agent(
-        slug=agent_slug,
+    provisioned_agent_id = provisioning.create_user_agent(
+        agent_id=agent_id,
         user_id=str(user.id),
         display_name=user.display_name,
     )
-    await users_q.set_agent_id(db, user.id, agent_id)
+    await users_q.set_agent_id(db, user.id, provisioned_agent_id)
 
-    return ProvisionResponse(agent_id=agent_id, provisioned=True)
+    return ProvisionResponse(agent_id=provisioned_agent_id, provisioned=True)
 
 
 @router.delete("/{user_id}", status_code=204)

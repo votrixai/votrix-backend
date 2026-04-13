@@ -15,22 +15,22 @@ python -m app.build.run                        # provision all agents
 python -m app.build.run --agent marketing-agent
 python -m app.build.run --agent marketing-agent --force
 ```
-Reads `agents/{slug}/` → uploads skills → creates Anthropic managed agent → writes `.cache.json`.
+Reads `agents/{agent_id}/` → uploads skills → creates Anthropic managed agent → writes `.cache.json`.
 
 **Runtime** (per chat request):
-- `POST /agents/{slug}/chat` reads `.cache.json` for `agent_id + env_id`
+- `POST /agents/{agent_id}/chat` reads `.cache.json` for `agent_id + env_id`
 - Creates Anthropic session → relays SSE stream
 
 ### Local file layout
 
 ```
-agents/{slug}/
+agents/{agent_id}/
   config.json      # name, model, skills[], integrations[]
   IDENTITY.md      # system prompt component
   SOUL.md          # system prompt component
   .cache.json      # {agent_id, env_id, version} — gitignored, written by build
 
-skills/{slug}/
+skills/{skill_name}/
   SKILL.md         # required — uploaded to Anthropic Skills API
   REFERENCE.md     # optional extra context zipped with SKILL.md
   .cache.json      # {skill_id, content_hash} — gitignored, written by build
@@ -40,8 +40,8 @@ skills/{slug}/
 
 | Table | Purpose |
 |---|---|
-| `users` | End users (id, display_name, agent_slug) |
-| `sessions` | Conversation sessions (user_id, agent_slug, anthropic_session_id) |
+| `users` | End users (id, display_name, agent_id) |
+| `sessions` | Conversation sessions (user_id, anthropic_session_id) |
 | `session_events` | Append-only event log (type, title, body) |
 
 ## Running

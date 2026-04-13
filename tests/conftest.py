@@ -79,6 +79,6 @@ async def user(client):
 @pytest.fixture
 async def provisioned_user(client, user):
     with patch("app.routers.users.provisioning.create_user_agent", return_value="agt_test123"):
-        r = await client.post(f"/users/{user['id']}/provision?agent_slug=marketing-agent")
+        r = await client.post(f"/users/{user['id']}/provision?agent_id=marketing-agent")
     assert r.status_code == 200
     yield {**user, "agent_id": "agt_test123"}

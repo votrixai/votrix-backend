@@ -1,11 +1,11 @@
 """
 Per-user agent provisioning.
 
-create_user_agent(slug, user_id, display_name) → agent_id
+create_user_agent(agent_id, user_id, display_name) → agent_id
 
 What it does:
-  1. Read agents/{slug}/config.json  (integrations, skills, model)
-  2. Read agents/{slug}/.cache.json  (env_id from template build)
+  1. Read agents/{agent_id}/config.json  (integrations, skills, model)
+  2. Read agents/{agent_id}/.cache.json  (env_id from template build)
   3. Upload skills if not already cached (idempotent)
   4. Build per-user system prompt  (template + user context block)
   5. Build per-user MCP servers    (?user_id= embedded in URL)
@@ -40,9 +40,9 @@ _MCP_TOOLSET = {
 }
 
 
-def _build_user_system(slug: str, display_name: str) -> str:
+def _build_user_system(agent_id: str, display_name: str) -> str:
     """Template system prompt + injected user context block."""
-    base = _build_system(slug)
+    base = _build_system(agent_id)
     user_block = f"\n\n---\n\n## Current User\nName: {display_name}\n"
     return base + user_block
 
@@ -67,25 +67,25 @@ def _build_tools(mcp_server_names: list[str]) -> list[dict]:
     ]
 
 
-def create_user_agent(slug: str, user_id: str, display_name: str) -> str:
+def create_user_agent(agent_id: str, user_id: str, display_name: str) -> str:
     """
     Provision a per-user Anthropic managed agent.
     Returns the new agent_id (caller must persist to DB).
     """
-    config = _read_config(slug)
-    cache = _read_cache(slug)
+    config = _read_config(agent_id)
+    cache = _read_cache(agent_id)
 
     if not cache.get("env_id"):
         raise RuntimeError(
-            f"Agent '{slug}' template not provisioned — run: "
-            f"python -m app.management.run --agent {slug}"
+            f"Agent '{agent_id}' template not provisioned — run: "
+            f"python -m app.management.run --agent {agent_id}"
         )
 
     env_id = cache["env_id"]
     skill_ids = skills.get_or_upload_all(config.get("skills", []))
     integrations = config.get("integrations", [])
 
-    system = _build_user_system(slug, display_name)
+    system = _build_user_system(agent_id, display_name)
     mcp_servers = _build_mcp_servers(integrations, user_id)
     mcp_names = [s["name"] for s in mcp_servers]
     tools = _build_tools(mcp_names)
