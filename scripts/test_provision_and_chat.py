@@ -27,7 +27,7 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 from dotenv import load_dotenv
 load_dotenv()
 
-AGENT_SLUG   = "marketing-agent"
+AGENT_ID = "marketing-agent"
 TEST_MESSAGE = (
     "Draft a short email to a potential client named John at Acme Corp, "
     "introducing our marketing services. Keep it under 150 words."
@@ -38,8 +38,8 @@ TEST_MESSAGE = (
 
 def run_build(force: bool = False) -> None:
     from app.management.run import build
-    print(f"\n{'─'*60}\n[build] provisioning template: {AGENT_SLUG}\n{'─'*60}")
-    build(AGENT_SLUG, force=force)
+    print(f"\n{'─'*60}\n[build] provisioning template: {AGENT_ID}\n{'─'*60}")
+    build(AGENT_ID, force=force)
 
 
 # ─── Step 2 + 3: Create user + provision per-user agent ───────────────────────
@@ -56,13 +56,12 @@ async def run_provision() -> tuple[uuid.UUID, str]:
         user = await users_q.create_user(
             db,
             display_name="Test User (E2E)",
-            agent_slug=AGENT_SLUG,
         )
         print(f"[provision] user created: {user.id}")
 
     print(f"[provision] provisioning per-user agent...")
     agent_id = provisioning.create_user_agent(
-        slug=AGENT_SLUG,
+        agent_id=AGENT_ID,
         user_id=str(user.id),
         display_name=user.display_name,
     )
@@ -137,7 +136,7 @@ if __name__ == "__main__":
 
     # Read env_id from template cache
     from app.management.agents import _read_cache
-    template_cache = _read_cache(AGENT_SLUG)
+    template_cache = _read_cache(AGENT_ID)
     env_id = template_cache["env_id"]
 
     # Step 4: chat
