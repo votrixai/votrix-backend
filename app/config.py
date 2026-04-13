@@ -12,6 +12,13 @@ class Settings(BaseSettings):
     composio_api_key: str = ""
     composio_server_id: str = ""
 
+    # Supabase Storage — for generated images
+    supabase_url: str = ""
+    supabase_service_key: str = ""
+
+    # Gemini — for image generation
+    gemini_api_key: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:
