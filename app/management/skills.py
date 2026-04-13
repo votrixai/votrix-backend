@@ -41,9 +41,10 @@ def _build_zip(skill_dir: Path) -> bytes:
     buf = io.BytesIO()
     folder = skill_dir.name
     with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for f in sorted(skill_dir.iterdir()):
+        for f in sorted(skill_dir.rglob("*")):
             if f.is_file():
-                info = zipfile.ZipInfo(filename=f"{folder}/{f.name}", date_time=_FIXED_DATE)
+                rel = f.relative_to(skill_dir)
+                info = zipfile.ZipInfo(filename=f"{folder}/{rel}", date_time=_FIXED_DATE)
                 zf.writestr(info, f.read_bytes())
     return buf.getvalue()
 

@@ -1,0 +1,8 @@
+{
+  "slug": "post-agent",
+  "name": "Post Agent",
+  "model": "claude-sonnet-4-6",
+  "skills": ["social-media-post-setup", "social-media-post-market-research", "social-media-post-content-creation", "social-media-post-publishing"],
+  "integrations": ["facebook", "instagram", "twitter", "linkedin"],
+  "tools": ["image_generate", "image_upload", "cron_create", "cron_delete", "cron_list", "web_search"]
+}

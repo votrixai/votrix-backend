@@ -1,0 +1,6 @@
+{
+  "yelp":      { "last_checked": "", "last_review_id": "" },
+  "facebook":  { "last_checked": "", "last_post_checked": "" },
+  "instagram": { "last_checked": "", "last_post_checked": "" },
+  "twitter":   { "last_checked": "", "last_post_checked": "" }
+}
