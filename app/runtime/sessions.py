@@ -17,17 +17,20 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import queue
 import threading
 import time
 from typing import Any, AsyncGenerator
 
-import httpx
+import anthropic
+
+logger = logging.getLogger(__name__)
 
 from app.client import get_client
 from app.tools import execute as execute_tool
 
-_STREAM_TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
+_STREAM_TIMEOUT = anthropic.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
 _SENTINEL = object()
 
 
@@ -65,6 +68,9 @@ def _stream_in_thread(
                         first = False
 
                     for event in event_stream:
+                        raw = str(event)
+                        logger.info("[event] %s: %s", event.type, raw[:50])
+
                         match event.type:
                             case "agent.message":
                                 for block in event.content:
@@ -120,7 +126,10 @@ def _stream_in_thread(
                                 idle = True
                                 break
 
-            except httpx.ReadTimeout:
+                            case _:
+                                logger.info("[event] unhandled: %s", raw[:50])
+
+            except anthropic.APITimeoutError:
                 out.put({"type": "error", "message": "stream timeout — tool took >60s"})
                 idle = True
 
@@ -132,13 +141,6 @@ def _stream_in_thread(
     finally:
         loop.close()
         out.put(_SENTINEL)
-
-
-def create_session(agent_id: str, env_id: str) -> str:
-    """Create a new Anthropic session, return its ID. Call once per conversation."""
-    client = get_client()
-    session = client.beta.sessions.create(agent=agent_id, environment_id=env_id)
-    return session.id
 
 
 async def stream(

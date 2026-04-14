@@ -26,10 +26,10 @@ def mcp_url(user_id: str) -> str:
     return f"{_MCP_BASE}/{s.composio_server_id}/mcp?user_id={user_id}&api_key={s.composio_api_key}"
 
 
-def mcp_url_for_toolkit(user_id: str, toolkit_slug: str) -> str:
-    """Return Composio MCP URL scoped to a single toolkit slug."""
+def mcp_url_for_toolkit(user_id: str, toolkit_slug: str, tools: list[str] | None = None) -> str:
+    """Return Composio MCP URL scoped to a single toolkit slug, optionally filtered to specific actions."""
     s = get_settings()
-    return (
-        f"{_MCP_BASE}/{s.composio_server_id}/mcp"
-        f"?user_id={user_id}&api_key={s.composio_api_key}&apps={toolkit_slug}"
-    )
+    url = f"{_MCP_BASE}/{s.composio_server_id}/mcp?user_id={user_id}&api_key={s.composio_api_key}&apps={toolkit_slug}"
+    if tools:
+        url += f"&actions={','.join(tools)}"
+    return url

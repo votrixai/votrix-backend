@@ -19,7 +19,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from app.management import environments, skills
+from app.management import skills
 from app.client import get_client
 from app.integrations import composio
 from app.tools import TOOL_DEFINITIONS
@@ -60,15 +60,15 @@ def _build_user_system(agent_id: str, display_name: str) -> str:
     return base + f"\n\n---\n\n## Current User\nName: {display_name}\n"
 
 
-def _build_mcp_servers(integrations: list[str], user_id: str) -> list[dict]:
-    """One scoped Composio MCP server per integration toolkit slug."""
+def _build_mcp_servers(integrations: list[dict], user_id: str) -> list[dict]:
+    """One scoped Composio MCP server per integration, with optional action filtering."""
     return [
         {
             "type": "url",
-            "name": slug,
-            "url": composio.mcp_url_for_toolkit(user_id, slug),
+            "name": i["slug"],
+            "url": composio.mcp_url_for_toolkit(user_id, i["slug"], i.get("tools")),
         }
-        for slug in integrations
+        for i in integrations
     ]
 
 
@@ -99,7 +99,6 @@ def create_user_agent(
     """
     config = _read_config(agent_id)
 
-    env_id = environments.get_or_create()
     skill_ids = skills.get_or_upload_all(config.get("skills", []))
     integrations = config.get("integrations", [])
     composio_id = composio_user_id or user_id
