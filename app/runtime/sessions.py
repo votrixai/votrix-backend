@@ -35,12 +35,13 @@ def _stream_in_thread(
     message: str,
     user_id: str,
     out: queue.Queue,
-    anthropic_session_id: str,
+    session_id: str,
 ) -> None:
     """Blocking stream loop — runs in a daemon thread."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
         client = get_client()
-        session_id = anthropic_session_id
 
         idle = False
         first = True
@@ -97,7 +98,7 @@ def _stream_in_thread(
                                     for event_id in event.stop_reason.event_ids:
                                         tool_event = pending_tools.pop(event_id, None)
                                         if tool_event:
-                                            result = asyncio.run(
+                                            result = loop.run_until_complete(
                                                 execute_tool(tool_event.name, tool_event.input, user_id)
                                             )
                                             out.put({"type": "tool_end", "output": json.dumps(result)})
@@ -129,10 +130,11 @@ def _stream_in_thread(
     except Exception as exc:
         out.put({"type": "error", "message": str(exc)})
     finally:
+        loop.close()
         out.put(_SENTINEL)
 
 
-def create_anthropic_session(agent_id: str, env_id: str) -> str:
+def create_session(agent_id: str, env_id: str) -> str:
     """Create a new Anthropic session, return its ID. Call once per conversation."""
     client = get_client()
     session = client.beta.sessions.create(agent=agent_id, environment_id=env_id)
@@ -140,7 +142,7 @@ def create_anthropic_session(agent_id: str, env_id: str) -> str:
 
 
 async def stream(
-    anthropic_session_id: str,
+    session_id: str,
     message: str,
     user_id: str,
 ) -> AsyncGenerator[dict, None]:
@@ -148,12 +150,12 @@ async def stream(
     out: queue.Queue = queue.Queue()
     t = threading.Thread(
         target=_stream_in_thread,
-        args=(message, user_id, out, anthropic_session_id),
+        args=(message, user_id, out, session_id),
         daemon=True,
     )
     t.start()
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     while True:
         event = await loop.run_in_executor(None, out.get)
         if event is _SENTINEL:

@@ -1,11 +1,11 @@
 """
 Upload skill directories to Anthropic /v1/skills.
 
-Each skill lives in skills/{slug}/ and may contain any files.
+Each skill lives in skills/{skill_name}/ and may contain any files.
 All files in the directory are zipped and uploaded as a single skill.
 
 Registry (.skills_registry.json at the project root) tracks
-{slug: {skill_id, content_hash}} for all skills.
+{skill_name: {skill_id, content_hash}} for all skills.
 
 On first upload: client.beta.skills.create() → creates skill, gets skill_id.
 On content change: client.beta.skills.versions.create() → new version, same skill_id.
@@ -26,8 +26,8 @@ SKILLS_DIR = Path(__file__).parents[2] / "skills"
 _REGISTRY_PATH = Path(__file__).parents[2] / ".skills_registry.json"
 
 
-def _skill_dir(slug: str) -> Path:
-    path = SKILLS_DIR / slug
+def _skill_dir(skill_name: str) -> Path:
+    path = SKILLS_DIR / skill_name
     if not path.is_dir():
         raise FileNotFoundError(f"Skill directory not found: {path}")
     return path
@@ -80,7 +80,7 @@ def _upload_version(skill_id: str, zip_bytes: bytes) -> None:
     )
 
 
-def get_or_upload(slug: str) -> str:
+def get_or_upload(skill_name: str) -> str:
     """
     Return cached skill_id, uploading or versioning as needed.
 
@@ -88,19 +88,19 @@ def get_or_upload(slug: str) -> str:
     - Hash unchanged:    return cached skill_id (no-op)
     - Hash changed:      upload new version → update hash, keep skill_id
     """
-    skill_dir = _skill_dir(slug)
+    skill_dir = _skill_dir(skill_name)
     zip_bytes = _build_zip(skill_dir)
     chash = _content_hash(zip_bytes)
 
     registry = _read_registry()
-    entry = registry.get(slug, {})
+    entry = registry.get(skill_name, {})
 
     if not entry.get("skill_id"):
-        display_title = slug.replace("-", " ").title()
+        display_title = skill_name.replace("-", " ").title()
         skill_id = _upload_new(zip_bytes, display_title)
-        registry[slug] = {"skill_id": skill_id, "content_hash": chash}
+        registry[skill_name] = {"skill_id": skill_id, "content_hash": chash}
         _write_registry(registry)
-        print(f"  [skill:{slug}] uploaded → {skill_id}")
+        print(f"  [skill:{skill_name}] uploaded → {skill_id}")
         return skill_id
 
     skill_id = entry["skill_id"]
@@ -109,12 +109,12 @@ def get_or_upload(slug: str) -> str:
         return skill_id
 
     _upload_version(skill_id, zip_bytes)
-    registry[slug] = {"skill_id": skill_id, "content_hash": chash}
+    registry[skill_name] = {"skill_id": skill_id, "content_hash": chash}
     _write_registry(registry)
-    print(f"  [skill:{slug}] new version uploaded → {skill_id}")
+    print(f"  [skill:{skill_name}] new version uploaded → {skill_id}")
     return skill_id
 
 
-def get_or_upload_all(slugs: list[str]) -> dict[str, str]:
-    """Upload/version all listed skills; returns {slug: skill_id}."""
-    return {slug: get_or_upload(slug) for slug in slugs}
+def get_or_upload_all(skill_names: list[str]) -> dict[str, str]:
+    """Upload/version all listed skills; returns {skill_name: skill_id}."""
+    return {skill_name: get_or_upload(skill_name) for skill_name in skill_names}

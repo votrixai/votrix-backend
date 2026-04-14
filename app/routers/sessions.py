@@ -17,7 +17,7 @@ from app.db.queries import sessions as sessions_q
 from app.db.queries import users as users_q
 from app.management.environments import get_or_create as get_env_id
 from app.models.session import SessionCreateResponse, SessionDetailResponse, SessionEventResponse, SessionResponse
-from app.runtime.sessions import create_anthropic_session
+from app.runtime.sessions import create_session
 
 router = APIRouter(tags=["sessions"])
 
@@ -37,16 +37,16 @@ async def create_session(
         )
 
     env_id = get_env_id()
-    anthropic_session_id = create_anthropic_session(user.agent_id, env_id)
+    provider_session_id = create_session(user.agent_id, env_id)
 
-    session_id = uuid.uuid4()
-    db_session = await sessions_q.create_session(db, session_id, user_id)
-    await sessions_q.save_provider_session_id(db, session_id, anthropic_session_id)
+    session_uuid = uuid.uuid4()
+    db_session = await sessions_q.create_session(db, session_uuid, user_id)
+    await sessions_q.save_provider_session_id(db, session_uuid, provider_session_id)
 
     return SessionCreateResponse(
         id=db_session.id,
         user_id=db_session.user_id,
-        anthropic_session_id=anthropic_session_id,
+        session_id=provider_session_id,
         created_at=db_session.created_at,
     )
 

@@ -1,7 +1,7 @@
 """
 Chat endpoint — SSE streaming via Anthropic managed sessions.
 
-POST /agents/{agent_slug}/chat
+POST /agents/{agent_id}/chat
 
 Request body: { user_id, session_id, message }
 
@@ -24,7 +24,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session, session_scope
 from app.db.queries import sessions as sessions_q
 from app.db.queries import users as users_q
-from app.management.environments import get_or_create as get_env_id
 from app.models.chat import ChatRequest
 from app.runtime import sessions as runtime
 
@@ -33,9 +32,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/agents", tags=["chat"])
 
 
-@router.post("/{agent_slug}/chat")
+@router.post("/{agent_id}/chat")
 async def chat(
-    agent_slug: str,
+    agent_id: str,
     body: ChatRequest,
     db: AsyncSession = Depends(get_session),
 ):
@@ -50,22 +49,18 @@ async def chat(
             detail=f"User agent not provisioned — call POST /users/{body.user_id}/provision first",
         )
 
-    env_id = get_env_id()
-
     db_session = await sessions_q.get_session(db, body.session_id)
     if db_session is None or not db_session.session_id:
         raise HTTPException(
             status_code=404,
             detail=f"Session not found — call POST /users/{body.user_id}/sessions first",
         )
-    anthropic_session_id = db_session.session_id
-
     await sessions_q.append_event(db, body.session_id, "user_message", body.message)
 
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
         try:
-            async for event in runtime.stream(anthropic_session_id, body.message, str(user.id)):
+            async for event in runtime.stream(db_session.session_id, body.message, str(user.id)):
                 if event["type"] == "token":
                     ai_tokens.append(event["content"])
                 elif event["type"] == "done":
