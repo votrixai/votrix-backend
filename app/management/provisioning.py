@@ -5,7 +5,7 @@ create_user_agent(agent_id, user_id, display_name) → agent_id
 
 Steps:
   1. Read agents/{agent_id}/config.json  (integrations, skills, model)
-  2. Get or create shared environment (lazy, cached in .env_cache.json)
+  2. Read env_id from agents/{agent_id}/config.json
   3. Upload/cache skills              (lazy, idempotent per skill)
   4. Build per-user system prompt    (template + user context block)
   5. Build per-toolkit MCP servers   (one scoped Composio URL per integration slug)
