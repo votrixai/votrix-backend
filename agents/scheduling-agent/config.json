@@ -1,8 +1,20 @@
 {
-  "slug": "scheduling-agent",
+  "agentId": "scheduling-agent",
   "name": "Scheduling Agent",
   "model": "claude-sonnet-4-6",
+  "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
   "skills": ["calendar-scheduling"],
-  "integrations": ["googlecalendar"],
+  "integrations": [
+    {
+      "slug": "googlecalendar",
+      "tools": [
+        "GOOGLECALENDAR_CREATE_EVENT",
+        "GOOGLECALENDAR_LIST_EVENTS",
+        "GOOGLECALENDAR_GET_EVENT",
+        "GOOGLECALENDAR_UPDATE_EVENT",
+        "GOOGLECALENDAR_DELETE_EVENT"
+      ]
+    }
+  ],
   "tools": []
 }

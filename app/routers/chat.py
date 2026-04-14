@@ -38,16 +38,9 @@ async def chat(
     body: ChatRequest,
     db: AsyncSession = Depends(get_session),
 ):
-    # Validate user
     user = await users_q.get_user(db, body.user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    # Require provisioning before chat
-    if not user.agent_id:
-        raise HTTPException(
-            status_code=409,
-            detail=f"User agent not provisioned — call POST /users/{body.user_id}/provision first",
-        )
 
     db_session = await sessions_q.get_session(db, body.session_id)
     if db_session is None or not db_session.session_id:

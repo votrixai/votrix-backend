@@ -2,8 +2,13 @@
   "agentId": "marketing-agent",
   "name": "Marketing Agent",
   "model": "claude-sonnet-4-6",
-  "envId": "env_011CZwAcmXwY7hThDDepXMP8",
+  "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
   "skills": ["email-sending", "gmail-drafting"],
-  "integrations": ["gmail"],
+  "integrations": [
+    {
+      "slug": "gmail",
+      "tools": ["GMAIL_SEND_EMAIL", "GMAIL_CREATE_DRAFT", "GMAIL_FETCH_EMAILS", "GMAIL_LIST_THREADS"]
+    }
+  ],
   "tools": ["cron_create", "cron_delete", "cron_list", "image_generate"]
 }
