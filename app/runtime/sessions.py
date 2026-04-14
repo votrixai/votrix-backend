@@ -17,12 +17,15 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import queue
 import threading
 import time
 from typing import Any, AsyncGenerator
 
 import anthropic
+
+logger = logging.getLogger(__name__)
 
 from app.client import get_client
 from app.tools import execute as execute_tool
@@ -65,6 +68,9 @@ def _stream_in_thread(
                         first = False
 
                     for event in event_stream:
+                        raw = str(event)
+                        logger.info("[event] %s: %s", event.type, raw[:50])
+
                         match event.type:
                             case "agent.message":
                                 for block in event.content:
@@ -119,6 +125,9 @@ def _stream_in_thread(
                                 out.put({"type": "error", "message": str(event)})
                                 idle = True
                                 break
+
+                            case _:
+                                logger.info("[event] unhandled: %s", raw[:50])
 
             except anthropic.APITimeoutError:
                 out.put({"type": "error", "message": "stream timeout — tool took >60s"})

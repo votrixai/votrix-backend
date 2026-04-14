@@ -62,7 +62,9 @@ async def chat(
                         async with session_scope() as s:
                             await sessions_q.append_event(s, body.session_id, "ai_message", reply)
 
-                yield f"data: {json.dumps(event)}\n\n"
+                raw = json.dumps(event)
+                logger.info("[stream] %s", raw[:50])
+                yield f"data: {raw}\n\n"
 
         except Exception as e:
             logger.exception("chat stream failed session_id=%s", body.session_id)
