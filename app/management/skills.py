@@ -80,12 +80,12 @@ def _upload_version(skill_id: str, zip_bytes: bytes) -> None:
     )
 
 
-def get_or_upload(skill_name: str) -> str:
+def get_or_upload(skill_name: str, force: bool = False) -> str:
     """
     Return cached skill_id, uploading or versioning as needed.
 
     - No registry entry: upload new skill → store skill_id + hash
-    - Hash unchanged:    return cached skill_id (no-op)
+    - Hash unchanged:    return cached skill_id (no-op), or force new version if force=True
     - Hash changed:      upload new version → update hash, keep skill_id
     """
     skill_dir = _skill_dir(skill_name)
@@ -105,7 +105,7 @@ def get_or_upload(skill_name: str) -> str:
 
     skill_id = entry["skill_id"]
 
-    if entry.get("content_hash") == chash:
+    if entry.get("content_hash") == chash and not force:
         return skill_id
 
     _upload_version(skill_id, zip_bytes)
@@ -115,6 +115,34 @@ def get_or_upload(skill_name: str) -> str:
     return skill_id
 
 
-def get_or_upload_all(skill_names: list[str]) -> dict[str, str]:
+def _sync_registry_from_api(skill_names: list[str]) -> None:
+    """
+    For any skill in skill_names that has no local skill_id, query the API by
+    display_title and restore the skill_id.  This prevents BadRequestError when
+    a skill exists on the server but was removed from the local registry.
+    """
+    registry = _read_registry()
+    missing = [s for s in skill_names if not registry.get(s, {}).get("skill_id")]
+    if not missing:
+        return
+
+    # Build title → skill_name map for the missing ones
+    title_to_slug = {s.replace("-", " ").title(): s for s in missing}
+
+    try:
+        page = get_client().beta.skills.list()
+        for remote_skill in page.data:
+            slug = title_to_slug.get(remote_skill.display_title)
+            if slug:
+                registry.setdefault(slug, {})["skill_id"] = remote_skill.id
+                registry[slug].setdefault("content_hash", "")
+                print(f"  [skill:{slug}] restored from API → {remote_skill.id}")
+        _write_registry(registry)
+    except Exception as exc:
+        print(f"  [skills] API sync warning: {exc}")
+
+
+def get_or_upload_all(skill_names: list[str], force: bool = False) -> dict[str, str]:
     """Upload/version all listed skills; returns {skill_name: skill_id}."""
-    return {skill_name: get_or_upload(skill_name) for skill_name in skill_names}
+    _sync_registry_from_api(skill_names)
+    return {skill_name: get_or_upload(skill_name, force=force) for skill_name in skill_names}

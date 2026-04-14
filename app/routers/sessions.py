@@ -58,7 +58,7 @@ async def list_sessions(
 ):
     rows = await sessions_q.list_sessions(db, user_id)
     return [
-        SessionResponse(id=r.id, user_id=r.user_id, created_at=r.created_at)
+        SessionResponse(id=r.id, user_id=r.user_id, display_name=r.display_name, created_at=r.created_at)
         for r in rows
     ]
 
