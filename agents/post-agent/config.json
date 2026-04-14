@@ -1,0 +1,29 @@
+{
+  "agentId": "post-agent",
+  "name": "Post Agent",
+  "model": "claude-sonnet-4-6",
+  "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
+  "skills": [
+    "social-media-post-setup",
+    "social-media-post-content-creation",
+    "social-media-post-publishing",
+    "social-media-post-market-research",
+    "social-media-post-analytics",
+    "social-media-post-review-monitor"
+  ],
+  "integrations": [
+    {
+      "slug": "linkedin",
+      "tools": ["LINKEDIN_CREATE_LINKED_IN_POST", "LINKEDIN_GET_PROFILE"]
+    },
+    {
+      "slug": "twitter",
+      "tools": ["TWITTER_CREATION_OF_A_POST", "TWITTER_USER_LOOKUP_ME"]
+    },
+    {
+      "slug": "instagram",
+      "tools": ["INSTAGRAM_MEDIA_PUBLISH", "INSTAGRAM_GET_PAGES_WITH_INSTAGRAM_ACCOUNTS"]
+    }
+  ],
+  "tools": ["cron_create", "cron_delete", "cron_list", "image_generate"]
+}

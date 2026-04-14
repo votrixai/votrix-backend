@@ -38,16 +38,9 @@ async def chat(
     body: ChatRequest,
     db: AsyncSession = Depends(get_session),
 ):
-    # Validate user
     user = await users_q.get_user(db, body.user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    # Require provisioning before chat
-    if not user.agent_id:
-        raise HTTPException(
-            status_code=409,
-            detail=f"User agent not provisioned — call POST /users/{body.user_id}/provision first",
-        )
 
     db_session = await sessions_q.get_session(db, body.session_id)
     if db_session is None or not db_session.session_id:
@@ -69,7 +62,9 @@ async def chat(
                         async with session_scope() as s:
                             await sessions_q.append_event(s, body.session_id, "ai_message", reply)
 
-                yield f"data: {json.dumps(event)}\n\n"
+                raw = json.dumps(event)
+                logger.info("[stream] %s", raw[:50])
+                yield f"data: {raw}\n\n"
 
         except Exception as e:
             logger.exception("chat stream failed session_id=%s", body.session_id)

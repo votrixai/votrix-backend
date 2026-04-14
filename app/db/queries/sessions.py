@@ -11,8 +11,9 @@ async def create_session(
     db: AsyncSession,
     session_id: uuid.UUID,
     user_id: uuid.UUID,
+    display_name: str,
 ) -> Session:
-    session = Session(id=session_id, user_id=user_id)
+    session = Session(id=session_id, user_id=user_id, display_name=display_name)
     db.add(session)
     await db.commit()
     await db.refresh(session)

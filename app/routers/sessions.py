@@ -15,37 +15,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.engine import get_session
 from app.db.queries import sessions as sessions_q
 from app.db.queries import users as users_q
-from app.management.environments import get_or_create as get_env_id
-from app.models.session import SessionCreateResponse, SessionDetailResponse, SessionEventResponse, SessionResponse
-from app.runtime.sessions import create_session
+from app.management.environments import create_session
+from app.management.provisioning import create_user_agent, _read_config
+from app.models.session import SessionCreateRequest, SessionCreateResponse, SessionDetailResponse, SessionEventResponse, SessionResponse
 
 router = APIRouter(tags=["sessions"])
 
 
 @router.post("/users/{user_id}/sessions", response_model=SessionCreateResponse, status_code=201)
-async def create_session(
+async def create_session_endpoint(
     user_id: uuid.UUID,
+    body: SessionCreateRequest,
     db: AsyncSession = Depends(get_session),
 ):
     user = await users_q.get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if not user.agent_id:
-        raise HTTPException(
-            status_code=409,
-            detail=f"User agent not provisioned — call POST /users/{user_id}/provision first",
-        )
 
-    env_id = get_env_id()
-    provider_session_id = create_session(user.agent_id, env_id)
+    config = _read_config(body.agent_id)
+    env_id = config["envId"]
+
+    anthropic_agent_id = create_user_agent(body.agent_id, str(user_id), user.display_name)
+    provider_session_id = create_session(anthropic_agent_id, env_id)
 
     session_uuid = uuid.uuid4()
-    db_session = await sessions_q.create_session(db, session_uuid, user_id)
+    db_session = await sessions_q.create_session(db, session_uuid, user_id, body.display_name)
     await sessions_q.save_provider_session_id(db, session_uuid, provider_session_id)
 
     return SessionCreateResponse(
         id=db_session.id,
         user_id=db_session.user_id,
+        display_name=db_session.display_name,
         session_id=provider_session_id,
         created_at=db_session.created_at,
     )

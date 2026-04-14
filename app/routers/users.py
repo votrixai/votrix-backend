@@ -3,9 +3,8 @@ User management routes.
 
 POST   /users                       create user
 GET    /users                       list users
-GET    /users/{id}                  get user
+GET    /users/{id}                  get user + sessions
 DELETE /users/{id}                  delete user
-POST   /users/{id}/provision        provision per-user managed agent (idempotent)
 """
 
 import uuid
@@ -14,9 +13,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import get_session
+from app.db.queries import sessions as sessions_q
 from app.db.queries import users as users_q
-from app.management import provisioning
-from app.models.user import CreateUserRequest, ProvisionResponse, UserResponse
+from app.models.session import SessionResponse
+from app.models.user import CreateUserRequest, UserResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -27,12 +27,7 @@ async def create_user(
     db: AsyncSession = Depends(get_session),
 ):
     user = await users_q.create_user(db, body.display_name)
-    return UserResponse(
-        id=user.id,
-        display_name=user.display_name,
-        agent_id=user.agent_id,
-        created_at=user.created_at,
-    )
+    return UserResponse(id=user.id, display_name=user.display_name, created_at=user.created_at)
 
 
 @router.get("", response_model=list[UserResponse])
@@ -41,12 +36,7 @@ async def list_users(
 ):
     rows = await users_q.list_users(db)
     return [
-        UserResponse(
-            id=r.id,
-            display_name=r.display_name,
-            agent_id=r.agent_id,
-            created_at=r.created_at,
-        )
+        UserResponse(id=r.id, display_name=r.display_name, created_at=r.created_at)
         for r in rows
     ]
 
@@ -59,43 +49,16 @@ async def get_user(
     user = await users_q.get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    sessions = await sessions_q.list_sessions(db, user_id)
     return UserResponse(
         id=user.id,
         display_name=user.display_name,
-        agent_id=user.agent_id,
         created_at=user.created_at,
+        sessions=[
+            SessionResponse(id=s.id, user_id=s.user_id, display_name=s.display_name, created_at=s.created_at)
+            for s in sessions
+        ],
     )
-
-
-@router.post("/{user_id}/provision", response_model=ProvisionResponse)
-async def provision_user(
-    user_id: uuid.UUID,
-    agent_id: str,
-    db: AsyncSession = Depends(get_session),
-):
-    """
-    Create a per-user managed agent for this user.
-    Idempotent — returns existing agent_id if already provisioned.
-    agent_id: the agent template to provision against (e.g. "marketing-agent")
-    """
-    user = await users_q.get_user(db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    if user.agent_id:
-        return ProvisionResponse(
-            agent_id=user.agent_id,
-            provisioned=False,
-        )
-
-    provisioned_agent_id = provisioning.create_user_agent(
-        agent_id=agent_id,
-        user_id=str(user.id),
-        display_name=user.display_name,
-    )
-    await users_q.set_agent_id(db, user.id, provisioned_agent_id)
-
-    return ProvisionResponse(agent_id=provisioned_agent_id, provisioned=True)
 
 
 @router.delete("/{user_id}", status_code=204)
