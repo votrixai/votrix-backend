@@ -14,37 +14,32 @@ The admin needs:
 
 ## Step 1 — Initiate Twitter Connection
 
-用 `tool_search("composio manage connections twitter")` 找到 OAuth 发起工具，启动 Twitter 授权流程。
+调用 `COMPOSIO_MANAGE_CONNECTIONS`，app 设为 `TWITTER`，发起授权流程。
 
-The tool returns an authorization URL. Send it to the admin:
+工具会返回一个授权链接，发给 admin：
 
-> "To connect Twitter/X, please open this link and authorize access: [url]"
+> 「点击这个链接授权 Twitter/X 访问权限：[url]」
 
-Wait for the admin to confirm before proceeding.
+等 admin 完成后再继续。
 
 ---
 
 ## Step 2 — Verify Connection
 
-After confirmation, search for an action to retrieve the connected account details:
-
-```
-tool_search("twitter get user")
-```
-
-Execute to retrieve:
+授权完成后，通过 Composio Twitter 工具获取账号详情，检索：
 - `twitter_user_id`
-- `username` (the @handle)
-- `name` (display name)
+- `username`（@handle）
+- `name`（显示名称）
 
 ---
 
 ## Step 3 — 写入 marketing-context.md
 
-将账号信息写入 `user-files/marketing-context.md` 的 `## 已连接平台 → Twitter` 部分：
+将账号信息写入 `/workspace/marketing-context.md` 的 `## 已连接平台 → Twitter` 部分：
 
 ```
 ### Twitter
+- 启用：true
 - 用户名：{username}
 - User ID：{twitter_user_id}
 ```

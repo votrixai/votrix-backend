@@ -1,5 +1,12 @@
+import importlib
 import os
 import tempfile
+from unittest.mock import patch
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 # Must be set before app imports so get_settings() lru_cache picks them up
 os.environ.setdefault("ANTHROPIC_API_KEY", "sk-test-key")
@@ -10,15 +17,9 @@ os.close(_tmp_db_fd)
 _TEST_DB_URL = f"sqlite+aiosqlite:///{_tmp_db_path}"
 os.environ["DATABASE_URL"] = _TEST_DB_URL
 
-import pytest
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.pool import NullPool
-from unittest.mock import patch
-
-from app.main import app
-from app.db.models.base import Base
-import app.db.engine as db_engine_module
+app = importlib.import_module("app.main").app
+Base = importlib.import_module("app.db.models.base").Base
+db_engine_module = importlib.import_module("app.db.engine")
 
 
 def _make_nullpool_engine():

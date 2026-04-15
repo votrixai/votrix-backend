@@ -1,28 +1,34 @@
 """
 Per-user agent provisioning.
 
-create_user_agent(agent_id, user_id, display_name) → agent_id
+create_user_agent(agent_id, user_id, display_name, force) → anthropic_agent_id
 
 Steps:
-  1. Read agents/{agent_id}/config.json  (integrations, skills, model)
-  2. Read env_id from agents/{agent_id}/config.json
-  3. Upload/cache skills              (lazy, idempotent per skill)
-  4. Build per-user system prompt    (template + user context block)
-  5. Build per-toolkit MCP servers   (one scoped Composio URL per integration slug)
+  1. Read agents/{agent_id}/config.json
+  2. Upload/version skills (idempotent)
+  3. Auto-connect API_KEY integrations (e.g. Apollo)
+  4. Get or create Composio MCP server named "votrix-{agent_id}"
+     (force=True deletes and recreates)
+  5. Build system prompt
   6. Call client.beta.agents.create() → return agent_id
-
-Does NOT touch the database — caller (router) handles persistence.
 """
 
 from __future__ import annotations
 
 import json
+import logging
+import os
 from pathlib import Path
+
+import httpx
 
 from app.management import skills
 from app.client import get_client
+from app.config import get_settings
 from app.integrations import composio
 from app.tools import TOOL_DEFINITIONS
+
+logger = logging.getLogger(__name__)
 
 AGENTS_DIR = Path(__file__).parents[2] / "agents"
 
@@ -48,7 +54,6 @@ def _read_config(agent_id: str) -> dict:
 
 
 def _build_system(agent_id: str) -> str:
-    """Read PROMPT.md from the agent directory."""
     p = _agent_dir(agent_id) / "PROMPT.md"
     if not p.exists():
         raise FileNotFoundError(f"PROMPT.md not found for agent '{agent_id}'")
@@ -60,24 +65,72 @@ def _build_user_system(agent_id: str, display_name: str) -> str:
     return base + f"\n\n---\n\n## Current User\nName: {display_name}\n"
 
 
-def _build_mcp_servers(integrations: list[dict], user_id: str) -> list[dict]:
-    """One scoped Composio MCP server per integration, with optional action filtering."""
-    return [
-        {
-            "type": "url",
-            "name": i["slug"],
-            "url": composio.mcp_url_for_toolkit(user_id, i["slug"], i.get("tools")),
-        }
-        for i in integrations
-    ]
-
-
 def _build_tools(mcp_server_names: list[str], custom_tools: list[dict]) -> list[dict]:
     return (
         [_AGENT_TOOLSET]
         + [{"type": "mcp_toolset", "mcp_server_name": name, **_MCP_TOOLSET_CONFIG} for name in mcp_server_names]
         + custom_tools
     )
+
+
+def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str) -> None:
+    """For API_KEY integrations, auto-create connected_account at provision time.
+    Key is read from env as {SLUG_UPPER}_API_KEY (e.g. APOLLO_API_KEY).
+    Idempotent: checks by auth_config_id + entity_id via SDK.
+    """
+    settings = get_settings()
+
+    # Fetch all active connections for this entity via REST (SDK filtering is unreliable)
+    r = httpx.get(
+        "https://backend.composio.dev/api/v3/connected_accounts",
+        headers={"x-api-key": settings.composio_api_key},
+        params={"user_id": entity_id, "status": "ACTIVE"},
+        timeout=15,
+    )
+    r.raise_for_status()
+    active_slugs = {
+        (item.get("toolkit") or {}).get("slug", "")
+        for item in r.json().get("items", [])
+        if item.get("user_id") == entity_id and item.get("status") == "ACTIVE"
+    }
+
+    for i in integrations:
+        slug = i["slug"]
+        ac = composio._get_auth_config(slug)
+        if ac is None:
+            raise RuntimeError(
+                f"No auth_config found in Composio for integration '{slug}'. "
+                "Create one in the Composio dashboard first."
+            )
+
+        auth_scheme = (ac.get("auth_scheme") or "").upper()
+        if auth_scheme != "API_KEY":
+            continue
+
+        if slug in active_slugs:
+            logger.info("provisioning: '%s' already connected for %s", slug, entity_id)
+            continue
+
+        env_key = f"{slug.upper()}_API_KEY"
+        api_key_val = os.environ.get(env_key)
+        if not api_key_val:
+            raise RuntimeError(
+                f"Integration '{slug}' requires API_KEY but env var '{env_key}' is not set."
+            )
+
+        logger.info("provisioning: auto-connecting API_KEY integration '%s' for %s", slug, entity_id)
+        r = httpx.post(
+            "https://backend.composio.dev/api/v3/connected_accounts",
+            headers={"x-api-key": settings.composio_api_key, "Content-Type": "application/json"},
+            json={
+                "auth_config": {"id": ac["id"]},
+                "connection": {"user_id": entity_id, "data": {"api_key": api_key_val}},
+            },
+            timeout=15,
+        )
+        if not r.is_success:
+            raise RuntimeError(f"Failed to connect '{slug}': {r.status_code} {r.text}")
+        logger.info("provisioning: '%s' connected successfully", slug)
 
 
 def _skill_entries(skill_ids: dict[str, str]) -> list[dict]:
@@ -89,24 +142,35 @@ def create_user_agent(
     user_id: str,
     display_name: str,
     composio_user_id: str | None = None,
+    force: bool = False,
 ) -> str:
     """
     Provision a per-user Anthropic managed agent.
-    Returns the new agent_id (caller must persist to DB).
-
-    composio_user_id: Composio entity ID used in MCP URLs for OAuth routing.
-                      Defaults to user_id when not provided.
+    Returns the Anthropic agent_id (caller must persist to DB).
     """
     config = _read_config(agent_id)
-
-    skill_ids = skills.get_or_upload_all(config.get("skills", []))
-    integrations = config.get("integrations", [])
     composio_id = composio_user_id or user_id
 
+    skill_ids = skills.get_or_upload_all(config.get("skills", []), force=force)
     custom_tools = [TOOL_DEFINITIONS[t] for t in config.get("tools", []) if t in TOOL_DEFINITIONS]
 
+    integrations = config.get("integrations", [])
+
+    # Auto-connect API_KEY integrations (e.g. Apollo) — no user action needed
+    _auto_connect_api_key_integrations(integrations, composio_id)
+
+    # Get or create Composio MCP server for this agent's integrations
+    mcp_server_id = composio.get_or_create_mcp_server(agent_id, integrations, force=force)
+
+    mcp_servers = []
+    if mcp_server_id:
+        mcp_servers = [{
+            "type": "url",
+            "name": "composio",
+            "url": composio.mcp_url(mcp_server_id, composio_id),
+        }]
+
     system = _build_user_system(agent_id, display_name)
-    mcp_servers = _build_mcp_servers(integrations, composio_id)
     tools = _build_tools([s["name"] for s in mcp_servers], custom_tools)
 
     client = get_client()
@@ -116,7 +180,7 @@ def create_user_agent(
         system=system,
         tools=tools,
         skills=_skill_entries(skill_ids),
-        mcp_servers=mcp_servers if mcp_servers else [],
+        mcp_servers=mcp_servers,
     )
 
     return agent.id

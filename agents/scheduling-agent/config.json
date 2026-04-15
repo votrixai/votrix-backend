@@ -1,20 +1,15 @@
 {
   "agentId": "scheduling-agent",
   "name": "Scheduling Agent",
-  "model": "claude-sonnet-4-6",
+  "model": "claude-haiku-4-5-20251001",
   "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
   "skills": ["calendar-scheduling"],
   "integrations": [
-    {
-      "slug": "googlecalendar",
-      "tools": [
-        "GOOGLECALENDAR_CREATE_EVENT",
-        "GOOGLECALENDAR_LIST_EVENTS",
-        "GOOGLECALENDAR_GET_EVENT",
-        "GOOGLECALENDAR_UPDATE_EVENT",
-        "GOOGLECALENDAR_DELETE_EVENT"
-      ]
-    }
+    {"slug": "googlecalendar"},
+    {"slug": "instagram"},
+    {"slug": "facebook"},
+    {"slug": "twitter"},
+    {"slug": "apollo"}
   ],
-  "tools": []
+  "tools": ["manage_connections", "image_generate"]
 }

@@ -61,25 +61,43 @@ _定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无
 ## 已连接平台
 
 ### Facebook
+- 启用：false
 - 主页名称：
 - Page ID：
 
 ### Instagram
+- 启用：false
 - 用户名：
 - Account ID：
 
 ### Twitter
+- 启用：false
 - 用户名：
 - User ID：
 
 ### LinkedIn
+- 启用：false
 - 公司名称：
 - Organization ID：
 - Person ID：
 
-### Yelp
-- 商家名称：
-- Business ID：
+---
+
+## 运行状态
+
+_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_
+
+### Facebook
+- 上次巡查时间：
+- 最后处理的 Post ID：
+
+### Instagram
+- 上次巡查时间：
+- 最后处理的 Post ID：
+
+### Twitter
+- 上次巡查时间：
+- 最后处理的 Post ID：
 
 ---
 

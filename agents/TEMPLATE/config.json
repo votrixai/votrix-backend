@@ -1,0 +1,29 @@
+{
+  "agentId": "your-agent-id",
+  "name": "Your Agent Name",
+  "model": "claude-haiku-4-5-20251001",
+  "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
+  "skills": [
+    "skill-slug-one",
+    "skill-slug-two"
+  ],
+  "integrations": [
+    {
+      "slug": "gmail",
+      "tools": [
+        "GMAIL_SEND_EMAIL",
+        "GMAIL_FETCH_EMAILS"
+      ]
+    },
+    {
+      "slug": "instagram"
+    }
+  ],
+  "tools": [
+    "manage_connections",
+    "cron_create",
+    "cron_delete",
+    "cron_list",
+    "image_generate"
+  ]
+}

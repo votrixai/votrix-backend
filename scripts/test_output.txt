@@ -1,48 +1,85 @@
-[skip provision] using agent_id=agent_011CZyeY5dFma7rBn96ZT3Bs
 
-[ready] Watching /home/zyue/votrix-v2/votrix-backend/scripts/test_input.txt
-[ready] Output → /home/zyue/votrix-v2/votrix-backend/scripts/test_output.txt
-[ready] Session sesn_011CZyfmcpCyKb55foGUZFND
+[ready] Watching /home/zyue/project/votrix/votrix-backend/scripts/test_input.txt
+[ready] Output → /home/zyue/project/votrix/votrix-backend/scripts/test_output.txt
+[ready] Session sesn_011Ca5cQk7qS5iun3GZUDpuN
 [ready] Write a message to test_input.txt to chat. Ctrl-C to quit.
 
 
 ────────────────────────────────────────────────────────────
-[user] Send a test email to peter@cater-ai.com with subject 'Morning Spark Launch' and body 'Hi Peter, this is a test email from the marketing agent. The Morning Spark coffee brand is ready to launch!'
+[user] 用apollo搜索 Peter Yue 这个人的信息
 ────────────────────────────────────────────────────────────
 
-Here's the email I'll send — please review it before I proceed:
+我来帮您使用Apollo搜索 Peter Yue 的信息。
+  ↳ [tool: APOLLO_PEOPLE_SEARCH] {'per_page': 25, 'q_keywords': 'Peter Yue'}
+  ↳ [result] [BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"people":[{"first_name":"Peter","has_city":tr
+搜索完成！我找到了 **11 个 Peter Yue** 的记录。以下是主要信息总结：
 
----
+## 搜索结果汇总
 
-**To:** peter@cater-ai.com
-**Subject:** Morning Spark Launch
+| # | 职位 | 公司 | 联系方式 |
+|---|------|------|---------|
+| 1 | Head of Collateral, Funding & Repo, Global Markets, Managing Director | **OCBC** | ✓ 电话 ✓ 邮件 |
+| 2 | System Analyst | **Bank of America** | ✓ 电话 ✓ 邮件 |
+| 3 | Proprietor | **Liberté** | ✓ 电话 |
+| 4 | PLM开发主管 | **Mindray** | ✓ 邮件 |
+| 5 | PLM Engineer | **Lenovo** | ✓ 邮件 |
+| 6 | Engineer | **Huawei** | - |
+| 7 | Deputy General Manager | 山东鼎信动力设备有限公司 | - |
+| 8 | Sale Manager | Hebei Xingbai Agricultural Technology Co.,ltd | - |
+| 9 | Foreign Trade Specialist | 上海名乐实业有限公司 | - |
+| 10 | Customer Services III | **Unum** | - |
+| 11 | Software Developer | **Ericsson** | - |
 
-**Body:**
-Hi Peter, this is a test email from the marketing agent. The Morning Spark coffee brand is ready to launch!
+**最突出的人选：**
+- **#1: OCBC Managing Director** - 高级职位，拥有完整联系方式（电话+邮件）
+- **#2: Bank of America System Analyst** - 大公司员工，拥有完整联系方式
 
----
-
-Shall I send this?
-
-────────────────────────────────────────────────────────────
-[done] 13.8s
-────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────
-[user] Yes, send it
-────────────────────────────────────────────────────────────
-
-
-  ↳ [tool: GMAIL_SEND_EMAIL] {'body': 'Hi Peter, this is a test email from the marketing agent. The Morning Spark coffee brand is ready to launch!', 'recipient_email': 'peter@cater-ai.com', 'subject': 'Morning Spark Launch'}
-  ↳ [result] [BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"display_url":"https://mail.google.com/mail/u/0/#inbox/19d811a6b06fad7e","id":"19d811a6b06fad7e","labelIds":["SENT"],"threadI
-✅ Email sent successfully! Here's a summary:
-
-- **To:** peter@cater-ai.com
-- **Subject:** Morning Spark Launch
-- **Status:** Delivered to your Sent folder
-
-You can view it [here](https://mail.google.com/mail/u/0/#inbox/19d811a6b06fad7e).
+您想要获取某个特定 Peter Yue 的更详细信息吗？我可以为您检索完整的联系方式和个人资料。
 
 ────────────────────────────────────────────────────────────
-[done] 13.7s
+[done] 26.4s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 帮我连接 instagram 账号
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: manage_connections] {'toolkit': 'instagram'}
+  ↳ [result] {"status": true, "connected": false, "auth_type": "oauth", "toolkit": "instagram", "redirect_url": "https://backend.comp
+请点击下方链接来授权连接您的 Instagram 账号：
+
+[授权 Instagram 连接](https://backend.composio.dev/api/v3/s/HOpV-7ep)
+
+点击链接后，您需要：
+1. 登录您的 Instagram 账号
+2. 批准应用程序的访问权限
+3. 完成授权流程
+
+授权完成后，我就可以帮您管理 Instagram 上的内容了！
+
+────────────────────────────────────────────────────────────
+[done] 42.0s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 帮我连接 twitter 账号
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: manage_connections] {'toolkit': 'twitter'}
+  ↳ [result] {"status": true, "connected": false, "auth_type": "oauth", "toolkit": "twitter", "redirect_url": "https://backend.compos
+请点击下方链接来授权连接您的 Twitter 账号：
+
+[授权 Twitter 连接](https://backend.composio.dev/api/v3/s/xN0Xz_Z3)
+
+点击链接后，您需要：
+1. 登录您的 Twitter 账号
+2. 批准应用程序的访问权限
+3. 完成授权流程
+
+授权完成后，我就可以帮您发布推文、管理账号和进行其他 Twitter 操作了！
+
+────────────────────────────────────────────────────────────
+[done] 36.5s
 ────────────────────────────────────────────────────────────

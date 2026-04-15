@@ -14,29 +14,23 @@ The admin needs:
 
 ## Step 1 — Initiate Facebook Connection
 
-用 `tool_search("composio manage connections facebook")` 找到 OAuth 发起工具，启动 Facebook 授权流程。
+调用 `COMPOSIO_MANAGE_CONNECTIONS`，app 设为 `FACEBOOK`，发起授权流程。
 
-The tool returns an authorization URL. Send it to the admin:
+工具会返回一个授权链接，发给 admin：
 
-> "To connect Facebook, please open this link and authorize access: [url]"
+> 「点击这个链接授权 Facebook 访问权限：[url]」
 
-During the Facebook authorization screen, the admin must grant permissions for **Pages** — remind them to check that box if prompted.
-
-Wait for the admin to confirm before proceeding.
+授权页面上需要勾选 **Pages** 权限，提醒 admin 注意确认。等 admin 完成后再继续。
 
 ---
 
 ## Step 2 — Select the Facebook Page
 
-After authorization, search for an action to list Pages the admin manages:
+调用 `COMPOSIO_MANAGE_CONNECTIONS` 或对应的 Facebook 工具，列出 admin 管理的 Pages。
 
-```
-tool_search("facebook get pages")
-```
+展示列表给 admin：只有一个 Page 就直接确认；多个的话让 admin 选。
 
-Execute and display the list of Pages returned. If only one Page exists, confirm with the admin and proceed. If multiple Pages exist, ask the admin which one to use.
-
-Retrieve and save:
+记录：
 - `page_id`
 - `page_name`
 
@@ -44,10 +38,11 @@ Retrieve and save:
 
 ## Step 3 — 写入 marketing-context.md
 
-将 Page 信息写入 `user-files/marketing-context.md` 的 `## 已连接平台 → Facebook` 部分：
+将 Page 信息写入 `/workspace/marketing-context.md` 的 `## 已连接平台 → Facebook` 部分：
 
 ```
 ### Facebook
+- 启用：true
 - 主页名称：{page_name}
 - Page ID：{page_id}
 ```

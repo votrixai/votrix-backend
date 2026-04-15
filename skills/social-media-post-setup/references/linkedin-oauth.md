@@ -20,40 +20,34 @@ This determines which permissions to request during OAuth.
 
 ## Step 1 — Initiate LinkedIn Connection
 
-用 `tool_search("composio manage connections linkedin")` 找到 OAuth 发起工具，启动 LinkedIn 授权流程。
+调用 `COMPOSIO_MANAGE_CONNECTIONS`，app 设为 `LINKEDIN`，发起授权流程。
 
-The tool returns an authorization URL. Send it to the admin:
+工具会返回一个授权链接，发给 admin：
 
-> "To connect LinkedIn, please open this link and authorize access: [url]"
+> 「点击这个链接授权 LinkedIn 访问权限：[url]」
 
-LinkedIn may ask which permissions to grant — the admin should approve all requested scopes. Wait for confirmation before proceeding.
+LinkedIn 授权页面会列出需要的权限范围，让 admin 全部批准。等 admin 完成后再继续。
 
 ---
 
 ## Step 2 — Retrieve Connected Account Details
 
-Search for an action to get the connected profile and any associated Company Pages:
-
-```
-tool_search("linkedin get profile")
-tool_search("linkedin get organization")
-```
-
-Execute and retrieve:
-- `linkedin_person_id` (personal profile)
-- `linkedin_organization_id` (Company Page, if applicable)
+通过 Composio LinkedIn 工具获取已连接的个人资料和公司主页信息，检索：
+- `linkedin_person_id`（个人账号）
+- `linkedin_organization_id`（公司 Page，如适用）
 - `company_name`
 
-If the admin wants Company Page posting, confirm `linkedin_organization_id` is present. If it's missing, they may not have Page admin access — guide them to check their role in LinkedIn Page settings.
+如果 admin 需要用公司 Page 发帖，但 `linkedin_organization_id` 为空，说明账号可能没有 Page 管理权限——引导他去 LinkedIn Page 设置里确认自己的角色。
 
 ---
 
 ## Step 3 — 写入 marketing-context.md
 
-将账号信息写入 `user-files/marketing-context.md` 的 `## 已连接平台 → LinkedIn` 部分：
+将账号信息写入 `/workspace/marketing-context.md` 的 `## 已连接平台 → LinkedIn` 部分：
 
 ```
 ### LinkedIn
+- 启用：true
 - 公司名称：{company_name}
 - Organization ID：{linkedin_organization_id}
 - Person ID：{linkedin_person_id}
