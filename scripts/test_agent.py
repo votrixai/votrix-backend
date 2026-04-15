@@ -10,14 +10,17 @@ Run from votrix-backend/:
 from __future__ import annotations
 
 import argparse
+import queue
 import sys
+import threading
 import time
 from pathlib import Path
 
-# Make sure app/ is importable from this script
-sys.path.insert(0, str(Path(__file__).parents[1]))
-
 from dotenv import load_dotenv
+
+from app.build.run import build
+from app.runtime.sessions import _SENTINEL, _load_cache, _stream_in_thread
+
 load_dotenv()
 
 AGENT_ID = "marketing-agent"
@@ -27,7 +30,6 @@ TEST_MESSAGE = "Hi! Can you help me draft a short email to a potential client in
 # ─── Step 1: Build ────────────────────────────────────────────────────────────
 
 def run_build(force: bool = False) -> None:
-    from app.build.run import build
     print(f"\n{'─'*60}")
     print(f"[build] provisioning {AGENT_ID} (force={force})")
     print(f"{'─'*60}")
@@ -37,11 +39,6 @@ def run_build(force: bool = False) -> None:
 # ─── Step 2: Chat (direct SDK, no HTTP) ───────────────────────────────────────
 
 def run_chat() -> None:
-    import json
-    import queue
-    import threading
-    from app.runtime.sessions import _stream_in_thread, _load_cache
-
     cache = _load_cache(AGENT_ID)
     print(f"\n{'─'*60}")
     print(f"[chat] agent_id : {cache['agent_id']}")
@@ -58,8 +55,6 @@ def run_chat() -> None:
     t.start()
 
     tokens: list[str] = []
-    from app.runtime.sessions import _SENTINEL
-
     t_start = time.perf_counter()
     while True:
         event = out.get()

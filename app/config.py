@@ -8,9 +8,8 @@ class Settings(BaseSettings):
     database_url: str
     anthropic_api_key: str
 
-    # Composio MCP — org-level credentials
+    # Composio — org-level credentials
     composio_api_key: str = ""
-    composio_server_id: str = ""
 
     # Supabase Storage — for generated images
     supabase_url: str = ""

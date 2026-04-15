@@ -25,12 +25,12 @@ from typing import Any, AsyncGenerator
 
 import anthropic
 
-logger = logging.getLogger(__name__)
-
 from app.client import get_client
 from app.tools import execute as execute_tool
 
-_STREAM_TIMEOUT = anthropic.Timeout(connect=10.0, read=60.0, write=10.0, pool=10.0)
+logger = logging.getLogger(__name__)
+
+_STREAM_TIMEOUT = anthropic.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0)
 _SENTINEL = object()
 
 
@@ -104,9 +104,13 @@ def _stream_in_thread(
                                     for event_id in event.stop_reason.event_ids:
                                         tool_event = pending_tools.pop(event_id, None)
                                         if tool_event:
-                                            result = loop.run_until_complete(
-                                                execute_tool(tool_event.name, tool_event.input, user_id)
-                                            )
+                                            try:
+                                                result = loop.run_until_complete(
+                                                    execute_tool(tool_event.name, tool_event.input, user_id)
+                                                )
+                                            except Exception as tool_exc:
+                                                logger.error("tool execution error [%s]: %s", tool_event.name, tool_exc)
+                                                result = {"error": str(tool_exc)}
                                             out.put({"type": "tool_end", "output": json.dumps(result)})
                                             results.append({
                                                 "type": "user.custom_tool_result",
@@ -122,9 +126,26 @@ def _stream_in_thread(
                                     break
 
                             case "session.error" | "error":
-                                out.put({"type": "error", "message": str(event)})
+                                error = getattr(event, "error", None)
+                                if error:
+                                    error_type = getattr(error, "type", "unknown")
+                                    error_msg = getattr(error, "message", str(error))
+                                    retry = getattr(error, "retry_status", None)
+                                    retry_type = getattr(retry, "type", None) if retry else None
+                                    if error_type == "model_rate_limited_error":
+                                        msg = "模型当前繁忙，请稍后重试"
+                                        if retry_type == "exhausted":
+                                            msg = "模型当前繁忙，已多次重试仍失败，请稍后重试"
+                                    else:
+                                        msg = f"{error_type}: {error_msg}"
+                                else:
+                                    msg = str(event)
+                                out.put({"type": "error", "message": msg})
                                 idle = True
                                 break
+
+                            case "agent.thinking":
+                                out.put({"type": "thinking"})
 
                             case _:
                                 logger.info("[event] unhandled: %s", raw[:50])
@@ -139,6 +160,13 @@ def _stream_in_thread(
     except Exception as exc:
         out.put({"type": "error", "message": str(exc)})
     finally:
+        # Drain pending tasks (e.g. Gemini client aclose) before closing loop
+        try:
+            pending = asyncio.all_tasks(loop)
+            if pending:
+                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
+        except Exception:
+            pass
         loop.close()
         out.put(_SENTINEL)
 

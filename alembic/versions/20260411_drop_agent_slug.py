@@ -7,6 +7,7 @@ Create Date: 2026-04-11
 from typing import Sequence, Union
 
 from alembic import op
+import sqlalchemy as sa
 
 revision: str = "006"
 down_revision: Union[str, None] = "005"
@@ -20,6 +21,5 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    import sqlalchemy as sa
     op.add_column("sessions", sa.Column("agent_slug", sa.Text(), nullable=False, server_default=""))
     op.add_column("users", sa.Column("agent_slug", sa.Text(), nullable=False, server_default=""))

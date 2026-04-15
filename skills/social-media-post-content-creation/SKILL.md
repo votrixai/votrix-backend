@@ -1,6 +1,6 @@
 ---
 name: social-media-post-content-creation
-description: "为各社交平台生成帖子文案、hashtag、配图。当 admin 说「写一篇帖子」「帮我做内容」「生成 IG 帖子」「写 Facebook 文案」「做推文」「生成配图」「内容创作」时触发。发布内容见 04-social-publisher。"
+description: "为各社交平台生成帖子文案、hashtag、配图。当 admin 说「写一篇帖子」「帮我做内容」「生成 IG 帖子」「写 Facebook 文案」「做推文」「生成配图」「内容创作」时触发。发布内容见 social-media-post-publishing。"
 integrations: []
 ---
 
@@ -12,7 +12,7 @@ integrations: []
 
 ## 启动检查
 
-读取 `user-files/marketing-context.md`，提取：
+读取 `/workspace/marketing-context.md`，提取：
 
 - `## 品牌语气` — 写作风格、应该 / 避免
 - `## 内容设置` — 内容主题、Hashtag 组、图片风格
@@ -25,16 +25,16 @@ integrations: []
 ## 确定内容方向
 
 ### Admin 有具体指令
-直接用。例如「写一篇关于周末特惠的 IG 帖子」→ 主题明确，直接进入生成。
+直接用。例如「写一篇关于周末特惠的 IG 帖子」，主题明确，直接进入生成。
 
 ### Admin 指令模糊（「帮我做今天的内容」）
 根据内容主题轮换决定今天用哪个 pillar：
-1. 用 `glob("user-files/drafts/*.md")` 查看最近的草稿文件，找出上次用了哪个主题
+1. 列出 `/workspace/drafts/` 下的近期草稿文件，找出上次用了哪个主题
 2. 轮换到下一个 pillar
 3. 告知 admin：「今天我用的是『行业知识』主题，来的是这个方向——」
 
 ### 定时自动触发（无 admin 在线）
-同上轮换逻辑，加入当前行业趋势角度，生成后存入 `user-files/drafts/` 文件夹，不发布。
+同上轮换逻辑，加入当前行业趋势角度，生成后存入 `/workspace/drafts/`，不发布。
 
 ---
 
@@ -49,7 +49,7 @@ integrations: []
 | Twitter | 280 字，可做 thread | 简洁有力，观点鲜明 | 1–2 个 | 16:9 |
 | LinkedIn | 建议 150 字，第一行决定是否展开 | 专业，insight 驱动 | 3–5 个 | 1:1 或 16:9 |
 
-详细平台写作规范见 `skills/03-content-creator/references/platform-specs.md`。
+详细平台写作规范见 `/workspace/skills/social-media-post-content-creation/references/platform-specs.md`。
 
 ---
 
@@ -62,7 +62,7 @@ integrations: []
 3. **CTA**（行动指引）— 每篇必须有，根据目标选择：「点击主页链接」「留言告诉我们」「转发给需要的人」等
 4. **Hashtag** — 从 `Hashtag 组` 和 `Hashtag 库` 选取，按平台数量规格
 
-Hook 公式参考见 `skills/03-content-creator/references/post-templates.md`。
+Hook 公式参考见 `/workspace/skills/social-media-post-content-creation/references/post-templates.md`。
 
 ---
 
@@ -89,7 +89,7 @@ image_generate(
 
 ## 存储草稿
 
-每个平台生成一个独立草稿文件，写入 `user-files/drafts/`。
+每个平台生成一个独立草稿文件，写入 `/workspace/drafts/`。
 
 文件命名规则：`{YYYY-MM-DD}-{platform}-{topic-slug}.md`
 例如：`2024-01-15-instagram-weekend-promo.md`
@@ -120,19 +120,19 @@ image_generate(
 
 ## 发布逻辑
 
-生成并展示给 admin 后，读取 `## 指令` 判断发布行为：
+生成并展示给 admin 后，读取 `/workspace/marketing-context.md` 的 `## 指令` 判断发布行为：
 
 **指令说明需要确认**（例如「发布前需要等待我的确认」）
-等 admin 确认或修改，admin 说「发布」→ 将草稿存入 `user-files/drafts/` 标记为「待发布」→ 交给 `04-social-publisher` 执行发布。
+等 admin 确认或修改，admin 说「发布」后将草稿标记为「待发布」，交给 social-media-post-publishing 执行发布。
 
 **指令说明直接发布**（例如「直接发布，不需要等待确认」）
-生成完毕将草稿标记为「待发布」→ 直接交给 `04-social-publisher` 执行发布。
+生成完毕将草稿标记为「待发布」，直接交给 social-media-post-publishing 执行发布。
 
 **指令未说明 / 模糊**
 默认等待确认，不自动发布。
 
 **定时自动触发（`[cron] 内容创作`）**
-一律将草稿存入 `user-files/drafts/`，不发布。Admin 下次登录时会看到草稿，按指令决定是否发布。
+一律将草稿存入 `/workspace/drafts/`，不发布。Admin 下次登录时会看到草稿，按指令决定是否发布。
 
 ---
 
@@ -141,4 +141,4 @@ image_generate(
 Admin 要求修改时：
 - 只改他提到的部分，不重写整篇
 - 改完再问「其他部分还需要调整吗？」
-- 修改超过 3 轮还不满意 → 建议从新的角度重新生成
+- 修改超过 3 轮还不满意，建议从新的角度重新生成

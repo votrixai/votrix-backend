@@ -1,5 +1,5 @@
 ---
-name: 06-analytics
+name: social-media-post-analytics
 description: "拉取各平台数据，分析帖子表现、受众增长，生成报告。当 admin 说「数据报告」「表现怎样」「多少人看了」「粉丝增长」「哪篇帖子效果最好」「analytics」「insights」时触发。"
 integrations:
   - facebook
@@ -16,7 +16,7 @@ integrations:
 
 ## 启动检查
 
-读取 `user-files/marketing-context.md`，确认：
+读取 `/workspace/marketing-context.md`，确认：
 - 已连接平台列表（只分析已连接的平台）
 - Page ID / Account ID（API 调用必需）
 
@@ -28,7 +28,7 @@ integrations:
 
 ### 第一层：本地 post-history
 
-路径：`user-files/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
+路径：`/workspace/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
 
 每条帖子记录格式：
 ```
@@ -53,14 +53,12 @@ integrations:
 
 ```
 # 账号级别数据（粉丝、触达、互动趋势）
-tool_search("facebook get page insights")
-→ FACEBOOK_GET_PAGE_INSIGHTS
+FACEBOOK_GET_PAGE_INSIGHTS
   传入：page_id、metric（fans、page_impressions、page_engaged_users）、period（day/week/month）
   返回：各指标时间序列数据
 
 # 单帖表现
-tool_search("facebook get post insights")
-→ FACEBOOK_GET_POST_INSIGHTS
+FACEBOOK_GET_POST_INSIGHTS
   传入：post_id、metric（post_impressions、post_reactions_by_type_total、post_clicks）
   返回：该帖数据
 ```
@@ -69,14 +67,12 @@ tool_search("facebook get post insights")
 
 ```
 # 账号级别数据
-tool_search("instagram get user insights")
-→ INSTAGRAM_GET_USER_INSIGHTS
+INSTAGRAM_GET_USER_INSIGHTS
   传入：ig_user_id、metric（reach、impressions、profile_views、follower_count）、period（day/week/month）
   返回：各指标时间序列数据
 
 # 单帖表现
-tool_search("instagram get ig media insights")
-→ INSTAGRAM_GET_IG_MEDIA_INSIGHTS
+INSTAGRAM_GET_IG_MEDIA_INSIGHTS
   传入：media_id（post_id）、metric（reach、impressions、likes、comments、shares、saved）
   返回：该帖数据
 ```
@@ -85,13 +81,11 @@ tool_search("instagram get ig media insights")
 
 ```
 # 推文表现
-tool_search("twitter get tweet metrics")
-→ 传入：tweet_id
+通过 Composio Twitter 工具传入 tweet_id
   返回：impression_count、like_count、retweet_count、reply_count、quote_count
 
 # 账号增长
-tool_search("twitter get user metrics")
-→ 传入：user_id
+通过 Composio Twitter 工具传入 user_id
   返回：followers_count、following_count
 ```
 
@@ -99,13 +93,11 @@ tool_search("twitter get user metrics")
 
 ```
 # 帖子表现
-tool_search("linkedin get post analytics")
-→ 传入：post_id（ugcPost URN 格式）
+通过 Composio LinkedIn 工具传入 post_id（ugcPost URN 格式）
   返回：impressionCount、likeCount、commentCount、shareCount、clickCount
 
 # 账号粉丝数
-tool_search("linkedin get follower statistics")
-→ 传入：organization_id
+通过 Composio LinkedIn 工具传入 organization_id
   返回：followerCountsByAssociationType
 ```
 
@@ -117,16 +109,7 @@ API 拉取后，立即更新对应 post-history 文件里的 `-` 字段：
 
 读取文件 → 替换对应帖子下的 `触达：-`、`互动：-`、`点赞：-`、`评论：-`、`分享：-` → 写回文件。
 
-同时记录本次刷新时间，写入 `user-files/analytics-state.json`：
-
-```json
-{
-  "facebook":  { "last_refreshed": "2024-01-15T10:00:00", "account_metrics": {} },
-  "instagram": { "last_refreshed": "2024-01-15T10:00:00", "account_metrics": {} },
-  "twitter":   { "last_refreshed": "2024-01-15T10:00:00", "account_metrics": {} },
-  "linkedin":  { "last_refreshed": "2024-01-15T10:00:00", "account_metrics": {} }
-}
-```
+同时将本次刷新时间写入 `/workspace/marketing-context.md` 的 `## 运行状态` 对应平台字段。
 
 ---
 
@@ -186,7 +169,7 @@ Admin 说「出报告」时询问要哪种，或根据问句直接判断：
 - 各平台账号增长汇总
 - 本月所有帖子表现排名
 - 内容策略分析
-- 本月 review-history 情感趋势（如有）
+- 本月评论情感趋势（如有）
 - 下月建议：内容方向、发布频率、需要改进的平台
 
 ---
@@ -197,7 +180,7 @@ Admin 说「出报告」时询问要哪种，或根据问句直接判断：
 
 报告超过一屏时，询问 admin 是否保存为文件。Admin 确认后写入：
 
-路径：`user-files/analytics-reports/{YYYY-MM}/{报告类型}-{YYYY-MM-DD}.md`
+路径：`/workspace/analytics-reports/{YYYY-MM}/{报告类型}-{YYYY-MM-DD}.md`
 
 文件命名示例：
 - `summary-2024-01-15.md`
@@ -215,7 +198,7 @@ Admin 说「出报告」时询问要哪种，或根据问句直接判断：
 是否继续拉取剩余 13 条？（每次拉取 10 条）
 ```
 
-Admin 说「继续」→ 处理下一批；说「够了」→ 用已有数据生成报告。
+Admin 说「继续」就处理下一批；说「够了」就用已有数据生成报告。
 
 ---
 

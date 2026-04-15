@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from app.tools import cron, image
+from app.tools import cron, image, oauth
 
 # name → full tool definition dict (used by provisioning to build agents.create() tools list)
 TOOL_DEFINITIONS: dict[str, dict] = {
     d["name"]: d
-    for module in (cron, image)
+    for module in (cron, image, oauth)
     for d in module.DEFINITIONS
 }
 
@@ -16,4 +16,6 @@ async def execute(name: str, input: dict, user_id: str) -> dict:
         return await cron.handle(name, input, user_id)
     if name == "image_generate":
         return await image.handle(name, input, user_id)
+    if name == "manage_connections":
+        return await oauth.handle(name, input, user_id)
     return {"error": f"Unknown custom tool: {name}"}

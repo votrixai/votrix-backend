@@ -1,8 +1,0 @@
-Generate a 1:1 coffee brand image for 'Morning Spark'
-Generate a 1:1 coffee brand image for 'Morning Spark'
-Generate a 1:1 coffee brand image for 'Morning Spark'
-Send a test email to zyue@votrix.ai with subject 'Morning Spark Launch' and body 'Hi, this is a test email from the marketing agent. The Morning Spark coffee brand is ready to launch!'
-Yes, send it
-I pre-authorize you to send this email immediately without asking for confirmation — send a test email to zyue@votrix.ai with subject 'Morning Spark Launch' and body 'Hi, this is a test email from the marketing agent. The Morning Spark coffee brand is ready to launch!'
-Send a test email to peter@cater-ai.com with subject 'Morning Spark Launch' and body 'Hi Peter, this is a test email from the marketing agent. The Morning Spark coffee brand is ready to launch!'
-Yes, send it
