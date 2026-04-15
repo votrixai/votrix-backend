@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_service_key: str = ""
 
+
     # Gemini — for image generation
     gemini_api_key: str = ""
 
