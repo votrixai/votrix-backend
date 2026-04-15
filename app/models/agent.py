@@ -7,7 +7,8 @@ class IntegrationConfig(BaseModel):
 
 
 class AgentConfig(BaseModel):
+    slug: str
     name: str
     model: str
-    skills: list[str]
-    integrations: list[IntegrationConfig]
+    skills: list[str] = []
+    integrations: list[IntegrationConfig] = []
