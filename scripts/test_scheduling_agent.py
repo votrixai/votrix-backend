@@ -35,8 +35,8 @@ from app.runtime.sessions import _SENTINEL, _stream_in_thread
 load_dotenv()
 
 AGENT_SLUG   = "scheduling-agent"
-USER_ID      = "votrix-ai-test-2"
-DISPLAY_NAME = "Votrix AI Test 2"
+USER_ID      = "votrix-ai-test-3"
+DISPLAY_NAME = "Votrix AI Test 3"
 
 INPUT_FILE  = Path(__file__).parent / "test_input.txt"
 OUTPUT_FILE = Path(__file__).parent / "test_output.txt"

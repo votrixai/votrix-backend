@@ -18,6 +18,18 @@ async def create_user(
     return user
 
 
+async def update_display_name(
+    db: AsyncSession, user_id: uuid.UUID, display_name: str
+) -> User | None:
+    user = await get_user(db, user_id)
+    if not user:
+        return None
+    user.display_name = display_name
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
 async def get_user(db: AsyncSession, user_id: uuid.UUID) -> User | None:
     result = await db.execute(select(User).where(User.id == user_id))
     return result.scalar_one_or_none()
@@ -26,16 +38,6 @@ async def get_user(db: AsyncSession, user_id: uuid.UUID) -> User | None:
 async def list_users(db: AsyncSession) -> Sequence[User]:
     result = await db.execute(select(User).order_by(User.created_at.desc()))
     return result.scalars().all()
-
-
-async def set_agent_id(
-    db: AsyncSession, user_id: uuid.UUID, agent_id: str
-) -> None:
-    user = await get_user(db, user_id)
-    if not user:
-        raise ValueError(f"User {user_id} not found")
-    user.agent_id = agent_id
-    await db.commit()
 
 
 async def delete_user(db: AsyncSession, user_id: uuid.UUID) -> bool:

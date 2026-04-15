@@ -12,8 +12,16 @@ async def create_session(
     session_id: uuid.UUID,
     user_id: uuid.UUID,
     display_name: str,
+    agent_slug: str | None = None,
+    agent_id: str | None = None,
 ) -> Session:
-    session = Session(id=session_id, user_id=user_id, display_name=display_name)
+    session = Session(
+        id=session_id,
+        user_id=user_id,
+        display_name=display_name,
+        agent_slug=agent_slug,
+        agent_id=agent_id,
+    )
     db.add(session)
     await db.commit()
     await db.refresh(session)
@@ -35,14 +43,25 @@ async def save_provider_session_id(
 
 
 async def list_sessions(
-    db: AsyncSession, user_id: uuid.UUID
+    db: AsyncSession, user_id: uuid.UUID, agent_slug: str | None = None
 ) -> Sequence[Session]:
-    result = await db.execute(
-        select(Session)
-        .where(Session.user_id == user_id)
-        .order_by(Session.created_at.desc())
-    )
+    stmt = select(Session).where(Session.user_id == user_id)
+    if agent_slug is not None:
+        stmt = stmt.where(Session.agent_slug == agent_slug)
+    result = await db.execute(stmt.order_by(Session.created_at.desc()))
     return result.scalars().all()
+
+
+async def update_display_name(
+    db: AsyncSession, session_id: uuid.UUID, display_name: str
+) -> Session | None:
+    session = await get_session(db, session_id)
+    if not session:
+        return None
+    session.display_name = display_name
+    await db.commit()
+    await db.refresh(session)
+    return session
 
 
 async def append_event(

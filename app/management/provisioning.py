@@ -6,10 +6,11 @@ create_user_agent(agent_id, user_id, display_name, force) → anthropic_agent_id
 Steps:
   1. Read agents/{agent_id}/config.json
   2. Upload/version skills (idempotent)
-  3. Get or create Composio MCP server named "votrix-{agent_id}"
+  3. Auto-connect API_KEY integrations (e.g. Apollo)
+  4. Get or create Composio MCP server named "votrix-{agent_id}"
      (force=True deletes and recreates)
-  4. Build system prompt
-  5. Call client.beta.agents.create() → return agent_id
+  5. Build system prompt
+  6. Call client.beta.agents.create() → return agent_id
 """
 
 from __future__ import annotations

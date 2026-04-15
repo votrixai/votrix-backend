@@ -1,9 +1,9 @@
 """
 Chat endpoint — SSE streaming via Anthropic managed sessions.
 
-POST /agents/{agent_id}/chat
+POST /chat
 
-Request body: { user_id, session_id, message }
+Request body: { session_id, message }
 
 SSE event format:
     data: {"type": "token",      "content": "..."}
@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import AuthedUser, require_user
 from app.db.engine import get_session, session_scope
 from app.db.queries import sessions as sessions_q
 from app.db.queries import users as users_q
@@ -29,16 +30,16 @@ from app.runtime import sessions as runtime
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/agents", tags=["chat"])
+router = APIRouter(tags=["chat"])
 
 
-@router.post("/{agent_id}/chat")
+@router.post("/chat")
 async def chat(
-    agent_id: str,
     body: ChatRequest,
     db: AsyncSession = Depends(get_session),
+    current_user: AuthedUser = Depends(require_user),
 ):
-    user = await users_q.get_user(db, body.user_id)
+    user = await users_q.get_user(db, current_user.id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -46,8 +47,10 @@ async def chat(
     if db_session is None or not db_session.session_id:
         raise HTTPException(
             status_code=404,
-            detail=f"Session not found — call POST /users/{body.user_id}/sessions first",
+            detail="Session not found — call POST /sessions first",
         )
+    if db_session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Session does not belong to current user")
     await sessions_q.append_event(db, body.session_id, "user_message", body.message)
 
     async def event_stream() -> AsyncGenerator[str, None]:

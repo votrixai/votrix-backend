@@ -15,6 +15,7 @@ dependencies = [
     "google-genai>=1.0",
     "supabase>=2.0",
     "composio-core>=0.7",
+    "pyjwt>=2.9",
 ]
 
 [project.optional-dependencies]

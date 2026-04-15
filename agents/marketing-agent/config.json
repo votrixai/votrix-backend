@@ -5,9 +5,7 @@
   "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
   "skills": ["email-sending", "gmail-drafting"],
   "integrations": [
-    {
-      "slug": "gmail"
-    }
+    {"slug": "gmail"}
   ],
   "tools": ["cron_create", "cron_delete", "cron_list", "image_generate"]
 }
