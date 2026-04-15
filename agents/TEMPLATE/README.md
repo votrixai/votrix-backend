@@ -14,7 +14,6 @@
   "integrations": [                     // 可选，Composio integration 列表
     {
       "slug": "gmail",                  // 必填，Composio toolkit slug
-      "tools": ["GMAIL_SEND_EMAIL"]     // 可选，留空或不写 = 启用该 integration 的所有工具
     },
     {
       "slug": "instagram"               // 不写 tools = 所有工具都可用
