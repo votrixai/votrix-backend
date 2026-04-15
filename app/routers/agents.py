@@ -21,7 +21,8 @@ def _load_config(agent_id: str) -> AgentConfig:
     config_path = AGENTS_DIR / agent_id / "config.json"
     if not config_path.exists():
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found")
-    return AgentConfig(**json.loads(config_path.read_text()))
+    data = json.loads(config_path.read_text())
+    return AgentConfig(slug=agent_id, **{k: v for k, v in data.items() if k not in ("agentId", "envId")})
 
 
 @router.get("", response_model=list[AgentConfig])

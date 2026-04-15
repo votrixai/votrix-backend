@@ -40,16 +40,6 @@ async def list_users(db: AsyncSession) -> Sequence[User]:
     return result.scalars().all()
 
 
-async def set_agent_id(
-    db: AsyncSession, user_id: uuid.UUID, agent_id: str
-) -> None:
-    user = await get_user(db, user_id)
-    if not user:
-        raise ValueError(f"User {user_id} not found")
-    user.agent_id = agent_id
-    await db.commit()
-
-
 async def delete_user(db: AsyncSession, user_id: uuid.UUID) -> bool:
     user = await get_user(db, user_id)
     if not user:

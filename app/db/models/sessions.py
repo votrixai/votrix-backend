@@ -17,12 +17,14 @@ class Session(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
     display_name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
-    # Provider-agnostic session ID — set once created, used for reconnects
+    # Anthropic session id — used for reconnects
     session_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     # AI provider snapshotted at session creation (e.g. "anthropic")
     provider: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # Managed agent ID snapshotted at session creation
+    # Anthropic managed agent id snapshotted at session creation
     agent_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Agent template slug (e.g. "marketing-agent") — used for sidebar filtering
+    agent_slug: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 class SessionEvent(UUIDPrimaryKeyMixin, Base):
