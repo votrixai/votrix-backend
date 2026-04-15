@@ -30,9 +30,13 @@ def _server_name(agent_id: str) -> str:
     return f"votrix-{agent_id}"
 
 
-def _get_auth_config_id(toolkit_slug: str) -> str | None:
-    """Return the first Composio-managed auth_config_id for a toolkit slug. Handles pagination."""
+def _get_auth_config(toolkit_slug: str) -> dict | None:
+    """Return the best auth_config for a toolkit slug.
+    Prefers composio-managed, falls back to any available. Handles pagination.
+    Note: slug is nested under item["toolkit"]["slug"], not at the top level.
+    The ?toolkit_slug= filter param is unreliable, so we filter client-side."""
     page = 1
+    fallback = None
     while True:
         r = httpx.get(
             f"{_API_BASE}/auth_configs",
@@ -43,10 +47,15 @@ def _get_auth_config_id(toolkit_slug: str) -> str | None:
         r.raise_for_status()
         data = r.json()
         for item in data.get("items", []):
+            item_slug = (item.get("toolkit") or {}).get("slug", "")
+            if item_slug != toolkit_slug:
+                continue
             if item.get("is_composio_managed"):
-                return item["id"]
+                return item  # managed takes priority
+            if fallback is None:
+                fallback = item  # keep first non-managed as fallback
         if page >= (data.get("total_pages") or 1):
-            return None
+            return fallback
         page += 1
 
 
@@ -72,15 +81,17 @@ def _delete_server(server_id: str) -> None:
         logger.warning("composio: delete server %s returned %s", server_id, r.status_code)
 
 
-def _create_server(name: str, auth_config_ids: list[str], allowed_tools: list[str]) -> str:
+def _create_server(
+    name: str,
+    auth_config_ids: list[str],
+    managed_auth: bool,
+) -> str:
     """Create a new Composio MCP server. Returns server_id."""
     payload: dict = {
         "name": name,
-        "managed_auth_via_composio": True,
+        "managed_auth_via_composio": managed_auth,
         "auth_config_ids": auth_config_ids,
     }
-    if allowed_tools:
-        payload["allowed_tools"] = allowed_tools
 
     r = httpx.post(
         f"{_API_BASE}/mcp/servers",
@@ -119,25 +130,21 @@ def get_or_create_mcp_server(
         logger.info("composio: deleting existing MCP server %s", name)
         _delete_server(existing["id"])
 
-    # Resolve auth_config_ids and collect allowed_tools
+    # Resolve auth_configs
     auth_config_ids: list[str] = []
-    allowed_tools: list[str] = []
+    all_managed = True  # track if all auth_configs are composio-managed
 
     for i in integrations:
         slug = i["slug"]
-        ac_id = _get_auth_config_id(slug)
-        if ac_id:
-            auth_config_ids.append(ac_id)
-        else:
-            logger.warning("composio: no managed auth_config found for slug '%s', skipping", slug)
-        if i.get("tools"):
-            allowed_tools.extend(i["tools"])
+        ac = _get_auth_config(slug)
+        if ac is None:
+            raise RuntimeError(f"No auth_config found in Composio for integration '{slug}'. "
+                               "Create one in the Composio dashboard first.")
+        auth_config_ids.append(ac["id"])
+        if not ac.get("is_composio_managed"):
+            all_managed = False
 
-    if not auth_config_ids:
-        logger.warning("composio: no valid auth configs found, skipping MCP server creation")
-        return None
-
-    server_id = _create_server(name, auth_config_ids, allowed_tools)
+    server_id = _create_server(name, auth_config_ids, managed_auth=all_managed)
     logger.info("composio: created MCP server %s (%s)", name, server_id)
     return server_id
 

@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import logging
 
-from composio import App, Composio
+import httpx
+from composio import App, Composio, ComposioToolSet
 
 from app.config import get_settings
+from app.integrations.composio import _get_auth_config
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +99,6 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
             # For Instagram, also fetch the IG Business Account ID needed for publishing
             if toolkit == "instagram":
                 try:
-                    from composio import ComposioToolSet
                     toolset = ComposioToolSet(api_key=settings.composio_api_key, entity_id=user_id)
                     info = toolset.execute_action("INSTAGRAM_GET_USER_INFO", {}, entity_id=user_id)
                     if info.get("successful"):
@@ -108,9 +109,24 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
                     logger.warning("manage_connections: could not get IG user info: %s", exc)
             return result
 
-        # Not connected — initiate auth (OAuth redirect or API key form depending on app)
-        connection_request = entity.initiate_connection(app_name=app)
-        redirect_url = getattr(connection_request, "redirectUrl", None)
+        # Not connected — initiate auth via REST API (supports both managed and self-registered OAuth)
+        ac = _get_auth_config(toolkit)
+        if ac is None:
+            return {"status": False, "message": f"No auth_config found for '{toolkit}'. Create one in Composio dashboard first."}
+
+        settings = get_settings()
+        r = httpx.post(
+            "https://backend.composio.dev/api/v3/connected_accounts",
+            headers={"x-api-key": settings.composio_api_key, "Content-Type": "application/json"},
+            json={
+                "auth_config": {"id": ac["id"]},
+                "connection": {"user_id": user_id},
+            },
+            timeout=15,
+        )
+        if not r.is_success:
+            return {"status": False, "message": f"Failed to initiate connection: {r.text}"}
+        redirect_url = r.json().get("redirect_url") or r.json().get("redirectUrl")
 
         if redirect_url:
             return {

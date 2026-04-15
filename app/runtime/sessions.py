@@ -24,11 +24,10 @@ import time
 from typing import Any, AsyncGenerator
 
 import anthropic
-
-logger = logging.getLogger(__name__)
-
 from app.client import get_client
 from app.tools import execute as execute_tool
+
+logger = logging.getLogger(__name__)
 
 _STREAM_TIMEOUT = anthropic.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0)
 _SENTINEL = object()

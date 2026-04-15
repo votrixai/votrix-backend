@@ -15,12 +15,19 @@ Steps:
 from __future__ import annotations
 
 import json
+import logging
+import os
 from pathlib import Path
+
+import httpx
 
 from app.management import skills
 from app.client import get_client
+from app.config import get_settings
 from app.integrations import composio
 from app.tools import TOOL_DEFINITIONS
+
+logger = logging.getLogger(__name__)
 
 AGENTS_DIR = Path(__file__).parents[2] / "agents"
 
@@ -65,6 +72,66 @@ def _build_tools(mcp_server_names: list[str], custom_tools: list[dict]) -> list[
     )
 
 
+def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str) -> None:
+    """For API_KEY integrations, auto-create connected_account at provision time.
+    Key is read from env as {SLUG_UPPER}_API_KEY (e.g. APOLLO_API_KEY).
+    Idempotent: checks by auth_config_id + entity_id via SDK.
+    """
+    settings = get_settings()
+
+    # Fetch all active connections for this entity via REST (SDK filtering is unreliable)
+    r = httpx.get(
+        "https://backend.composio.dev/api/v3/connected_accounts",
+        headers={"x-api-key": settings.composio_api_key},
+        params={"user_id": entity_id, "status": "ACTIVE"},
+        timeout=15,
+    )
+    r.raise_for_status()
+    active_slugs = {
+        (item.get("toolkit") or {}).get("slug", "")
+        for item in r.json().get("items", [])
+        if item.get("user_id") == entity_id and item.get("status") == "ACTIVE"
+    }
+
+    for i in integrations:
+        slug = i["slug"]
+        ac = composio._get_auth_config(slug)
+        if ac is None:
+            raise RuntimeError(
+                f"No auth_config found in Composio for integration '{slug}'. "
+                "Create one in the Composio dashboard first."
+            )
+
+        auth_scheme = (ac.get("auth_scheme") or "").upper()
+        if auth_scheme != "API_KEY":
+            continue
+
+        if slug in active_slugs:
+            logger.info("provisioning: '%s' already connected for %s", slug, entity_id)
+            continue
+
+        env_key = f"{slug.upper()}_API_KEY"
+        api_key_val = os.environ.get(env_key)
+        if not api_key_val:
+            raise RuntimeError(
+                f"Integration '{slug}' requires API_KEY but env var '{env_key}' is not set."
+            )
+
+        logger.info("provisioning: auto-connecting API_KEY integration '%s' for %s", slug, entity_id)
+        r = httpx.post(
+            "https://backend.composio.dev/api/v3/connected_accounts",
+            headers={"x-api-key": settings.composio_api_key, "Content-Type": "application/json"},
+            json={
+                "auth_config": {"id": ac["id"]},
+                "connection": {"user_id": entity_id, "data": {"api_key": api_key_val}},
+            },
+            timeout=15,
+        )
+        if not r.is_success:
+            raise RuntimeError(f"Failed to connect '{slug}': {r.status_code} {r.text}")
+        logger.info("provisioning: '%s' connected successfully", slug)
+
+
 def _skill_entries(skill_ids: dict[str, str]) -> list[dict]:
     return [{"type": "custom", "skill_id": sid, "version": "latest"} for sid in skill_ids.values()]
 
@@ -86,8 +153,12 @@ def create_user_agent(
     skill_ids = skills.get_or_upload_all(config.get("skills", []), force=force)
     custom_tools = [TOOL_DEFINITIONS[t] for t in config.get("tools", []) if t in TOOL_DEFINITIONS]
 
-    # Get or create Composio MCP server for this agent's integrations
     integrations = config.get("integrations", [])
+
+    # Auto-connect API_KEY integrations (e.g. Apollo) — no user action needed
+    _auto_connect_api_key_integrations(integrations, composio_id)
+
+    # Get or create Composio MCP server for this agent's integrations
     mcp_server_id = composio.get_or_create_mcp_server(agent_id, integrations, force=force)
 
     mcp_servers = []

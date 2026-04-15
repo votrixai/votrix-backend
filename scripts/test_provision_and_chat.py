@@ -17,14 +17,22 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import queue
 import sys
+import threading
 import time
 import uuid
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
-
 from dotenv import load_dotenv
+
+from app.db.engine import session_scope
+from app.db.queries import users as users_q
+from app.management import provisioning
+from app.management.agents import _read_cache
+from app.management.run import build
+from app.runtime.sessions import _SENTINEL, _stream_in_thread
+
 load_dotenv()
 
 AGENT_ID = "marketing-agent"
@@ -37,7 +45,6 @@ TEST_MESSAGE = (
 # ─── Step 1: Build template agent ─────────────────────────────────────────────
 
 def run_build(force: bool = False) -> None:
-    from app.management.run import build
     print(f"\n{'─'*60}\n[build] provisioning template: {AGENT_ID}\n{'─'*60}")
     build(AGENT_ID, force=force)
 
@@ -46,12 +53,7 @@ def run_build(force: bool = False) -> None:
 
 async def run_provision() -> tuple[uuid.UUID, str]:
     """Create test user in DB, then provision their Anthropic agent."""
-    from app.db.queries import users as users_q
-    from app.management import provisioning
-
     print(f"\n{'─'*60}\n[provision] creating test user...\n{'─'*60}")
-
-    from app.db.engine import session_scope
     async with session_scope() as db:
         user = await users_q.create_user(
             db,
@@ -77,10 +79,6 @@ async def run_provision() -> tuple[uuid.UUID, str]:
 # ─── Step 4: Chat ─────────────────────────────────────────────────────────────
 
 def run_chat(agent_id: str, env_id: str) -> None:
-    import queue
-    import threading
-    from app.runtime.sessions import _stream_in_thread, _SENTINEL
-
     print(f"\n{'─'*60}")
     print(f"[chat] agent_id : {agent_id}")
     print(f"[chat] env_id   : {env_id}")
@@ -135,7 +133,6 @@ if __name__ == "__main__":
     user_id, agent_id = asyncio.run(run_provision())
 
     # Read env_id from template cache
-    from app.management.agents import _read_cache
     template_cache = _read_cache(AGENT_ID)
     env_id = template_cache["env_id"]
 

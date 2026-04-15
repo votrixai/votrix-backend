@@ -21,9 +21,12 @@ import time
 import threading
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parents[1]))
-
 from dotenv import load_dotenv
+from app.client import get_client
+from app.management import environments, provisioning
+from app.management.environments import get_or_create
+from app.runtime.sessions import _SENTINEL, _stream_in_thread
+
 load_dotenv()
 
 AGENT_SLUG       = "marketing-agent"
@@ -43,8 +46,6 @@ def _out(text: str) -> None:
 
 
 def provision(display_name: str = "E2E Test User") -> tuple[str, str]:
-    from app.management import provisioning, environments
-
     _out(f"\n{'─'*60}\n")
     _out(f"[provision] slug={AGENT_SLUG}  composio_user={COMPOSIO_USER_ID}\n")
     _out(f"{'─'*60}\n")
@@ -63,8 +64,6 @@ def provision(display_name: str = "E2E Test User") -> tuple[str, str]:
 
 
 def chat(agent_id: str, env_id: str, message: str, session_id: str | None = None) -> None:
-    from app.runtime.sessions import _stream_in_thread, _SENTINEL
-
     _out(f"\n{'─'*60}\n")
     _out(f"[user] {message}\n")
     _out(f"{'─'*60}\n\n")
@@ -108,8 +107,6 @@ def watch_and_chat(agent_id: str, env_id: str) -> None:
     Already-existing lines at startup are skipped.
     A single Anthropic session is shared across all turns for conversation continuity.
     """
-    from app.client import get_client
-
     # Ensure input file exists
     INPUT_FILE.touch()
 
@@ -150,7 +147,6 @@ if __name__ == "__main__":
     OUTPUT_FILE.write_text("", encoding="utf-8")
 
     if args.agent_id:
-        from app.management.environments import get_or_create
         agent_id = args.agent_id
         env_id   = get_or_create()
         _out(f"[skip provision] using agent_id={agent_id}\n")

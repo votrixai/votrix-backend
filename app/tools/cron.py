@@ -6,6 +6,8 @@ Handlers are stubs until the schedules DB table is implemented.
 
 from __future__ import annotations
 
+import uuid
+
 DEFINITIONS = [
     {
         "type": "custom",
@@ -63,7 +65,6 @@ DEFINITIONS = [
 
 async def handle(name: str, input: dict, user_id: str) -> dict:
     if name == "cron_create":
-        import uuid
         return {"status": True, "job_id": str(uuid.uuid4()), "message": "Job scheduled (stub)"}
     if name == "cron_delete":
         return {"status": True, "message": "Job deleted (stub)"}

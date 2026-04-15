@@ -1,10 +1,11 @@
 """
-Interactive test for post-agent via file-based I/O.
+Interactive test for scheduling-agent via file-based I/O.
 
 Usage:
-    python scripts/test_post_agent.py
-    python scripts/test_post_agent.py --force    # re-upload skills
-    python scripts/test_post_agent.py --message "..." # single message and exit
+    python scripts/test_scheduling_agent.py
+    python scripts/test_scheduling_agent.py --force    # re-upload skills + recreate MCP server
+    python scripts/test_scheduling_agent.py --skip-provision  # reuse last agent
+    python scripts/test_scheduling_agent.py --message "..."   # single message and exit
 
 How it works:
     - Watches test_input.txt for new lines (append to chat)
@@ -12,7 +13,7 @@ How it works:
     - Ctrl-C to quit
 
 Append a message to start chatting:
-    echo "帮我完成 setup，店名叫晨光咖啡" >> scripts/test_input.txt
+    echo "list my integrations" >> scripts/test_input.txt
 """
 
 from __future__ import annotations
@@ -33,13 +34,13 @@ from app.runtime.sessions import _SENTINEL, _stream_in_thread
 
 load_dotenv()
 
-AGENT_SLUG   = "post-agent"
-USER_ID      = "votrix-ai-test"
-DISPLAY_NAME = "Votrix AI Test"
+AGENT_SLUG   = "scheduling-agent"
+USER_ID      = "votrix-ai-test-2"
+DISPLAY_NAME = "Votrix AI Test 2"
 
 INPUT_FILE  = Path(__file__).parent / "test_input.txt"
 OUTPUT_FILE = Path(__file__).parent / "test_output.txt"
-_CACHE_FILE = Path(__file__).parent / ".post_agent_cache.json"
+_CACHE_FILE = Path(__file__).parent / ".scheduling_agent_cache.json"
 
 
 def _save_cache(agent_id: str, env_id: str, session_id: str | None = None) -> None:
@@ -178,7 +179,6 @@ def watch_loop(agent_id: str, env_id: str, session_id: str | None = None) -> Non
             for msg in new_lines:
                 ok = chat_turn(msg, session_id, OUTPUT_FILE)
                 if not ok:
-                    # Overloaded — new session and retry
                     wait = 20
                     print(f"\n[overloaded] waiting {wait}s then retrying...", flush=True)
                     time.sleep(wait)
@@ -198,12 +198,11 @@ def watch_loop(agent_id: str, env_id: str, session_id: str | None = None) -> Non
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--force",   action="store_true", help="Re-upload skills")
+    parser.add_argument("--force",          action="store_true", help="Re-upload skills + recreate MCP server")
     parser.add_argument("--skip-provision", action="store_true", help="Skip provision, reuse last agent")
-    parser.add_argument("--message", default=None, help="Send one message and exit")
+    parser.add_argument("--message",        default=None,        help="Send one message and exit")
     args = parser.parse_args()
 
-    # Provision
     cached_session_id = None
     if args.skip_provision:
         agent_id, env_id, cached_session_id = _load_cache()
@@ -219,10 +218,8 @@ if __name__ == "__main__":
         _save_cache(agent_id, env_id)
 
     if args.message:
-        # Single-shot: always new session
         session_id = create_session(agent_id, env_id)
         print(f"  session_id → {session_id}")
         chat_turn(args.message, session_id, OUTPUT_FILE)
     else:
-        # Watch mode: reuse cached session if available
         watch_loop(agent_id, env_id, session_id=cached_session_id)
