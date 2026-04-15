@@ -9,11 +9,7 @@
   ],
   "integrations": [
     {
-      "slug": "gmail",
-      "tools": [
-        "GMAIL_SEND_EMAIL",
-        "GMAIL_FETCH_EMAILS"
-      ]
+      "slug": "gmail"
     },
     {
       "slug": "instagram"
