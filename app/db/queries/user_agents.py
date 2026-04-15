@@ -1,4 +1,4 @@
-"""Per-user per-template Anthropic agent cache."""
+"""Per-user per-template provisioned agent cache."""
 
 import uuid
 
@@ -22,12 +22,14 @@ async def create(
     db: AsyncSession,
     user_id: uuid.UUID,
     agent_slug: str,
-    anthropic_agent_id: str,
+    agent_id: str,
+    provider: str = "anthropic",
 ) -> UserAgent:
     row = UserAgent(
         user_id=user_id,
         agent_slug=agent_slug,
-        anthropic_agent_id=anthropic_agent_id,
+        provider=provider,
+        agent_id=agent_id,
     )
     db.add(row)
     await db.commit()

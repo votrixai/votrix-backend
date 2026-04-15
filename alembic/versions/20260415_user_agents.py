@@ -17,7 +17,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Cache of per-user per-template provisioned Anthropic agents
+    # Cache of per-user per-template provisioned agents
     op.create_table(
         "user_agents",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
@@ -28,7 +28,8 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("agent_slug", sa.Text(), nullable=False),
-        sa.Column("anthropic_agent_id", sa.Text(), nullable=False),
+        sa.Column("provider", sa.Text(), nullable=False, server_default="anthropic"),
+        sa.Column("agent_id", sa.Text(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
         sa.UniqueConstraint("user_id", "agent_slug", name="uq_user_agents_user_slug"),
     )
