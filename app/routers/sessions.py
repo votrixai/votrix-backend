@@ -38,14 +38,14 @@ async def _get_or_provision_agent(
     agent_slug: str,
     display_name: str,
 ) -> str:
-    """Return the Anthropic managed agent id for (user, slug), provisioning on cache miss."""
+    """Return the provider agent id for (user, slug), provisioning on cache miss."""
     cached = await user_agents_q.get(db, user_id, agent_slug)
     if cached:
-        return cached.anthropic_agent_id
+        return cached.agent_id
 
-    anthropic_agent_id = create_user_agent(agent_slug, str(user_id), display_name)
-    await user_agents_q.create(db, user_id, agent_slug, anthropic_agent_id)
-    return anthropic_agent_id
+    agent_id = create_user_agent(agent_slug, str(user_id), display_name)
+    await user_agents_q.create(db, user_id, agent_slug, agent_id)
+    return agent_id
 
 
 @router.post("/sessions", response_model=SessionCreateResponse, status_code=201)
@@ -65,10 +65,10 @@ async def create_session_endpoint(
         raise HTTPException(status_code=400, detail=f"Unknown agent '{body.agent_slug}'")
     env_id = config["envId"]
 
-    anthropic_agent_id = await _get_or_provision_agent(
+    agent_id = await _get_or_provision_agent(
         db, current_user.id, body.agent_slug, user.display_name
     )
-    provider_session_id = create_session(anthropic_agent_id, env_id)
+    provider_session_id = create_session(agent_id, env_id)
 
     session_uuid = uuid.uuid4()
     db_session = await sessions_q.create_session(
@@ -77,7 +77,7 @@ async def create_session_endpoint(
         current_user.id,
         body.display_name,
         agent_slug=body.agent_slug,
-        agent_id=anthropic_agent_id,
+        agent_id=agent_id,
     )
     await sessions_q.save_provider_session_id(db, session_uuid, provider_session_id)
 

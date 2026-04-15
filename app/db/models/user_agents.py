@@ -18,4 +18,5 @@ class UserAgent(UUIDPrimaryKeyMixin, Base):
         nullable=False,
     )
     agent_slug: Mapped[str] = mapped_column(Text, nullable=False)
-    anthropic_agent_id: Mapped[str] = mapped_column(Text, nullable=False)
+    provider: Mapped[str] = mapped_column(Text, nullable=False, server_default="anthropic")
+    agent_id: Mapped[str] = mapped_column(Text, nullable=False)
