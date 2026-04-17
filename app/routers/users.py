@@ -37,7 +37,13 @@ async def get_me(
         display_name=user.display_name,
         created_at=user.created_at,
         sessions=[
-            SessionResponse(id=s.id, user_id=s.user_id, display_name=s.display_name, created_at=s.created_at)
+            SessionResponse(
+                id=s.id,
+                user_id=s.user_id,
+                provider_session_title=s.provider_session_title,
+                agent_slug=s.agent_slug,
+                created_at=s.created_at,
+            )
             for s in sessions
         ],
     )

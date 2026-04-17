@@ -13,6 +13,7 @@ SSE event format:
     data: {"type": "error",      "message": "..."}
 """
 
+import asyncio
 import json
 import logging
 from typing import AsyncGenerator
@@ -25,6 +26,7 @@ from app.auth import AuthedUser, require_user
 from app.db.engine import get_session, session_scope
 from app.db.queries import sessions as sessions_q
 from app.db.queries import users as users_q
+from app.management import sessions as management_sessions
 from app.models.chat import ChatRequest
 from app.runtime import sessions as runtime
 
@@ -64,6 +66,16 @@ async def chat(
                     if reply:
                         async with session_scope() as s:
                             await sessions_q.append_event(s, body.session_id, "ai_message", reply)
+                    if not db_session.provider_session_title:
+                        title = await asyncio.to_thread(
+                            management_sessions.get_provider_session_title,
+                            db_session.session_id,
+                        )
+                        if title:
+                            async with session_scope() as s:
+                                await sessions_q.update_provider_session_title(
+                                    s, body.session_id, title
+                                )
 
                 raw = json.dumps(event)
                 logger.info("[stream] %s", raw[:50])
