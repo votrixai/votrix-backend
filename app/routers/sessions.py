@@ -4,7 +4,6 @@ Session routes.
 POST   /sessions                    create session (requires agent_slug)
 GET    /sessions                    list sessions for current user (optional ?agent_slug=)
 GET    /sessions/{session_id}       get session + events
-PATCH  /sessions/{session_id}       rename session
 DELETE /sessions/{session_id}       delete session
 """
 
@@ -26,7 +25,6 @@ from app.models.session import (
     SessionDetailResponse,
     SessionEventResponse,
     SessionResponse,
-    SessionUpdateRequest,
 )
 
 router = APIRouter(tags=["sessions"])
@@ -75,7 +73,6 @@ async def create_session_endpoint(
         db,
         session_uuid,
         current_user.id,
-        body.display_name,
         agent_slug=body.agent_slug,
         agent_id=agent_id,
     )
@@ -84,7 +81,6 @@ async def create_session_endpoint(
     return SessionCreateResponse(
         id=db_session.id,
         user_id=db_session.user_id,
-        display_name=db_session.display_name,
         agent_slug=db_session.agent_slug,
         session_id=provider_session_id,
         created_at=db_session.created_at,
@@ -102,7 +98,7 @@ async def list_sessions(
         SessionResponse(
             id=r.id,
             user_id=r.user_id,
-            display_name=r.display_name,
+            provider_session_title=r.provider_session_title,
             agent_slug=r.agent_slug,
             created_at=r.created_at,
         )
@@ -136,29 +132,6 @@ async def get_session_detail(
             )
             for e in events
         ],
-    )
-
-
-@router.patch("/sessions/{session_id}", response_model=SessionResponse)
-async def rename_session(
-    session_id: uuid.UUID,
-    body: SessionUpdateRequest,
-    db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
-):
-    session = await sessions_q.get_session(db, session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    if session.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Session does not belong to current user")
-    updated = await sessions_q.update_display_name(db, session_id, body.display_name)
-    assert updated is not None
-    return SessionResponse(
-        id=updated.id,
-        user_id=updated.user_id,
-        display_name=updated.display_name,
-        agent_slug=updated.agent_slug,
-        created_at=updated.created_at,
     )
 
 

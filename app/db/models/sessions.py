@@ -16,7 +16,8 @@ class Session(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
-    display_name: Mapped[str] = mapped_column(Text, nullable=False, server_default="")
+    # Provider-assigned session title (e.g. Anthropic's auto-generated session.title)
+    provider_session_title: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Anthropic session id — used for reconnects
     session_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     # AI provider snapshotted at session creation (e.g. "anthropic")

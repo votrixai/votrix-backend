@@ -11,14 +11,12 @@ async def create_session(
     db: AsyncSession,
     session_id: uuid.UUID,
     user_id: uuid.UUID,
-    display_name: str,
     agent_slug: str | None = None,
     agent_id: str | None = None,
 ) -> Session:
     session = Session(
         id=session_id,
         user_id=user_id,
-        display_name=display_name,
         agent_slug=agent_slug,
         agent_id=agent_id,
     )
@@ -52,16 +50,14 @@ async def list_sessions(
     return result.scalars().all()
 
 
-async def update_display_name(
-    db: AsyncSession, session_id: uuid.UUID, display_name: str
-) -> Session | None:
+async def update_provider_session_title(
+    db: AsyncSession, session_id: uuid.UUID, title: str
+) -> None:
     session = await get_session(db, session_id)
     if not session:
-        return None
-    session.display_name = display_name
+        return
+    session.provider_session_title = title
     await db.commit()
-    await db.refresh(session)
-    return session
 
 
 async def append_event(
