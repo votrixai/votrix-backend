@@ -22,3 +22,12 @@ def get_provider_session_title(provider_session_id: str) -> str | None:
         logger.warning("sessions.retrieve failed [%s]: %s", provider_session_id, exc)
         return None
     return session.title or None
+
+
+def delete_provider_session(provider_session_id: str) -> None:
+    """Best-effort delete of the provider-side session. Logs and swallows errors
+    so an orphaned provider record never blocks a local DB delete."""
+    try:
+        get_client().beta.sessions.delete(provider_session_id)
+    except Exception as exc:
+        logger.warning("sessions.delete failed [%s]: %s", provider_session_id, exc)

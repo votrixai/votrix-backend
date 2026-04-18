@@ -7,6 +7,7 @@ GET    /sessions/{session_id}       get session + events
 DELETE /sessions/{session_id}       delete session
 """
 
+import asyncio
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,6 +18,7 @@ from app.db.engine import get_session
 from app.db.queries import sessions as sessions_q
 from app.db.queries import user_agents as user_agents_q
 from app.db.queries import users as users_q
+from app.management import sessions as management_sessions
 from app.management.environments import create_session
 from app.management.provisioning import create_user_agent, _read_config
 from app.models.session import (
@@ -146,4 +148,8 @@ async def delete_session(
         raise HTTPException(status_code=404, detail="Session not found")
     if session.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Session does not belong to current user")
+    if session.session_id:
+        await asyncio.to_thread(
+            management_sessions.delete_provider_session, session.session_id
+        )
     await sessions_q.delete_session(db, session_id)
