@@ -25,9 +25,15 @@ def _load_config(agent_id: str) -> AgentConfig:
     return AgentConfig(slug=agent_id, **{k: v for k, v in data.items() if k not in ("agentId", "envId")})
 
 
+EXCLUDED_AGENT_DIRS = {"TEMPLATE"}
+
+
 @router.get("", response_model=list[AgentConfig])
 async def list_agents():
-    agent_ids = sorted(d.name for d in AGENTS_DIR.iterdir() if d.is_dir())
+    agent_ids = sorted(
+        d.name for d in AGENTS_DIR.iterdir()
+        if d.is_dir() and d.name not in EXCLUDED_AGENT_DIRS
+    )
     return [_load_config(agent_id) for agent_id in agent_ids]
 
 

@@ -26,6 +26,7 @@ from typing import Any, AsyncGenerator
 import anthropic
 
 from app.client import get_client
+from app.models.chat import FileAttachment
 from app.tools import execute as execute_tool
 
 logger = logging.getLogger(__name__)
@@ -34,11 +35,19 @@ _STREAM_TIMEOUT = anthropic.Timeout(connect=10.0, read=300.0, write=10.0, pool=1
 _SENTINEL = object()
 
 
+def _build_content(message: str, attachments: list[FileAttachment]) -> list[dict]:
+    content: list[dict] = [{"type": "text", "text": message}]
+    for att in attachments:
+        content.append({"type": att.content_type, "source": {"type": "file", "file_id": att.file_id}})
+    return content
+
+
 def _stream_in_thread(
     message: str,
     user_id: str,
     out: queue.Queue,
     session_id: str,
+    attachments: list[FileAttachment],
 ) -> None:
     """Blocking stream loop — runs in a daemon thread."""
     loop = asyncio.new_event_loop()
@@ -61,7 +70,7 @@ def _stream_in_thread(
                             events=[
                                 {
                                     "type": "user.message",
-                                    "content": [{"type": "text", "text": message}],
+                                    "content": _build_content(message, attachments),
                                 }
                             ],
                         )
@@ -77,6 +86,13 @@ def _stream_in_thread(
                                 for block in event.content:
                                     if block.type == "text" and block.text:
                                         out.put({"type": "token", "content": block.text})
+                                    elif file_id := getattr(block, "file_id", None):
+                                        out.put({
+                                            "type": "file",
+                                            "file_id": file_id,
+                                            "filename": getattr(block, "filename", None) or getattr(block, "name", None),
+                                            "mime_type": getattr(block, "mime_type", None) or getattr(block, "media_type", None),
+                                        })
 
                             case "agent.mcp_tool_use":
                                 # Workaround: Anthropic beta backend does not honour
@@ -207,12 +223,13 @@ async def stream(
     session_id: str,
     message: str,
     user_id: str,
+    attachments: list[FileAttachment] | None = None,
 ) -> AsyncGenerator[dict, None]:
     """Async generator — yields SSE event dicts, never blocks the event loop."""
     out: queue.Queue = queue.Queue()
     t = threading.Thread(
         target=_stream_in_thread,
-        args=(message, user_id, out, session_id),
+        args=(message, user_id, out, session_id, attachments or []),
         daemon=True,
     )
     t.start()
