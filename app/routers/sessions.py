@@ -65,9 +65,13 @@ async def create_session_endpoint(
         raise HTTPException(status_code=400, detail=f"Unknown agent '{body.agent_slug}'")
     env_id = config["envId"]
 
-    agent_id = await _get_or_provision_agent(
-        db, current_user.id, body.agent_slug, user.display_name
-    )
+    try:
+        agent_id = await _get_or_provision_agent(
+            db, current_user.id, body.agent_slug, user.display_name
+        )
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
     provider_session_id = create_session(agent_id, env_id)
 
     session_uuid = uuid.uuid4()

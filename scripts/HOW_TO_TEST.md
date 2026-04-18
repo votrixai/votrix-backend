@@ -172,10 +172,34 @@ auth 本身（OAuth redirect）不受影响，只有发帖操作需要付费 tie
 Anthropic API 余额不足。去 console.anthropic.com → Plans & Billing 充值，
 充值后重启 agent（不需要 --force）。
 
-### 重复消息被处理多次
+### 重复消息被处理多次 / output 里出现多个相同 user 消息
+
+**根本原因：多个 watch loop 进程同时监听同一个 input.txt。**
+
+`kill <PID>` 只杀 `uv` wrapper 进程，Python 子进程不会跟着退出。
+必须用 `pkill -f` 杀掉所有相关进程：
+
+```bash
+pkill -f "test_post_agent.py"
+# 或
+pkill -f "test_scheduling_agent.py"
+```
+
+确认干净后再重启：
+```bash
+ps aux | grep test_post_agent | grep -v grep
+```
 
 不要用 `>>` 追加消息，用 `>` 覆盖写入。
 Agent 处理完一条消息后会自动清空 input 文件。
+
+### Sessions 是完全隔离的（无跨 session 记忆）
+
+Anthropic managed agent 的每个新 session 都是完全独立的对话，
+**不会继承同一 agent_id 下其他 session 的历史**。
+
+如果新 session 里 agent "记得"旧内容，说明有残留的旧进程用旧 session 在回复，
+而不是 session 之间共享了记忆。用 `pkill -f` 彻底清掉残留进程即可。
 
 ### [overloaded] 错误
 
@@ -209,3 +233,13 @@ OAuth integrations（Instagram、Twitter）需要用户重新走 auth 流程。
 | `app/management/provisioning.py` | provision 逻辑，含 API_KEY 自动连接 |
 | `app/tools/oauth.py` | manage_connections tool，OAuth redirect 流程 |
 | `app/integrations/composio.py` | Composio REST API 封装 |
+
+---
+
+## 重要：模型必须用 Sonnet，不能用 Haiku
+
+**现象**：用 `claude-haiku-4-5-20251001` 时，MCP 工具（如 `INSTAGRAM_POST_IG_USER_MEDIA`）会走 `agent.custom_tool_use` 而非 `agent.mcp_tool_use`，导致 Anthropic 返回 "Permission denied"，帖子发布失败。
+
+**原因**：Haiku 会读 SKILL.md 里提到的工具名，然后把它们当成 custom tool 直接调用（AI 幻觉）。实际上这些工具只存在于 MCP，没有注册为 custom tool，所以调用被拒绝。
+
+**结论**：所有需要调用 Composio MCP 工具的 agent，`config.json` 里的 `model` 必须设置为 `claude-sonnet-4-6`（或更高），不能用 Haiku。
