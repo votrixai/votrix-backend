@@ -12,7 +12,10 @@
     "social-media-post-review-monitor"
   ],
   "integrations": [
-    {"slug": "instagram"}
+    {"slug": "instagram"},
+    {"slug": "twitter"},
+    {"slug": "facebook"},
+    {"slug": "linkedin"}
   ],
   "tools": ["cron_create", "cron_delete", "cron_list", "image_generate", "manage_connections"]
 }

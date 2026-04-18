@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
 
@@ -52,9 +52,26 @@ def _verify(token: str) -> dict:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=f"Invalid token: {e}")
 
 
+_PREVIEW_API_KEY = "preview-dev-votrix-2025"
+
+
 def require_user(
     creds: HTTPAuthorizationCredentials | None = Depends(_bearer),
+    x_preview_key: str | None = Header(None, alias="x-preview-key"),
+    x_preview_user_id: str | None = Header(None, alias="x-preview-user-id"),
 ) -> AuthedUser:
+    # Preview mode: hardcoded key + explicit user-id header
+    if x_preview_key is not None:
+        if x_preview_key != _PREVIEW_API_KEY:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid preview key")
+        if not x_preview_user_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="X-Preview-User-Id header required")
+        try:
+            return AuthedUser(id=uuid.UUID(x_preview_user_id))
+        except ValueError:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid preview user ID")
+
+    # Standard JWT auth
     if creds is None or creds.scheme.lower() != "bearer":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
     claims = _verify(creds.credentials)

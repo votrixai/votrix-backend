@@ -87,7 +87,7 @@ def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str)
     r = httpx.get(
         "https://backend.composio.dev/api/v3/connected_accounts",
         headers={"x-api-key": settings.composio_api_key},
-        params={"user_id": entity_id, "status": "ACTIVE"},
+        params={"user_ids": entity_id, "statuses": "ACTIVE"},
         timeout=15,
     )
     r.raise_for_status()
