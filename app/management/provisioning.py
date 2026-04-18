@@ -38,7 +38,10 @@ _AGENT_TOOLSET = {
 }
 
 _MCP_TOOLSET_CONFIG = {
-    "default_config": {"permission_policy": {"type": "always_allow"}},
+    "default_config": {
+        "enabled": True,
+        "permission_policy": {"type": "always_allow"},
+    },
 }
 
 
@@ -166,7 +169,7 @@ def create_user_agent(
     if mcp_server_id:
         mcp_servers = [{
             "type": "url",
-            "name": "composio",
+            "name": f"composio-{agent_id}",
             "url": composio.mcp_url(mcp_server_id, composio_id),
         }]
 

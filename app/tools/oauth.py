@@ -84,7 +84,7 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
         active_conn = next(
             (c for c in connections
              if (getattr(c, "appName", "") or "").lower() == toolkit
-             and getattr(c, "status", "").upper() in ("ACTIVE", "INITIATED")),
+             and getattr(c, "status", "").upper() == "ACTIVE"),
             None,
         )
 

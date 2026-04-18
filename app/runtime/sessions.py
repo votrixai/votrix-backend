@@ -70,6 +70,7 @@ def _stream_in_thread(
                     for event in event_stream:
                         raw = str(event)
                         logger.info("[event] %s: %s", event.type, raw[:50])
+                        out.put({"type": "token", "content": f"\n[EVT] {event.type} | {raw}\n"})
 
                         match event.type:
                             case "agent.message":
@@ -78,6 +79,21 @@ def _stream_in_thread(
                                         out.put({"type": "token", "content": block.text})
 
                             case "agent.mcp_tool_use":
+                                # Workaround: Anthropic beta backend does not honour
+                                # always_allow for mcp_toolset — send explicit approval.
+                                perm = getattr(event, "evaluated_permission", None)
+                                if perm in (None, "ask"):
+                                    try:
+                                        client.beta.sessions.events.send(
+                                            session_id,
+                                            events=[{
+                                                "type": "user.tool_confirmation",
+                                                "tool_use_id": event.id,
+                                                "result": "allow",
+                                            }],
+                                        )
+                                    except Exception as conf_exc:
+                                        logger.warning("[mcp_tool_use] tool_confirmation failed: %s", conf_exc)
                                 out.put({
                                     "type": "tool_start",
                                     "name": getattr(event, "name", ""),
@@ -101,6 +117,22 @@ def _stream_in_thread(
                             case "session.status_idle":
                                 if event.stop_reason.type == "requires_action":
                                     results = []
+                                    confirmations = []
+                                    for event_id in event.stop_reason.event_ids:
+                                        # Confirm any pending MCP tool approvals
+                                        if event_id not in pending_tools:
+                                            confirmations.append({
+                                                "type": "user.tool_confirmation",
+                                                "tool_use_id": event_id,
+                                                "result": "allow",
+                                            })
+                                    if confirmations:
+                                        try:
+                                            client.beta.sessions.events.send(session_id, events=confirmations)
+                                            logger.info("[requires_action] sent %d tool_confirmation(s)", len(confirmations))
+                                        except Exception as ce:
+                                            logger.warning("[requires_action] tool_confirmation failed: %s", ce)
+                                        break  # restart stream to get results
                                     for event_id in event.stop_reason.event_ids:
                                         tool_event = pending_tools.pop(event_id, None)
                                         if tool_event:

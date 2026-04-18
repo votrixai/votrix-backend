@@ -1,7 +1,7 @@
 {
   "agentId": "post-agent",
   "name": "Post Agent",
-  "model": "claude-haiku-4-5-20251001",
+  "model": "claude-sonnet-4-6",
   "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
   "skills": [
     "social-media-post-setup",
@@ -12,8 +12,6 @@
     "social-media-post-review-monitor"
   ],
   "integrations": [
-    {"slug": "linkedin"},
-    {"slug": "twitter"},
     {"slug": "instagram"}
   ],
   "tools": ["cron_create", "cron_delete", "cron_list", "image_generate", "manage_connections"]
