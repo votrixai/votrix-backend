@@ -38,7 +38,10 @@ _AGENT_TOOLSET = {
 }
 
 _MCP_TOOLSET_CONFIG = {
-    "default_config": {"permission_policy": {"type": "always_allow"}},
+    "default_config": {
+        "enabled": True,
+        "permission_policy": {"type": "always_allow"},
+    },
 }
 
 
@@ -84,7 +87,7 @@ def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str)
     r = httpx.get(
         "https://backend.composio.dev/api/v3/connected_accounts",
         headers={"x-api-key": settings.composio_api_key},
-        params={"user_id": entity_id, "status": "ACTIVE"},
+        params={"user_ids": entity_id, "statuses": "ACTIVE"},
         timeout=15,
     )
     r.raise_for_status()
@@ -166,7 +169,7 @@ def create_user_agent(
     if mcp_server_id:
         mcp_servers = [{
             "type": "url",
-            "name": "composio",
+            "name": f"composio-{agent_id}",
             "url": composio.mcp_url(mcp_server_id, composio_id),
         }]
 

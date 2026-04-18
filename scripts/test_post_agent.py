@@ -34,8 +34,8 @@ from app.runtime.sessions import _SENTINEL, _stream_in_thread
 load_dotenv()
 
 AGENT_SLUG   = "post-agent"
-USER_ID      = "votrix-ai-test"
-DISPLAY_NAME = "Votrix AI Test"
+USER_ID      = "votrix-ai-test6"
+DISPLAY_NAME = "Votrix AI Test 6"
 
 INPUT_FILE  = Path(__file__).parent / "test_input.txt"
 OUTPUT_FILE = Path(__file__).parent / "test_output.txt"
@@ -74,6 +74,9 @@ def run_provision(force: bool = False) -> tuple[str, str]:
     print(f"\n{'─'*60}\n[provision] creating agent for user: {USER_ID}\n{'─'*60}")
     agent_id = provisioning.create_user_agent(AGENT_SLUG, USER_ID, DISPLAY_NAME, force=force)
     print(f"  agent_id → {agent_id}")
+
+    # Clear stale session so watch loop starts a fresh conversation
+    _save_cache(agent_id, env_id, session_id=None)
 
     return agent_id, env_id
 
@@ -116,7 +119,7 @@ def chat_turn(message: str, session_id: str, out_file: Path) -> bool:
                 emit(f"\n  ↳ [tool: {event['name']}] {event.get('input', '')}")
             case "tool_end":
                 output = event.get("output", "")
-                emit(f"  ↳ [result] {output[:120]}")
+                emit(f"  ↳ [result] {output}")
             case "done":
                 elapsed = time.perf_counter() - t_start
                 emit(f"\n\n{sep}\n[done] {elapsed:.1f}s\n{sep}")

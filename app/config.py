@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     # Gemini — for image generation
     gemini_api_key: str = ""
 
+    # Debug mode — enables verbose frontend event logging
+    debug: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
