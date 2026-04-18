@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-from app.routers import agents, chat, sessions, users
+from app.routers import agents, chat, files, sessions, users
 
 
 @asynccontextmanager
@@ -32,6 +32,7 @@ app.include_router(agents.router)
 app.include_router(users.router)
 app.include_router(chat.router)
 app.include_router(sessions.router)
+app.include_router(files.router)
 
 
 @app.get("/health")

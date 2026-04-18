@@ -16,6 +16,7 @@ dependencies = [
     "supabase>=2.0",
     "composio-core>=0.7",
     "pyjwt>=2.9",
+    "python-multipart>=0.0.26",
 ]
 
 [project.optional-dependencies]
