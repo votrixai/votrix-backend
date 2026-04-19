@@ -43,6 +43,7 @@ def _verify(token: str) -> dict:
             algorithms=["ES256", "RS256"],
             audience="authenticated",
             options={"require": ["exp", "sub", "aud"]},
+            leeway=30,
         )
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")

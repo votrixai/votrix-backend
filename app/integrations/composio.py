@@ -59,6 +59,33 @@ def _get_auth_config(toolkit_slug: str) -> dict | None:
         page += 1
 
 
+async def _get_auth_config_async(toolkit_slug: str) -> dict | None:
+    """Async version of _get_auth_config — for use in async tool handlers at runtime."""
+    page = 1
+    fallback = None
+    async with httpx.AsyncClient() as client:
+        while True:
+            r = await client.get(
+                f"{_API_BASE}/auth_configs",
+                headers=_headers(),
+                params={"toolkit_slug": toolkit_slug, "page": page},
+                timeout=15,
+            )
+            r.raise_for_status()
+            data = r.json()
+            for item in data.get("items", []):
+                item_slug = (item.get("toolkit") or {}).get("slug", "")
+                if item_slug != toolkit_slug:
+                    continue
+                if item.get("is_composio_managed"):
+                    return item
+                if fallback is None:
+                    fallback = item
+            if page >= (data.get("total_pages") or 1):
+                return fallback
+            page += 1
+
+
 def _find_existing_server(name: str) -> dict | None:
     """Return existing server dict if found by name, else None. Handles pagination."""
     page = 1

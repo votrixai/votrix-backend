@@ -8,12 +8,12 @@ DELETE /sessions/{session_id}       delete session
 """
 
 import asyncio
-import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import AuthedUser, require_user
+from app.config import get_settings
 from app.db.engine import get_session
 from app.db.queries import sessions as sessions_q
 from app.db.queries import user_agents as user_agents_q
@@ -34,17 +34,20 @@ router = APIRouter(tags=["sessions"])
 
 async def _get_or_provision_agent(
     db: AsyncSession,
-    user_id: uuid.UUID,
+    user_id,
     agent_slug: str,
     display_name: str,
 ) -> str:
-    """Return the provider agent id for (user, slug), provisioning on cache miss."""
-    cached = await user_agents_q.get(db, user_id, agent_slug)
-    if cached:
-        return cached.agent_id
-
-    agent_id = create_user_agent(agent_slug, str(user_id), display_name)
-    await user_agents_q.create(db, user_id, agent_slug, agent_id)
+    force = get_settings().force_reprovision
+    agent_id = await asyncio.to_thread(
+        create_user_agent, agent_slug, str(user_id), display_name, force=force
+    )
+    existing = await user_agents_q.get(db, user_id, agent_slug)
+    if existing:
+        existing.agent_id = agent_id
+        await db.commit()
+    else:
+        await user_agents_q.create(db, user_id, agent_slug, agent_id)
     return agent_id
 
 
@@ -58,7 +61,6 @@ async def create_session_endpoint(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Validate agent_slug is a real template (raises FileNotFoundError otherwise)
     try:
         config = _read_config(body.agent_slug)
     except FileNotFoundError:
@@ -74,21 +76,18 @@ async def create_session_endpoint(
 
     provider_session_id = create_session(agent_id, env_id)
 
-    session_uuid = uuid.uuid4()
     db_session = await sessions_q.create_session(
         db,
-        session_uuid,
+        provider_session_id,
         current_user.id,
         agent_slug=body.agent_slug,
         agent_id=agent_id,
     )
-    await sessions_q.save_provider_session_id(db, session_uuid, provider_session_id)
 
     return SessionCreateResponse(
         id=db_session.id,
         user_id=db_session.user_id,
         agent_slug=db_session.agent_slug,
-        session_id=provider_session_id,
         created_at=db_session.created_at,
     )
 
@@ -114,7 +113,7 @@ async def list_sessions(
 
 @router.get("/sessions/{session_id}", response_model=SessionDetailResponse)
 async def get_session_detail(
-    session_id: uuid.UUID,
+    session_id: str,
     db: AsyncSession = Depends(get_session),
     current_user: AuthedUser = Depends(require_user),
 ):
@@ -143,7 +142,7 @@ async def get_session_detail(
 
 @router.delete("/sessions/{session_id}", status_code=204)
 async def delete_session(
-    session_id: uuid.UUID,
+    session_id: str,
     db: AsyncSession = Depends(get_session),
     current_user: AuthedUser = Depends(require_user),
 ):
@@ -152,8 +151,8 @@ async def delete_session(
         raise HTTPException(status_code=404, detail="Session not found")
     if session.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Session does not belong to current user")
-    if session.session_id:
+    if session.id:
         await asyncio.to_thread(
-            management_sessions.delete_provider_session, session.session_id
+            management_sessions.delete_provider_session, session.id
         )
     await sessions_q.delete_session(db, session_id)

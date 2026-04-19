@@ -10,10 +10,10 @@ TOOL_DEFINITIONS: dict[str, dict] = {
 }
 
 
-async def execute(name: str, input: dict, user_id: str) -> dict:
+async def execute(name: str, input: dict, user_id: str, session_id: str | None = None) -> dict:
     """Dispatch a custom tool call to the correct handler."""
     if name in ("cron_create", "cron_delete", "cron_list"):
-        return await cron.handle(name, input, user_id)
+        return await cron.handle(name, input, user_id, session_id=session_id)
     if name == "image_generate":
         return await image.handle(name, input, user_id)
     if name == "manage_connections":

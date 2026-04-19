@@ -18,10 +18,9 @@ Append a message to start chatting:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
-import queue
 import sys
-import threading
 import time
 from pathlib import Path
 
@@ -29,7 +28,7 @@ from dotenv import load_dotenv
 
 from app.management import environments, provisioning, skills
 from app.management.environments import create_session
-from app.runtime.sessions import _SENTINEL, _stream_in_thread
+from app.runtime.sessions import stream as runtime_stream
 
 load_dotenv()
 
@@ -94,44 +93,34 @@ def chat_turn(message: str, session_id: str, out_file: Path) -> bool:
 
     emit(f"\n{sep}\n[user] {message}\n{sep}\n")
 
-    q: queue.Queue = queue.Queue()
-    t = threading.Thread(
-        target=_stream_in_thread,
-        args=(message, USER_ID, q, session_id),
-        daemon=True,
-    )
-    t.start()
+    async def _run() -> bool:
+        t_start = time.perf_counter()
+        rate_limited = False
+        async for event in runtime_stream(session_id, message, USER_ID):
+            match event["type"]:
+                case "token":
+                    print(event["content"], end="", flush=True)
+                    with out_file.open("a", encoding="utf-8") as f:
+                        f.write(event["content"])
+                case "thinking":
+                    print(".", end="", flush=True)
+                case "tool_start":
+                    emit(f"\n  ↳ [tool: {event['name']}] {event.get('input', '')}")
+                case "tool_end":
+                    output = event.get("output", "")
+                    emit(f"  ↳ [result] {output}")
+                case "done":
+                    elapsed = time.perf_counter() - t_start
+                    emit(f"\n\n{sep}\n[done] {elapsed:.1f}s\n{sep}")
+                case "error":
+                    if "繁忙" in event["message"] or "overloaded" in event["message"].lower():
+                        rate_limited = True
+                    else:
+                        emit(f"\n[ERROR] {event['message']}")
+                        sys.exit(1)
+        return not rate_limited
 
-    t_start = time.perf_counter()
-    rate_limited = False
-    while True:
-        event = q.get()
-        if event is _SENTINEL:
-            break
-        match event["type"]:
-            case "token":
-                print(event["content"], end="", flush=True)
-                with out_file.open("a", encoding="utf-8") as f:
-                    f.write(event["content"])
-            case "thinking":
-                print(".", end="", flush=True)
-            case "tool_start":
-                emit(f"\n  ↳ [tool: {event['name']}] {event.get('input', '')}")
-            case "tool_end":
-                output = event.get("output", "")
-                emit(f"  ↳ [result] {output}")
-            case "done":
-                elapsed = time.perf_counter() - t_start
-                emit(f"\n\n{sep}\n[done] {elapsed:.1f}s\n{sep}")
-            case "error":
-                if "繁忙" in event["message"] or "overloaded" in event["message"].lower():
-                    rate_limited = True
-                else:
-                    emit(f"\n[ERROR] {event['message']}")
-                    sys.exit(1)
-
-    t.join(timeout=5)
-    return not rate_limited
+    return asyncio.run(_run())
 
 
 def chat_turn_with_retry(message: str, agent_id: str, env_id: str, out_file: Path,
