@@ -5,6 +5,7 @@ Returns a public URL.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import uuid
 from pathlib import Path
@@ -65,7 +66,7 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
 
     try:
         client = genai.Client(api_key=settings.gemini_api_key)
-        response = client.models.generate_content(
+        response = await client.aio.models.generate_content(
             model="gemini-3.1-flash-image-preview",
             contents=f"{prompt}\n\nImage dimensions: {size}. High quality, suitable for social media.",
             config=genai_types.GenerateContentConfig(
@@ -75,7 +76,9 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
         for part in response.candidates[0].content.parts:
             if part.inline_data and part.inline_data.mime_type.startswith("image/"):
                 try:
-                    url = upload_image(part.inline_data.data, part.inline_data.mime_type, user_id)
+                    url = await asyncio.to_thread(
+                        upload_image, part.inline_data.data, part.inline_data.mime_type, user_id
+                    )
                 except Exception as upload_exc:
                     logger.warning("Supabase upload failed (%s) — saving locally", upload_exc)
                     ext = part.inline_data.mime_type.split("/")[-1]

@@ -46,7 +46,7 @@ async def chat(
         raise HTTPException(status_code=404, detail="User not found")
 
     db_session = await sessions_q.get_session(db, body.session_id)
-    if db_session is None or not db_session.session_id:
+    if db_session is None:
         raise HTTPException(
             status_code=404,
             detail="Session not found — call POST /sessions first",
@@ -65,7 +65,7 @@ async def chat(
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
         try:
-            async for event in runtime.stream(db_session.session_id, body.message, str(user.id), body.attachments):
+            async for event in runtime.stream(db_session.id, body.message, str(user.id), body.attachments):
                 if event["type"] == "token":
                     ai_tokens.append(event["content"])
                 elif event["type"] == "file":
@@ -88,12 +88,12 @@ async def chat(
                     if not db_session.provider_session_title:
                         title = await asyncio.to_thread(
                             management_sessions.get_provider_session_title,
-                            db_session.session_id,
+                            db_session.id,
                         )
                         if title:
                             async with session_scope() as s:
                                 await sessions_q.update_provider_session_title(
-                                    s, body.session_id, title
+                                    s, db_session.id, title
                                 )
 
                 raw = json.dumps(event)
