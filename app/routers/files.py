@@ -10,7 +10,7 @@ GET    /files/{file_id}/content     download an agent-generated file
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.auth import AuthedUser, require_user
@@ -26,14 +26,15 @@ _BETA = ["files-api-2025-04-14"]
 class FileUploadResponse(BaseModel):
     file_id: str
     filename: str
-    size: int
 
 
 class FileMetaResponse(BaseModel):
     file_id: str
     filename: str
-    size: int
     created_at: str
+    downloadable: bool
+    mime_type: str | None = None
+    size_bytes: int | None = None
 
 
 @router.post("", response_model=FileUploadResponse)
@@ -57,8 +58,7 @@ async def upload_file(
 
     return FileUploadResponse(
         file_id=result.id,
-        filename=result.filename,
-        size=result.size,
+        filename=getattr(result, "filename", filename),
     )
 
 
@@ -76,9 +76,11 @@ async def list_files(
     return [
         FileMetaResponse(
             file_id=f.id,
-            filename=f.filename,
-            size=f.size,
+            filename=getattr(f, "filename", f.id),
             created_at=str(f.created_at),
+            downloadable=bool(getattr(f, "downloadable", False)),
+            mime_type=getattr(f, "mime_type", None),
+            size_bytes=getattr(f, "size_bytes", None),
         )
         for f in result.data
     ]
@@ -102,11 +104,20 @@ async def download_file(
     file_id: str,
     _: AuthedUser = Depends(require_user),
 ):
-    """Download an agent-generated file (produced by code execution or a skill)."""
+    """Download a file. Only works for agent-generated files — user uploads are
+    not downloadable by Anthropic's design (one-way API)."""
     client = get_client()
     try:
         meta = client.beta.files.retrieve_metadata(file_id, betas=_BETA)
-        content = client.beta.files.download(file_id, betas=_BETA)
+        if not getattr(meta, "downloadable", False):
+            raise HTTPException(
+                status_code=403,
+                detail="This file was uploaded by a user and cannot be downloaded. Only agent-generated files are downloadable.",
+            )
+        response = client.beta.files.download(file_id, betas=_BETA)
+        data = response.read()
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Files API download failed file_id=%s", file_id)
         raise HTTPException(status_code=502, detail=f"Anthropic Files API error: {e}")
@@ -114,8 +125,8 @@ async def download_file(
     mime = getattr(meta, "mime_type", None) or "application/octet-stream"
     filename = getattr(meta, "filename", file_id)
 
-    return StreamingResponse(
-        content,
+    return Response(
+        content=data,
         media_type=mime,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
