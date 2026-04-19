@@ -18,7 +18,6 @@ from app.integrations.composio import _get_auth_config_async
 logger = logging.getLogger(__name__)
 
 _API_BASE = "https://backend.composio.dev/api/v3"
-_API_BASE_V2 = "https://backend.composio.dev/api/v2"
 
 
 DEFINITIONS = [
@@ -80,22 +79,6 @@ async def _list_connections(api_key: str, user_id: str, toolkit: str) -> list[di
         return []
 
 
-async def _get_instagram_user_info(api_key: str, user_id: str) -> dict | None:
-    """Execute INSTAGRAM_GET_USER_INFO via Composio REST API."""
-    try:
-        async with httpx.AsyncClient() as client:
-            r = await client.post(
-                f"{_API_BASE_V2}/actions/INSTAGRAM_GET_USER_INFO/execute",
-                headers={"x-api-key": api_key, "Content-Type": "application/json"},
-                json={"entityId": user_id, "input": {}},
-                timeout=15,
-            )
-            if r.is_success:
-                return r.json()
-    except Exception as exc:
-        logger.warning("manage_connections: could not get IG user info: %s", exc)
-    return None
-
 
 async def handle(name: str, input: dict, user_id: str) -> dict:
     settings = get_settings()
@@ -125,13 +108,6 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
                 "connection_id": active_conn.get("id"),
                 "connection_status": active_conn.get("status"),
             }
-            # For Instagram, also fetch the IG Business Account ID needed for publishing
-            if toolkit == "instagram":
-                info = await _get_instagram_user_info(settings.composio_api_key, user_id)
-                if info and info.get("successful"):
-                    data = info.get("data", {})
-                    result["ig_user_id"] = data.get("id")
-                    result["username"] = data.get("username")
             return result
 
         # Not connected — initiate auth via REST API (supports both managed and self-registered OAuth)
