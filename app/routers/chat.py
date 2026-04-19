@@ -54,6 +54,13 @@ async def chat(
     if db_session.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Session does not belong to current user")
     await sessions_q.append_event(db, body.session_id, "user_message", body.message)
+    if body.attachments:
+        await sessions_q.append_event(
+            db,
+            body.session_id,
+            "user_attachments",
+            json.dumps([a.model_dump() for a in body.attachments]),
+        )
 
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
@@ -61,6 +68,18 @@ async def chat(
             async for event in runtime.stream(db_session.session_id, body.message, str(user.id), body.attachments):
                 if event["type"] == "token":
                     ai_tokens.append(event["content"])
+                elif event["type"] == "file":
+                    async with session_scope() as s:
+                        await sessions_q.append_event(
+                            s,
+                            body.session_id,
+                            "ai_file",
+                            json.dumps({
+                                "file_id": event.get("file_id"),
+                                "filename": event.get("filename"),
+                                "mime_type": event.get("mime_type"),
+                            }),
+                        )
                 elif event["type"] == "done":
                     reply = "".join(ai_tokens)
                     if reply:

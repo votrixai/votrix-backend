@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class FileAttachment(BaseModel):
     file_id: str
     content_type: Literal["document", "image"]
+    filename: str | None = None
 
 
 class ChatRequest(BaseModel):
