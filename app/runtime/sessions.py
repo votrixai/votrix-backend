@@ -26,6 +26,7 @@ from typing import Any, AsyncGenerator
 import anthropic
 
 from app.client import get_client
+from app.config import get_settings
 from app.models.chat import FileAttachment
 from app.tools import execute as execute_tool
 
@@ -58,6 +59,7 @@ def _stream_in_thread(
         idle = False
         first = True
         pending_tools: dict[str, Any] = {}  # event_id → agent.custom_tool_use event
+        responded_tool_ids: set[str] = set()  # event_ids we've already sent results for
 
         _betas = ["files-api-2025-04-14", "code-execution-2025-08-25"]
         emitted_file_ids: set[str] = set()
@@ -106,7 +108,9 @@ def _stream_in_thread(
 
                     for event in event_stream:
                         raw = str(event)
-                        logger.info("[event] %s: %s", event.type, raw[:100])
+                        logger.debug("[event] %s: %s", event.type, raw[:50])
+                        if get_settings().debug:
+                            out.put({"type": "token", "content": f"\n[EVT] {event.type} | {raw}\n"})
 
                         # Catch-all: any event or block carrying a file_id → emit a file card.
                         # Handles bash_code_execution_tool_result, text_editor_code_execution_tool_result,
@@ -120,8 +124,24 @@ def _stream_in_thread(
                                         out.put({"type": "token", "content": block.text})
 
                             case "agent.mcp_tool_use":
+                                # Workaround: Anthropic beta backend does not honour
+                                # always_allow for mcp_toolset — send explicit approval.
+                                perm = getattr(event, "evaluated_permission", None)
+                                if perm in (None, "ask"):
+                                    try:
+                                        client.beta.sessions.events.send(
+                                            session_id,
+                                            events=[{
+                                                "type": "user.tool_confirmation",
+                                                "tool_use_id": event.id,
+                                                "result": "allow",
+                                            }],
+                                        )
+                                    except Exception as conf_exc:
+                                        logger.warning("[mcp_tool_use] tool_confirmation failed: %s", conf_exc)
                                 out.put({
                                     "type": "tool_start",
+                                    "tool_call_id": event.id,
                                     "name": getattr(event, "name", ""),
                                     "input": getattr(event, "input", {}),
                                 })
@@ -129,13 +149,16 @@ def _stream_in_thread(
                             case "agent.mcp_tool_result":
                                 out.put({
                                     "type": "tool_end",
+                                    "tool_call_id": getattr(event, "mcp_tool_use_id", ""),
                                     "output": str(getattr(event, "content", "")),
                                 })
 
                             case "agent.custom_tool_use":
+                                logger.info("[custom_tool_use] id=%r name=%s", event.id, event.name)
                                 pending_tools[event.id] = event
                                 out.put({
                                     "type": "tool_start",
+                                    "tool_call_id": event.id,
                                     "name": event.name,
                                     "input": event.input,
                                 })
@@ -143,7 +166,30 @@ def _stream_in_thread(
                             case "session.status_idle":
                                 if event.stop_reason.type == "requires_action":
                                     results = []
+                                    confirmations = []
+                                    logger.info("[requires_action] event_ids=%r pending_keys=%r responded=%r", event.stop_reason.event_ids, list(pending_tools.keys()), responded_tool_ids)
                                     for event_id in event.stop_reason.event_ids:
+                                        if event_id in responded_tool_ids:
+                                            # Already handled in a previous stream iteration — skip
+                                            logger.info("[requires_action] skipping already-responded id=%r", event_id)
+                                            continue
+                                        if event_id not in pending_tools:
+                                            # Not a custom tool — send MCP confirmation
+                                            confirmations.append({
+                                                "type": "user.tool_confirmation",
+                                                "tool_use_id": event_id,
+                                                "result": "allow",
+                                            })
+                                    if confirmations:
+                                        try:
+                                            client.beta.sessions.events.send(session_id, events=confirmations)
+                                            logger.info("[requires_action] sent %d tool_confirmation(s)", len(confirmations))
+                                        except Exception as ce:
+                                            logger.warning("[requires_action] tool_confirmation failed: %s", ce)
+                                        break  # restart stream to get results
+                                    for event_id in event.stop_reason.event_ids:
+                                        if event_id in responded_tool_ids:
+                                            continue
                                         tool_event = pending_tools.pop(event_id, None)
                                         if tool_event:
                                             try:
@@ -153,7 +199,7 @@ def _stream_in_thread(
                                             except Exception as tool_exc:
                                                 logger.error("tool execution error [%s]: %s", tool_event.name, tool_exc)
                                                 result = {"error": str(tool_exc)}
-                                            out.put({"type": "tool_end", "output": json.dumps(result)})
+                                            out.put({"type": "tool_end", "tool_call_id": event_id, "output": json.dumps(result)})
                                             results.append({
                                                 "type": "user.custom_tool_result",
                                                 "custom_tool_use_id": event_id,
@@ -161,7 +207,8 @@ def _stream_in_thread(
                                             })
                                     if results:
                                         client.beta.sessions.events.send(session_id, events=results)
-                                    break  # restart stream loop
+                                        responded_tool_ids.update(r["custom_tool_use_id"] for r in results)
+                                    # Don't break — stream stays open, agent continues after receiving results
                                 else:
                                     out.put({"type": "done"})
                                     idle = True

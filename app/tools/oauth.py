@@ -11,12 +11,14 @@ from __future__ import annotations
 import logging
 
 import httpx
-from composio import App, Composio, ComposioToolSet
 
 from app.config import get_settings
 from app.integrations.composio import _get_auth_config
 
 logger = logging.getLogger(__name__)
+
+_API_BASE = "https://backend.composio.dev/api/v3"
+_API_BASE_V2 = "https://backend.composio.dev/api/v2"
 
 
 DEFINITIONS = [
@@ -59,6 +61,40 @@ DEFINITIONS = [
 ]
 
 
+def _list_connections(api_key: str, user_id: str, toolkit: str) -> list[dict]:
+    """Return connected accounts for the given user and toolkit via REST API."""
+    try:
+        r = httpx.get(
+            f"{_API_BASE}/connected_accounts",
+            headers={"x-api-key": api_key},
+            params={"user_ids": user_id, "toolkit_slugs": toolkit, "statuses": "ACTIVE"},
+            timeout=15,
+        )
+        if not r.is_success:
+            logger.warning("manage_connections: list connections returned %s: %s", r.status_code, r.text)
+            return []
+        return r.json().get("items", [])
+    except Exception as exc:
+        logger.warning("manage_connections: could not list connections: %s", exc)
+        return []
+
+
+def _get_instagram_user_info(api_key: str, user_id: str) -> dict | None:
+    """Execute INSTAGRAM_GET_USER_INFO via Composio REST API."""
+    try:
+        r = httpx.post(
+            f"{_API_BASE_V2}/actions/INSTAGRAM_GET_USER_INFO/execute",
+            headers={"x-api-key": api_key, "Content-Type": "application/json"},
+            json={"entityId": user_id, "input": {}},
+            timeout=15,
+        )
+        if r.is_success:
+            return r.json()
+    except Exception as exc:
+        logger.warning("manage_connections: could not get IG user info: %s", exc)
+    return None
+
+
 async def handle(name: str, input: dict, user_id: str) -> dict:
     settings = get_settings()
     if not settings.composio_api_key:
@@ -68,23 +104,14 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
     if not toolkit:
         return {"status": False, "message": "toolkit is required"}
 
-    # Resolve Composio App enum via attribute lookup (e.g. App.INSTAGRAM)
-    app: App | None = getattr(App, toolkit.upper(), None)
-    if app is None:
-        return {"status": False, "message": f"Unknown toolkit '{toolkit}'. Use the exact Composio toolkit identifier."}
-
     try:
-        client = Composio(api_key=settings.composio_api_key)
-        entity = client.get_entity(id=user_id)
-
         force_reconnect = input.get("force_reconnect", False)
 
-        # Check existing connections
-        connections = entity.get_connections()
+        # Check existing connections via REST API
+        connections = _list_connections(settings.composio_api_key, user_id, toolkit)
         active_conn = next(
             (c for c in connections
-             if (getattr(c, "appName", "") or "").lower() == toolkit
-             and getattr(c, "status", "").upper() in ("ACTIVE", "INITIATED")),
+             if (c.get("status", "") or "").upper() == "ACTIVE"),
             None,
         )
 
@@ -93,20 +120,16 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
                 "status": True,
                 "connected": True,
                 "toolkit": toolkit,
-                "connection_id": getattr(active_conn, "id", None),
-                "connection_status": getattr(active_conn, "status", None),
+                "connection_id": active_conn.get("id"),
+                "connection_status": active_conn.get("status"),
             }
             # For Instagram, also fetch the IG Business Account ID needed for publishing
             if toolkit == "instagram":
-                try:
-                    toolset = ComposioToolSet(api_key=settings.composio_api_key, entity_id=user_id)
-                    info = toolset.execute_action("INSTAGRAM_GET_USER_INFO", {}, entity_id=user_id)
-                    if info.get("successful"):
-                        data = info.get("data", {})
-                        result["ig_user_id"] = data.get("id")
-                        result["username"] = data.get("username")
-                except Exception as exc:
-                    logger.warning("manage_connections: could not get IG user info: %s", exc)
+                info = _get_instagram_user_info(settings.composio_api_key, user_id)
+                if info and info.get("successful"):
+                    data = info.get("data", {})
+                    result["ig_user_id"] = data.get("id")
+                    result["username"] = data.get("username")
             return result
 
         # Not connected — initiate auth via REST API (supports both managed and self-registered OAuth)
@@ -114,9 +137,8 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
         if ac is None:
             return {"status": False, "message": f"No auth_config found for '{toolkit}'. Create one in Composio dashboard first."}
 
-        settings = get_settings()
         r = httpx.post(
-            "https://backend.composio.dev/api/v3/connected_accounts",
+            f"{_API_BASE}/connected_accounts",
             headers={"x-api-key": settings.composio_api_key, "Content-Type": "application/json"},
             json={
                 "auth_config": {"id": ac["id"]},

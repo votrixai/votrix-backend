@@ -97,7 +97,7 @@ async def chat(
                                 )
 
                 raw = json.dumps(event)
-                logger.info("[stream] %s", raw[:50])
+                logger.debug("[stream] %s", raw[:50])
                 yield f"data: {raw}\n\n"
 
         except Exception as e:

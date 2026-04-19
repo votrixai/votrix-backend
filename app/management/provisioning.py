@@ -37,28 +37,12 @@ _AGENT_TOOLSET = {
     "default_config": {"permission_policy": {"type": "always_allow"}},
 }
 
-# Anthropic's sandboxed code execution tool. Files it creates are auto-registered
-# to the Files API with downloadable=True, unlike agent_toolset's write tool.
-_CODE_EXECUTION_TOOL = {
-    "type": "code_execution_20250825",
-    "name": "code_execution",
-}
-
 _MCP_TOOLSET_CONFIG = {
-    "default_config": {"permission_policy": {"type": "always_allow"}},
+    "default_config": {
+        "enabled": True,
+        "permission_policy": {"type": "always_allow"},
+    },
 }
-
-_FILE_OUTPUT_GUIDANCE = """
----
-
-## File outputs
-
-You have two file environments:
-- `agent_toolset` (write/bash/read): for editing project files. Outputs are NOT downloadable.
-- `code_execution` (bash_code_execution / text_editor_code_execution): Anthropic-sandboxed. Files created here are auto-registered to the Files API and downloadable by the user.
-
-When the user asks you to produce a file they can download, always use the `code_execution` tool. Save the file anywhere in the workspace; Anthropic registers it automatically. State the filename in your reply so the user knows what to expect.
-"""
 
 
 def _agent_dir(agent_id: str) -> Path:
@@ -103,7 +87,7 @@ def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str)
     r = httpx.get(
         "https://backend.composio.dev/api/v3/connected_accounts",
         headers={"x-api-key": settings.composio_api_key},
-        params={"user_id": entity_id, "status": "ACTIVE"},
+        params={"user_ids": entity_id, "statuses": "ACTIVE"},
         timeout=15,
     )
     r.raise_for_status()
@@ -185,7 +169,7 @@ def create_user_agent(
     if mcp_server_id:
         mcp_servers = [{
             "type": "url",
-            "name": "composio",
+            "name": f"composio-{agent_id}",
             "url": composio.mcp_url(mcp_server_id, composio_id),
         }]
 
