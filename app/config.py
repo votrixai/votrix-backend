@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     # Debug mode — enables verbose frontend event logging
     debug: bool = False
 
+    # Force-reprovision Anthropic agent + Composio MCP server on every new session.
+    # Set to true only when you need to refresh credentials or reset agent config.
+    force_reprovision: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
