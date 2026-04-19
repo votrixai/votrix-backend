@@ -9,7 +9,7 @@ from app.db.models.sessions import Session, SessionEvent
 
 async def create_session(
     db: AsyncSession,
-    session_id: uuid.UUID,
+    session_id: str,
     user_id: uuid.UUID,
     agent_slug: str | None = None,
     agent_id: str | None = None,
@@ -26,18 +26,9 @@ async def create_session(
     return session
 
 
-async def get_session(db: AsyncSession, session_id: uuid.UUID) -> Session | None:
+async def get_session(db: AsyncSession, session_id: str) -> Session | None:
     result = await db.execute(select(Session).where(Session.id == session_id))
     return result.scalar_one_or_none()
-
-
-async def save_provider_session_id(
-    db: AsyncSession, session_id: uuid.UUID, provider_session_id: str
-) -> None:
-    session = await get_session(db, session_id)
-    if session:
-        session.session_id = provider_session_id
-        await db.commit()
 
 
 async def list_sessions(
@@ -51,7 +42,7 @@ async def list_sessions(
 
 
 async def update_provider_session_title(
-    db: AsyncSession, session_id: uuid.UUID, title: str
+    db: AsyncSession, session_id: str, title: str
 ) -> None:
     session = await get_session(db, session_id)
     if not session:
@@ -62,12 +53,11 @@ async def update_provider_session_title(
 
 async def append_event(
     db: AsyncSession,
-    session_id: uuid.UUID,
+    session_id: str,
     event_type: str,
     body: str,
     title: str | None = None,
 ) -> SessionEvent:
-    # next event_index
     result = await db.execute(
         select(SessionEvent.event_index)
         .where(SessionEvent.session_id == session_id)
@@ -90,7 +80,7 @@ async def append_event(
 
 
 async def get_events(
-    db: AsyncSession, session_id: uuid.UUID
+    db: AsyncSession, session_id: str
 ) -> Sequence[SessionEvent]:
     result = await db.execute(
         select(SessionEvent)
@@ -100,7 +90,7 @@ async def get_events(
     return result.scalars().all()
 
 
-async def delete_session(db: AsyncSession, session_id: uuid.UUID) -> bool:
+async def delete_session(db: AsyncSession, session_id: str) -> bool:
     session = await get_session(db, session_id)
     if not session:
         return False

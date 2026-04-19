@@ -1,9 +1,5 @@
 """
-Runtime: create an Anthropic session and relay SSE events as async dicts.
-
-The Anthropic SDK stream is synchronous/blocking. We run it in a background
-thread and bridge to the async caller via a queue, so FastAPI's event loop
-is never blocked.
+Runtime: relay Anthropic managed-agent session events as async SSE dicts.
 
 SSE event dict format:
     {type: "token",      content: str}
@@ -18,14 +14,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import queue
-import threading
-import time
 from typing import Any, AsyncGenerator
 
 import anthropic
 
-from app.client import get_client
+from app.client import get_async_client
 from app.config import get_settings
 from app.models.chat import FileAttachment
 from app.tools import execute as execute_tool
@@ -33,7 +26,6 @@ from app.tools import execute as execute_tool
 logger = logging.getLogger(__name__)
 
 _STREAM_TIMEOUT = anthropic.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0)
-_SENTINEL = object()
 
 
 def _build_content(message: str, attachments: list[FileAttachment]) -> list[dict]:
@@ -43,223 +35,6 @@ def _build_content(message: str, attachments: list[FileAttachment]) -> list[dict
     return content
 
 
-def _stream_in_thread(
-    message: str,
-    user_id: str,
-    out: queue.Queue,
-    session_id: str,
-    attachments: list[FileAttachment],
-) -> None:
-    """Blocking stream loop — runs in a daemon thread."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    try:
-        client = get_client()
-
-        idle = False
-        first = True
-        pending_tools: dict[str, Any] = {}  # event_id → agent.custom_tool_use event
-        responded_tool_ids: set[str] = set()  # event_ids we've already sent results for
-
-        _betas = ["files-api-2025-04-14", "code-execution-2025-08-25"]
-        emitted_file_ids: set[str] = set()
-
-        def _emit_files_from(obj: Any) -> None:
-            """Walk any event/block recursively and emit {type: file} for every
-            file_id encountered. Covers bash_code_execution_tool_result content
-            lists and agent.message content blocks uniformly."""
-            if obj is None:
-                return
-            if hasattr(obj, "model_dump"):
-                obj = obj.model_dump()
-            if isinstance(obj, dict):
-                fid = obj.get("file_id")
-                if isinstance(fid, str) and fid not in emitted_file_ids:
-                    emitted_file_ids.add(fid)
-                    out.put({
-                        "type": "file",
-                        "file_id": fid,
-                        "filename": obj.get("filename") or obj.get("name"),
-                        "mime_type": obj.get("mime_type") or obj.get("media_type"),
-                    })
-                for v in obj.values():
-                    _emit_files_from(v)
-            elif isinstance(obj, list):
-                for v in obj:
-                    _emit_files_from(v)
-
-        while not idle:
-            try:
-                with client.beta.sessions.events.stream(
-                    session_id, timeout=_STREAM_TIMEOUT, betas=_betas
-                ) as event_stream:
-                    if first:
-                        client.beta.sessions.events.send(
-                            session_id,
-                            events=[
-                                {
-                                    "type": "user.message",
-                                    "content": _build_content(message, attachments),
-                                }
-                            ],
-                            betas=_betas,
-                        )
-                        first = False
-
-                    for event in event_stream:
-                        raw = str(event)
-                        logger.debug("[event] %s: %s", event.type, raw[:50])
-                        if get_settings().debug:
-                            out.put({"type": "token", "content": f"\n[EVT] {event.type} | {raw}\n"})
-
-                        # Catch-all: any event or block carrying a file_id → emit a file card.
-                        # Handles bash_code_execution_tool_result, text_editor_code_execution_tool_result,
-                        # and any future variant without needing case-specific handling.
-                        _emit_files_from(event)
-
-                        match event.type:
-                            case "agent.message":
-                                for block in event.content:
-                                    if block.type == "text" and block.text:
-                                        out.put({"type": "token", "content": block.text})
-
-                            case "agent.mcp_tool_use":
-                                # Workaround: Anthropic beta backend does not honour
-                                # always_allow for mcp_toolset — send explicit approval.
-                                perm = getattr(event, "evaluated_permission", None)
-                                if perm in (None, "ask"):
-                                    try:
-                                        client.beta.sessions.events.send(
-                                            session_id,
-                                            events=[{
-                                                "type": "user.tool_confirmation",
-                                                "tool_use_id": event.id,
-                                                "result": "allow",
-                                            }],
-                                        )
-                                    except Exception as conf_exc:
-                                        logger.warning("[mcp_tool_use] tool_confirmation failed: %s", conf_exc)
-                                out.put({
-                                    "type": "tool_start",
-                                    "tool_call_id": event.id,
-                                    "name": getattr(event, "name", ""),
-                                    "input": getattr(event, "input", {}),
-                                })
-
-                            case "agent.mcp_tool_result":
-                                out.put({
-                                    "type": "tool_end",
-                                    "tool_call_id": getattr(event, "mcp_tool_use_id", ""),
-                                    "output": str(getattr(event, "content", "")),
-                                })
-
-                            case "agent.custom_tool_use":
-                                logger.info("[custom_tool_use] id=%r name=%s", event.id, event.name)
-                                pending_tools[event.id] = event
-                                out.put({
-                                    "type": "tool_start",
-                                    "tool_call_id": event.id,
-                                    "name": event.name,
-                                    "input": event.input,
-                                })
-
-                            case "session.status_idle":
-                                if event.stop_reason.type == "requires_action":
-                                    results = []
-                                    confirmations = []
-                                    logger.info("[requires_action] event_ids=%r pending_keys=%r responded=%r", event.stop_reason.event_ids, list(pending_tools.keys()), responded_tool_ids)
-                                    for event_id in event.stop_reason.event_ids:
-                                        if event_id in responded_tool_ids:
-                                            # Already handled in a previous stream iteration — skip
-                                            logger.info("[requires_action] skipping already-responded id=%r", event_id)
-                                            continue
-                                        if event_id not in pending_tools:
-                                            # Not a custom tool — send MCP confirmation
-                                            confirmations.append({
-                                                "type": "user.tool_confirmation",
-                                                "tool_use_id": event_id,
-                                                "result": "allow",
-                                            })
-                                    if confirmations:
-                                        try:
-                                            client.beta.sessions.events.send(session_id, events=confirmations)
-                                            logger.info("[requires_action] sent %d tool_confirmation(s)", len(confirmations))
-                                        except Exception as ce:
-                                            logger.warning("[requires_action] tool_confirmation failed: %s", ce)
-                                        break  # restart stream to get results
-                                    for event_id in event.stop_reason.event_ids:
-                                        if event_id in responded_tool_ids:
-                                            continue
-                                        tool_event = pending_tools.pop(event_id, None)
-                                        if tool_event:
-                                            try:
-                                                result = loop.run_until_complete(
-                                                    execute_tool(tool_event.name, tool_event.input, user_id)
-                                                )
-                                            except Exception as tool_exc:
-                                                logger.error("tool execution error [%s]: %s", tool_event.name, tool_exc)
-                                                result = {"error": str(tool_exc)}
-                                            out.put({"type": "tool_end", "tool_call_id": event_id, "output": json.dumps(result)})
-                                            results.append({
-                                                "type": "user.custom_tool_result",
-                                                "custom_tool_use_id": event_id,
-                                                "content": [{"type": "text", "text": json.dumps(result)}],
-                                            })
-                                    if results:
-                                        client.beta.sessions.events.send(session_id, events=results)
-                                        responded_tool_ids.update(r["custom_tool_use_id"] for r in results)
-                                    # Don't break — stream stays open, agent continues after receiving results
-                                else:
-                                    out.put({"type": "done"})
-                                    idle = True
-                                    break
-
-                            case "session.error" | "error":
-                                error = getattr(event, "error", None)
-                                if error:
-                                    error_type = getattr(error, "type", "unknown")
-                                    error_msg = getattr(error, "message", str(error))
-                                    retry = getattr(error, "retry_status", None)
-                                    retry_type = getattr(retry, "type", None) if retry else None
-                                    if error_type == "model_rate_limited_error":
-                                        msg = "模型当前繁忙，请稍后重试"
-                                        if retry_type == "exhausted":
-                                            msg = "模型当前繁忙，已多次重试仍失败，请稍后重试"
-                                    else:
-                                        msg = f"{error_type}: {error_msg}"
-                                else:
-                                    msg = str(event)
-                                out.put({"type": "error", "message": msg})
-                                idle = True
-                                break
-
-                            case "agent.thinking":
-                                out.put({"type": "thinking"})
-
-                            case _:
-                                logger.info("[event] unhandled: %s", raw[:50])
-
-            except anthropic.APITimeoutError:
-                out.put({"type": "error", "message": "stream timeout — tool took >60s"})
-                idle = True
-
-            if not idle:
-                time.sleep(1)
-
-    except Exception as exc:
-        out.put({"type": "error", "message": str(exc)})
-    finally:
-        # Drain pending tasks (e.g. Gemini client aclose) before closing loop
-        try:
-            pending = asyncio.all_tasks(loop)
-            if pending:
-                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
-        except Exception:
-            pass
-        loop.close()
-        out.put(_SENTINEL)
-
-
 async def stream(
     session_id: str,
     message: str,
@@ -267,17 +42,180 @@ async def stream(
     attachments: list[FileAttachment] | None = None,
 ) -> AsyncGenerator[dict, None]:
     """Async generator — yields SSE event dicts, never blocks the event loop."""
-    out: queue.Queue = queue.Queue()
-    t = threading.Thread(
-        target=_stream_in_thread,
-        args=(message, user_id, out, session_id, attachments or []),
-        daemon=True,
-    )
-    t.start()
+    client = get_async_client()
+    pending_tools: dict[str, Any] = {}  # event_id → agent.custom_tool_use event
+    sent_results: set[str] = set()      # IDs we already sent results for
+    mcp_tool_ids: set[str] = set()      # IDs from agent.mcp_tool_use (Anthropic-executed)
 
-    loop = asyncio.get_running_loop()
-    while True:
-        event = await loop.run_in_executor(None, out.get)
-        if event is _SENTINEL:
-            break
-        yield event
+    async with await client.beta.sessions.events.stream(
+        session_id, timeout=_STREAM_TIMEOUT
+    ) as event_stream:
+        await client.beta.sessions.events.send(
+            session_id,
+            events=[{
+                "type": "user.message",
+                "content": _build_content(message, attachments or []),
+            }],
+        )
+
+        async for event in event_stream:
+            raw = str(event)
+            logger.debug("[event] %s: %s", event.type, raw[:50])
+            if get_settings().debug:
+                yield {"type": "token", "content": f"\n[EVT] {event.type} | {raw}\n"}
+
+            match event.type:
+                case "agent.message":
+                    for block in event.content:
+                        if block.type == "text" and block.text:
+                            yield {"type": "token", "content": block.text}
+                        elif file_id := getattr(block, "file_id", None):
+                            yield {
+                                "type": "file",
+                                "file_id": file_id,
+                                "filename": getattr(block, "filename", None) or getattr(block, "name", None),
+                                "mime_type": getattr(block, "mime_type", None) or getattr(block, "media_type", None),
+                            }
+
+                case "agent.tool_use":
+                    yield {
+                        "type": "tool_start",
+                        "tool_call_id": event.id,
+                        "name": getattr(event, "name", ""),
+                        "input": getattr(event, "input", {}),
+                    }
+
+                case "agent.tool_result":
+                    raw_content = getattr(event, "content", "")
+                    if isinstance(raw_content, list):
+                        output = "\n".join(
+                            getattr(block, "text", "")
+                            for block in raw_content
+                            if getattr(block, "type", "") == "text"
+                        )
+                    else:
+                        output = str(raw_content)
+                    yield {
+                        "type": "tool_end",
+                        "tool_call_id": getattr(event, "tool_use_id", ""),
+                        "output": output,
+                    }
+
+                case "agent.mcp_tool_use":
+                    mcp_tool_ids.add(event.id)
+                    yield {
+                        "type": "tool_start",
+                        "tool_call_id": event.id,
+                        "name": getattr(event, "name", ""),
+                        "input": getattr(event, "input", {}),
+                    }
+
+                case "agent.mcp_tool_result":
+                    raw_content = getattr(event, "content", "")
+                    logger.info("[mcp_tool_result] content type=%s value=%r", type(raw_content).__name__, str(raw_content)[:300])
+                    if isinstance(raw_content, list):
+                        output = "\n".join(
+                            getattr(block, "text", "")
+                            for block in raw_content
+                            if getattr(block, "type", "") == "text"
+                        )
+                    else:
+                        output = str(raw_content)
+                    yield {
+                        "type": "tool_end",
+                        "tool_call_id": getattr(event, "mcp_tool_use_id", ""),
+                        "output": output,
+                    }
+
+                case "agent.custom_tool_use":
+                    logger.info("[custom_tool_use] id=%r name=%s", event.id, event.name)
+                    pending_tools[event.id] = event
+                    yield {
+                        "type": "tool_start",
+                        "tool_call_id": event.id,
+                        "name": event.name,
+                        "input": event.input,
+                    }
+
+                case "session.status_idle":
+                    if event.stop_reason.type == "requires_action":
+                        logger.info("[requires_action] event_ids=%r", event.stop_reason.event_ids)
+
+                        # Compute missed_ids BEFORE popping from pending_tools.
+                        # Exclude IDs we already sent results for — Anthropic fires
+                        # intermediate requires_action as it processes each result
+                        # in the batch one by one, so those IDs are legitimately handled.
+                        missed_ids = [
+                            eid
+                            for eid in event.stop_reason.event_ids
+                            if eid not in pending_tools and eid not in sent_results and eid not in mcp_tool_ids
+                        ]
+                        to_execute = [
+                            (eid, pending_tools.pop(eid))
+                            for eid in event.stop_reason.event_ids
+                            if eid in pending_tools
+                        ]
+
+                        if missed_ids:
+                            error_events = [
+                                {
+                                    "type": "user.custom_tool_result",
+                                    "custom_tool_use_id": eid,
+                                    "content": [{"type": "text", "text": json.dumps({"error": "Tool call was not received by the client; please retry."})}],
+                                }
+                                for eid in missed_ids
+                            ]
+                            try:
+                                await client.beta.sessions.events.send(session_id, events=error_events)
+                                logger.warning("[requires_action] sent error result for %d missed tool(s): %r", len(missed_ids), missed_ids)
+                            except Exception as ce:
+                                logger.warning("[requires_action] missed tool error result send failed: %s", ce)
+
+                        if to_execute:
+                            async def _run_one(eid: str, te: Any) -> tuple[str, dict]:
+                                try:
+                                    return eid, await execute_tool(te.name, te.input, user_id, session_id=session_id)
+                                except Exception as exc:
+                                    logger.error("tool execution error [%s]: %s", te.name, exc)
+                                    return eid, {"error": str(exc)}
+
+                            tool_results = await asyncio.gather(*[_run_one(eid, te) for eid, te in to_execute])
+                            results = []
+                            for eid, result in tool_results:
+                                sent_results.add(eid)
+                                yield {"type": "tool_end", "tool_call_id": eid, "output": json.dumps(result)}
+                                results.append({
+                                    "type": "user.custom_tool_result",
+                                    "custom_tool_use_id": eid,
+                                    "content": [{"type": "text", "text": json.dumps(result)}],
+                                })
+                            await client.beta.sessions.events.send(session_id, events=results)
+                        # stream stays open — Anthropic continues on the same connection
+
+                    else:
+                        yield {"type": "done"}
+                        break
+
+                case "session.error" | "error":
+                    error = getattr(event, "error", None)
+                    if error:
+                        error_type = getattr(error, "type", "unknown")
+                        error_msg = getattr(error, "message", str(error))
+                        retry = getattr(error, "retry_status", None)
+                        retry_type = getattr(retry, "type", None) if retry else None
+                        if error_type == "model_rate_limited_error":
+                            msg = "模型当前繁忙，请稍后重试"
+                            if retry_type == "exhausted":
+                                msg = "模型当前繁忙，已多次重试仍失败，请稍后重试"
+                        else:
+                            msg = f"{error_type}: {error_msg}"
+                    else:
+                        msg = str(event)
+                    yield {"type": "error", "message": msg}
+                    break
+
+                case "agent.thinking":
+                    yield {"type": "thinking"}
+
+                case _:
+                    logger.info("[event] unhandled: %s", raw[:50])

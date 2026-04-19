@@ -9,15 +9,14 @@ class SessionCreateRequest(BaseModel):
 
 
 class SessionCreateResponse(BaseModel):
-    id: uuid.UUID
+    id: str  # Anthropic provider session ID
     user_id: uuid.UUID
     agent_slug: str | None
-    session_id: str
     created_at: datetime
 
 
 class SessionResponse(BaseModel):
-    id: uuid.UUID
+    id: str
     user_id: uuid.UUID
     provider_session_title: str | None = None
     agent_slug: str | None = None
@@ -32,7 +31,7 @@ class SessionEventResponse(BaseModel):
 
 
 class SessionDetailResponse(BaseModel):
-    id: uuid.UUID
+    id: str
     user_id: uuid.UUID
     agent_slug: str | None = None
     created_at: datetime

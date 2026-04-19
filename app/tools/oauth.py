@@ -13,12 +13,11 @@ import logging
 import httpx
 
 from app.config import get_settings
-from app.integrations.composio import _get_auth_config
+from app.integrations.composio import _get_auth_config_async
 
 logger = logging.getLogger(__name__)
 
 _API_BASE = "https://backend.composio.dev/api/v3"
-_API_BASE_V2 = "https://backend.composio.dev/api/v2"
 
 
 DEFINITIONS = [
@@ -61,38 +60,24 @@ DEFINITIONS = [
 ]
 
 
-def _list_connections(api_key: str, user_id: str, toolkit: str) -> list[dict]:
+async def _list_connections(api_key: str, user_id: str, toolkit: str) -> list[dict]:
     """Return connected accounts for the given user and toolkit via REST API."""
     try:
-        r = httpx.get(
-            f"{_API_BASE}/connected_accounts",
-            headers={"x-api-key": api_key},
-            params={"user_ids": user_id, "toolkit_slugs": toolkit, "statuses": "ACTIVE"},
-            timeout=15,
-        )
-        if not r.is_success:
-            logger.warning("manage_connections: list connections returned %s: %s", r.status_code, r.text)
-            return []
-        return r.json().get("items", [])
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{_API_BASE}/connected_accounts",
+                headers={"x-api-key": api_key},
+                params={"user_ids": user_id, "toolkit_slugs": toolkit, "statuses": "ACTIVE"},
+                timeout=15,
+            )
+            if not r.is_success:
+                logger.warning("manage_connections: list connections returned %s: %s", r.status_code, r.text)
+                return []
+            return r.json().get("items", [])
     except Exception as exc:
-        logger.warning("manage_connections: could not list connections: %s", exc)
+        logger.warning("manage_connections: could not list connections: %r", exc)
         return []
 
-
-def _get_instagram_user_info(api_key: str, user_id: str) -> dict | None:
-    """Execute INSTAGRAM_GET_USER_INFO via Composio REST API."""
-    try:
-        r = httpx.post(
-            f"{_API_BASE_V2}/actions/INSTAGRAM_GET_USER_INFO/execute",
-            headers={"x-api-key": api_key, "Content-Type": "application/json"},
-            json={"entityId": user_id, "input": {}},
-            timeout=15,
-        )
-        if r.is_success:
-            return r.json()
-    except Exception as exc:
-        logger.warning("manage_connections: could not get IG user info: %s", exc)
-    return None
 
 
 async def handle(name: str, input: dict, user_id: str) -> dict:
@@ -108,7 +93,7 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
         force_reconnect = input.get("force_reconnect", False)
 
         # Check existing connections via REST API
-        connections = _list_connections(settings.composio_api_key, user_id, toolkit)
+        connections = await _list_connections(settings.composio_api_key, user_id, toolkit)
         active_conn = next(
             (c for c in connections
              if (c.get("status", "") or "").upper() == "ACTIVE"),
@@ -123,29 +108,23 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
                 "connection_id": active_conn.get("id"),
                 "connection_status": active_conn.get("status"),
             }
-            # For Instagram, also fetch the IG Business Account ID needed for publishing
-            if toolkit == "instagram":
-                info = _get_instagram_user_info(settings.composio_api_key, user_id)
-                if info and info.get("successful"):
-                    data = info.get("data", {})
-                    result["ig_user_id"] = data.get("id")
-                    result["username"] = data.get("username")
             return result
 
         # Not connected — initiate auth via REST API (supports both managed and self-registered OAuth)
-        ac = _get_auth_config(toolkit)
+        ac = await _get_auth_config_async(toolkit)
         if ac is None:
             return {"status": False, "message": f"No auth_config found for '{toolkit}'. Create one in Composio dashboard first."}
 
-        r = httpx.post(
-            f"{_API_BASE}/connected_accounts",
-            headers={"x-api-key": settings.composio_api_key, "Content-Type": "application/json"},
-            json={
-                "auth_config": {"id": ac["id"]},
-                "connection": {"user_id": user_id},
-            },
-            timeout=15,
-        )
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                f"{_API_BASE}/connected_accounts",
+                headers={"x-api-key": settings.composio_api_key, "Content-Type": "application/json"},
+                json={
+                    "auth_config": {"id": ac["id"]},
+                    "connection": {"user_id": user_id},
+                },
+                timeout=15,
+            )
         if not r.is_success:
             return {"status": False, "message": f"Failed to initiate connection: {r.text}"}
         redirect_url = r.json().get("redirect_url") or r.json().get("redirectUrl")
