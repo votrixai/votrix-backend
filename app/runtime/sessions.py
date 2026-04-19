@@ -59,10 +59,37 @@ def _stream_in_thread(
         first = True
         pending_tools: dict[str, Any] = {}  # event_id → agent.custom_tool_use event
 
+        _betas = ["files-api-2025-04-14", "code-execution-2025-08-25"]
+        emitted_file_ids: set[str] = set()
+
+        def _emit_files_from(obj: Any) -> None:
+            """Walk any event/block recursively and emit {type: file} for every
+            file_id encountered. Covers bash_code_execution_tool_result content
+            lists and agent.message content blocks uniformly."""
+            if obj is None:
+                return
+            if hasattr(obj, "model_dump"):
+                obj = obj.model_dump()
+            if isinstance(obj, dict):
+                fid = obj.get("file_id")
+                if isinstance(fid, str) and fid not in emitted_file_ids:
+                    emitted_file_ids.add(fid)
+                    out.put({
+                        "type": "file",
+                        "file_id": fid,
+                        "filename": obj.get("filename") or obj.get("name"),
+                        "mime_type": obj.get("mime_type") or obj.get("media_type"),
+                    })
+                for v in obj.values():
+                    _emit_files_from(v)
+            elif isinstance(obj, list):
+                for v in obj:
+                    _emit_files_from(v)
+
         while not idle:
             try:
                 with client.beta.sessions.events.stream(
-                    session_id, timeout=_STREAM_TIMEOUT
+                    session_id, timeout=_STREAM_TIMEOUT, betas=_betas
                 ) as event_stream:
                     if first:
                         client.beta.sessions.events.send(
@@ -73,25 +100,24 @@ def _stream_in_thread(
                                     "content": _build_content(message, attachments),
                                 }
                             ],
+                            betas=_betas,
                         )
                         first = False
 
                     for event in event_stream:
                         raw = str(event)
-                        logger.info("[event] %s: %s", event.type, raw[:50])
+                        logger.info("[event] %s: %s", event.type, raw[:100])
+
+                        # Catch-all: any event or block carrying a file_id → emit a file card.
+                        # Handles bash_code_execution_tool_result, text_editor_code_execution_tool_result,
+                        # and any future variant without needing case-specific handling.
+                        _emit_files_from(event)
 
                         match event.type:
                             case "agent.message":
                                 for block in event.content:
                                     if block.type == "text" and block.text:
                                         out.put({"type": "token", "content": block.text})
-                                    elif file_id := getattr(block, "file_id", None):
-                                        out.put({
-                                            "type": "file",
-                                            "file_id": file_id,
-                                            "filename": getattr(block, "filename", None) or getattr(block, "name", None),
-                                            "mime_type": getattr(block, "mime_type", None) or getattr(block, "media_type", None),
-                                        })
 
                             case "agent.mcp_tool_use":
                                 out.put({

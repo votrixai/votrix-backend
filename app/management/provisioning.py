@@ -37,9 +37,28 @@ _AGENT_TOOLSET = {
     "default_config": {"permission_policy": {"type": "always_allow"}},
 }
 
+# Anthropic's sandboxed code execution tool. Files it creates are auto-registered
+# to the Files API with downloadable=True, unlike agent_toolset's write tool.
+_CODE_EXECUTION_TOOL = {
+    "type": "code_execution_20250825",
+    "name": "code_execution",
+}
+
 _MCP_TOOLSET_CONFIG = {
     "default_config": {"permission_policy": {"type": "always_allow"}},
 }
+
+_FILE_OUTPUT_GUIDANCE = """
+---
+
+## File outputs
+
+You have two file environments:
+- `agent_toolset` (write/bash/read): for editing project files. Outputs are NOT downloadable.
+- `code_execution` (bash_code_execution / text_editor_code_execution): Anthropic-sandboxed. Files created here are auto-registered to the Files API and downloadable by the user.
+
+When the user asks you to produce a file they can download, always use the `code_execution` tool. Save the file anywhere in the workspace; Anthropic registers it automatically. State the filename in your reply so the user knows what to expect.
+"""
 
 
 def _agent_dir(agent_id: str) -> Path:
