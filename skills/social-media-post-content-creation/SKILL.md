@@ -118,12 +118,9 @@ Hook 公式参考见 `/workspace/skills/social-media-post-content-creation/refer
 
 ### 图片内容（Single Feed / Carousel / Story / LinkedIn Image Post）
 
-询问 admin 是否需要配图。如果需要：
+按以下规则构建 prompt 并调用 `image_generate`。
 
-1. 根据帖子主题 + `图片风格` 字段构建 image prompt
-2. 调用 `image_generate`，选择对应类型的 `aspect_ratio`（见各平台规格文件）
-3. 工具返回 `public_url`，将 url 告知 admin 并写入草稿的 `## 配图路径` 字段
-4. 如果 admin 不满意，根据反馈调整 prompt 重新生成，最多 3 次
+**所有 prompt 用英文输出，结尾统一加 `high quality, professional photography`。**
 
 ```
 image_generate(
@@ -133,15 +130,69 @@ image_generate(
 # 返回: {"status": true, "public_url": "https://...", "aspect_ratio": "1:1"}
 ```
 
-Feed 使用 `"1:1"` 或 `"4:5"`，LinkedIn / Facebook Feed 可用 `"16:9"`。
+工具返回 `public_url` 后告知 admin，并写入草稿对应字段。如果 admin 不满意，根据反馈调整 prompt 重新生成，最多 3 次。
 
 ---
 
-### 视频内容（Reels / LinkedIn Video / Twitter 视频）
+#### Single Feed / LinkedIn Image Post
+
+**aspect_ratio：** Feed `"1:1"` 或 `"4:5"`；LinkedIn / Facebook Feed `"16:9"`
+
+**Prompt 公式：**
+```
+[subject] [action], [scene/background],
+[style], [lighting], [mood/color tone],
+[composition: overhead / close-up / eye-level / rule of thirds],
+high quality, professional photography
+```
+
+---
+
+#### Carousel（每张均调用 image_generate）
+
+**aspect_ratio：** `"1:1"`（所有张保持统一）
+
+**先从 `marketing-context.md` 锁定 base_style，再逐张变 subject/action/scene，保证系列视觉一致。**
+
+```
+# base_style（全系列复用）
+[style], [lighting], [mood/color tone], consistent series, same visual style and color palette
+
+# 每张 prompt
+[subject] [action], [scene], [base_style], slide N of [总数], high quality, professional photography
+```
+
+草稿 `## 配图路径` 按张记录：
+```
+## 配图路径
+第 1 张：[public_url]
+第 2 张：[public_url]
+...
+最后一张：[public_url]
+```
+
+---
+
+#### Story
+
+**aspect_ratio：** `"9:16"`
+
+**Prompt 公式：**
+```
+[subject] [action], [scene/background],
+vertical 9:16 portrait composition, subject centered in middle 72% of frame,
+[style], [lighting], [mood/color tone],
+clean space at top and bottom for text overlay,
+high quality, professional photography
+```
+
+---
+
+### 视频内容（Reels / Story 视频 / LinkedIn Video / Twitter 视频）
 
 视频内容**不调用 image_generate**。流程：
 
-**情况 A — admin 先说「做个 Reels」，还没有视频：**
+**情况 A — admin 先说「做个 Reels / 视频 Story」，还没有视频：**
 1. 生成文案 + 视频脚本大纲（见各平台规格文件）
 2. 将草稿状态设为「待视频」，告知 admin：
    > 文案和脚本已生成，视频拍好后直接把链接发给我，我帮你发布。
@@ -152,8 +203,8 @@ Feed 使用 `"1:1"` 或 `"4:5"`，LinkedIn / Facebook Feed 可用 `"16:9"`。
 2. 根据 admin 描述的视频内容生成配套文案 + hashtag
 3. 草稿状态直接设为「待发布」
 
-**Reels 封面图（可选）：**
-如 admin 需要封面图，调用 `image_generate(aspect_ratio="9:16")`，写入草稿 `## 封面图路径`。Story 封面同理。
+**封面图（可选）：**
+如 admin 需要 Reels / 视频 Story 封面图，调用 `image_generate(aspect_ratio="9:16")`，写入草稿 `## 封面图路径`。
 
 ---
 
