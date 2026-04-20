@@ -1,0 +1,10 @@
+{
+  "agentId": "csv-agent",
+  "name": "CSV Agent",
+  "model": "claude-sonnet-4-6",
+  "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
+  "skills": [],
+  "integrations": [],
+  "tools": ["create_downloadable_file"],
+  "code_execution": true
+}
