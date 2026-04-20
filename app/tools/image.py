@@ -5,7 +5,6 @@ Returns a public URL.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import uuid
 from pathlib import Path
@@ -76,11 +75,9 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
         for part in response.candidates[0].content.parts:
             if part.inline_data and part.inline_data.mime_type.startswith("image/"):
                 try:
-                    url = await asyncio.to_thread(
-                        upload_image, part.inline_data.data, part.inline_data.mime_type, user_id
-                    )
+                    url = await upload_image(part.inline_data.data, part.inline_data.mime_type, user_id)
                 except Exception as upload_exc:
-                    logger.warning("Supabase upload failed (%s) — saving locally", upload_exc)
+                    import traceback; logger.warning("Supabase upload failed — %s\n%s", upload_exc, traceback.format_exc())
                     ext = part.inline_data.mime_type.split("/")[-1]
                     out_dir = Path(__file__).parents[2] / "scripts" / "generated_images"
                     out_dir.mkdir(exist_ok=True)
