@@ -49,57 +49,16 @@ integrations:
 
 ## 平台 API 调用
 
-### Facebook
+根据已连接平台，读取对应 reference 文件执行 API 调用：
 
-```
-# 账号级别数据（粉丝、触达、互动趋势）
-FACEBOOK_GET_PAGE_INSIGHTS
-  传入：page_id、metric（fans、page_impressions、page_engaged_users）、period（day/week/month）
-  返回：各指标时间序列数据
+| 平台 | Reference 文件 |
+|---|---|
+| Facebook | `/workspace/skills/social-media-post-analytics/references/facebook.md` |
+| Instagram | `/workspace/skills/social-media-post-analytics/references/instagram.md` |
+| Twitter | `/workspace/skills/social-media-post-analytics/references/twitter.md` |
+| LinkedIn | `/workspace/skills/social-media-post-analytics/references/linkedin.md` |
 
-# 单帖表现
-FACEBOOK_GET_POST_INSIGHTS
-  传入：post_id、metric（post_impressions、post_reactions_by_type_total、post_clicks）
-  返回：该帖数据
-```
-
-### Instagram
-
-```
-# 账号级别数据
-INSTAGRAM_GET_USER_INSIGHTS
-  传入：ig_user_id、metric（reach、impressions、profile_views、follower_count）、period（day/week/month）
-  返回：各指标时间序列数据
-
-# 单帖表现
-INSTAGRAM_GET_IG_MEDIA_INSIGHTS
-  传入：media_id（post_id）、metric（reach、impressions、likes、comments、shares、saved）
-  返回：该帖数据
-```
-
-### Twitter
-
-```
-# 推文表现
-通过 Composio Twitter 工具传入 tweet_id
-  返回：impression_count、like_count、retweet_count、reply_count、quote_count
-
-# 账号增长
-通过 Composio Twitter 工具传入 user_id
-  返回：followers_count、following_count
-```
-
-### LinkedIn
-
-```
-# 帖子表现
-通过 Composio LinkedIn 工具传入 post_id（ugcPost URN 格式）
-  返回：impressionCount、likeCount、commentCount、shareCount、clickCount
-
-# 账号粉丝数
-通过 Composio LinkedIn 工具传入 organization_id
-  返回：followerCountsByAssociationType
-```
+各平台独立拉取，一个失败不影响其他平台继续。
 
 ---
 
@@ -160,6 +119,12 @@ Admin 说「出报告」时询问要哪种，或根据问句直接判断：
 | 客户案例 | - | - | - |
 
 输出：哪类内容效果最好，哪类需要调整，发布时间优化建议。
+
+分析完成后，将结论写回 `/workspace/marketing-context.md` 的 `## 内容策略`：
+- 若某类型触达 / 互动率显著高于其他类型，更新「当前优先类型」
+- 在「策略更新记录」末尾追加一条：
+  `[analytics {日期}] {具体调整，例：Reels 触达是 Feed 3 倍，已更新优先类型为 Reels}`
+- 记录超过 10 条时删除最旧的一条
 
 ### 5. 完整月报
 
