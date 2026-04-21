@@ -172,18 +172,26 @@ async def stream(
                                 logger.warning("[requires_action] missed tool error result send failed: %s", ce)
 
                         if to_execute:
-                            async def _run_one(eid: str, te: Any) -> tuple[str, dict]:
+                            async def _run_one(eid: str, te: Any) -> tuple[str, str, dict]:
                                 try:
-                                    return eid, await execute_tool(te.name, te.input, user_id, session_id=session_id)
+                                    return eid, te.name, await execute_tool(te.name, te.input, user_id, session_id=session_id)
                                 except Exception as exc:
                                     logger.error("tool execution error [%s]: %s", te.name, exc)
-                                    return eid, {"error": str(exc)}
+                                    return eid, te.name, {"error": str(exc)}
 
                             tool_results = await asyncio.gather(*[_run_one(eid, te) for eid, te in to_execute])
                             results = []
-                            for eid, result in tool_results:
+                            for eid, tool_name, result in tool_results:
                                 sent_results.add(eid)
                                 yield {"type": "tool_end", "tool_call_id": eid, "output": json.dumps(result)}
+                                # Emit a file event so the frontend renders a download card.
+                                if tool_name == "create_downloadable_file" and result.get("file_id"):
+                                    yield {
+                                        "type": "file",
+                                        "file_id": result["file_id"],
+                                        "filename": result.get("filename"),
+                                        "mime_type": result.get("mime_type"),
+                                    }
                                 results.append({
                                     "type": "user.custom_tool_result",
                                     "custom_tool_use_id": eid,

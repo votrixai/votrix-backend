@@ -8,6 +8,7 @@ DELETE /sessions/{session_id}       delete session
 """
 
 import asyncio
+import json
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +26,7 @@ from app.models.session import (
     SessionCreateResponse,
     SessionDetailResponse,
     SessionEventResponse,
+    SessionFileResponse,
     SessionResponse,
 )
 
@@ -132,6 +134,38 @@ async def get_session_detail(
             for e in events
         ],
     )
+
+
+@router.get("/sessions/{session_id}/files", response_model=list[SessionFileResponse])
+async def list_session_files(
+    session_id: str,
+    db: AsyncSession = Depends(get_session),
+    current_user: AuthedUser = Depends(require_user),
+):
+    """Return all downloadable files produced in a session."""
+    session = await sessions_q.get_session(db, session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Session does not belong to current user")
+
+    events = await sessions_q.get_events(db, session_id)
+    files: list[SessionFileResponse] = []
+    for e in events:
+        if e.type != "ai_file":
+            continue
+        try:
+            data = json.loads(e.body)
+        except (json.JSONDecodeError, TypeError):
+            continue
+        fid = data.get("file_id")
+        if fid:
+            files.append(SessionFileResponse(
+                file_id=fid,
+                filename=data.get("filename"),
+                mime_type=data.get("mime_type"),
+            ))
+    return files
 
 
 @router.delete("/sessions/{session_id}", status_code=204)

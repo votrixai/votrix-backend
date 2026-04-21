@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/files", tags=["files"])
 
-_BETA = ["files-api-2025-04-14"]
+_BETA = ["files-api-2025-04-14", "managed-agents-2026-04-01"]
 
 
 class FileUploadResponse(BaseModel):
