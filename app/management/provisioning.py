@@ -1,7 +1,7 @@
 """
 Per-user agent provisioning.
 
-create_user_agent(agent_id, user_id, display_name, force) → anthropic_agent_id
+create_user_agent(agent_id, user_id, force) → anthropic_agent_id
 
 Steps:
   1. Read agents/{agent_id}/config.json
@@ -63,9 +63,18 @@ def _build_system(agent_id: str) -> str:
     return p.read_text(encoding="utf-8").strip()
 
 
-def _build_user_system(agent_id: str, display_name: str) -> str:
+def _build_user_system(agent_id: str) -> str:
+    config = _read_config(agent_id)
+    integrations = [i["slug"] for i in config.get("integrations", [])]
     base = _build_system(agent_id)
-    return base + f"\n\n---\n\n## Current User\nName: {display_name}\n"
+    if not integrations:
+        return base + "\n"
+    slugs = " · ".join(integrations)
+    integration_section = (
+        f"## Integrations\n{slugs}\n"
+        "These are the integrations available to this agent — connected or connectable."
+    )
+    return base + "\n\n---\n\n" + integration_section + "\n"
 
 
 def _build_tools(mcp_server_names: list[str], custom_tools: list[dict]) -> list[dict]:
@@ -143,7 +152,6 @@ def _skill_entries(skill_ids: dict[str, str]) -> list[dict]:
 def create_user_agent(
     agent_id: str,
     user_id: str,
-    display_name: str,
     composio_user_id: str | None = None,
     force: bool = False,
 ) -> str:
@@ -173,12 +181,12 @@ def create_user_agent(
             "url": composio.mcp_url(mcp_server_id, composio_id),
         }]
 
-    system = _build_user_system(agent_id, display_name)
+    system = _build_user_system(agent_id)
     tools = _build_tools([s["name"] for s in mcp_servers], custom_tools)
 
     client = get_client()
     agent = client.beta.agents.create(
-        name=f"{config['name']} — {display_name}",
+        name=config["name"],
         model=config.get("model", "claude-sonnet-4-6"),
         system=system,
         tools=tools,

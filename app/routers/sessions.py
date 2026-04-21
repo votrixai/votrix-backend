@@ -17,7 +17,6 @@ from app.config import get_settings
 from app.db.engine import get_session
 from app.db.queries import sessions as sessions_q
 from app.db.queries import user_agents as user_agents_q
-from app.db.queries import users as users_q
 from app.management import sessions as management_sessions
 from app.management.environments import create_session
 from app.management.provisioning import create_user_agent, _read_config
@@ -36,11 +35,10 @@ async def _get_or_provision_agent(
     db: AsyncSession,
     user_id,
     agent_slug: str,
-    display_name: str,
 ) -> str:
     force = get_settings().force_reprovision
     agent_id = await asyncio.to_thread(
-        create_user_agent, agent_slug, str(user_id), display_name, force=force
+        create_user_agent, agent_slug, str(user_id), force=force
     )
     existing = await user_agents_q.get(db, user_id, agent_slug)
     if existing:
@@ -57,10 +55,6 @@ async def create_session_endpoint(
     db: AsyncSession = Depends(get_session),
     current_user: AuthedUser = Depends(require_user),
 ):
-    user = await users_q.get_user(db, current_user.id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     try:
         config = _read_config(body.agent_slug)
     except FileNotFoundError:
@@ -69,7 +63,7 @@ async def create_session_endpoint(
 
     try:
         agent_id = await _get_or_provision_agent(
-            db, current_user.id, body.agent_slug, user.display_name
+            db, current_user.id, body.agent_slug
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
