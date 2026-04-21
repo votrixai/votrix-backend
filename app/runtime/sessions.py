@@ -184,7 +184,7 @@ async def stream(
                             for eid, tool_name, result in tool_results:
                                 sent_results.add(eid)
                                 yield {"type": "tool_end", "tool_call_id": eid, "output": json.dumps(result)}
-                                # Emit a file event so the frontend renders a download card
+                                # Emit a file event so the frontend renders a download card.
                                 if tool_name == "create_downloadable_file" and result.get("file_id"):
                                     yield {
                                         "type": "file",

@@ -68,16 +68,8 @@ def _build_user_system(agent_id: str, display_name: str) -> str:
     return base + f"\n\n---\n\n## Current User\nName: {display_name}\n"
 
 
-_CODE_EXECUTION = {
-    "type": "code_execution_20250825",
-    "name": "code_execution",
-}
-
-
-def _build_tools(mcp_server_names: list[str], custom_tools: list[dict], *, code_execution: bool = False) -> list[dict]:
+def _build_tools(mcp_server_names: list[str], custom_tools: list[dict]) -> list[dict]:
     tools: list[dict] = [_AGENT_TOOLSET]
-    if code_execution:
-        tools.append(_CODE_EXECUTION)
     tools += [{"type": "mcp_toolset", "mcp_server_name": name, **_MCP_TOOLSET_CONFIG} for name in mcp_server_names]
     tools += custom_tools
     return tools
@@ -184,7 +176,6 @@ def create_user_agent(
     tools = _build_tools(
         [s["name"] for s in mcp_servers],
         custom_tools,
-        code_execution=config.get("code_execution", False),
     )
 
     client = get_client()

@@ -15,7 +15,7 @@ async def execute(name: str, input: dict, user_id: str, session_id: str | None =
     if name in ("cron_create", "cron_delete", "cron_list"):
         return await cron.handle(name, input, user_id, session_id=session_id)
     if name == "create_downloadable_file":
-        return await file_output.handle(name, input, user_id)
+        return await file_output.handle(name, input, user_id, session_id=session_id)
     if name == "image_generate":
         return await image.handle(name, input, user_id)
     if name == "manage_connections":

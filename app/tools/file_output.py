@@ -1,7 +1,8 @@
 """
-Downloadable-file tool — given a file_id produced by code execution,
-retrieve its metadata from the Anthropic Files API so the frontend can
-offer a download link.
+Downloadable-file tool — the agent writes a file via its `bash`/`write` tools,
+then calls this tool with the filename. The file is already auto-registered
+as a session-scoped file in the Anthropic Files API; we look it up and return
+its file_id so the frontend can render a download link.
 """
 
 from __future__ import annotations
@@ -13,53 +14,68 @@ from app.client import get_client
 
 logger = logging.getLogger(__name__)
 
-_BETA = ["files-api-2025-04-14"]
+_BETA = ["files-api-2025-04-14", "managed-agents-2026-04-01"]
 
 DEFINITIONS = [
     {
         "type": "custom",
         "name": "create_downloadable_file",
         "description": (
-            "Make a file created by code execution available for the user to download. "
-            "Call this AFTER writing a file via code execution. "
-            "Pass the file_id that code execution returned."
+            "Signal that a file you just wrote (via the bash or write tool) is ready for the user to download. "
+            "Call this AFTER writing the file to the session filesystem. "
+            "Pass the filename only (e.g. 'report.csv') — not the full path. "
+            "The backend surfaces the file as a download link in the UI."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "file_id": {
+                "filename": {
                     "type": "string",
-                    "description": "The file_id returned by code execution after writing a file.",
+                    "description": "The filename of the file you wrote (e.g. 'report.csv'). Match the basename exactly.",
                 },
             },
-            "required": ["file_id"],
+            "required": ["filename"],
         },
     },
 ]
 
 
-async def handle(name: str, input: dict, user_id: str) -> dict:
-    file_id = input.get("file_id", "")
-    if not file_id:
-        return {"error": "file_id is required"}
+async def handle(name: str, input: dict, user_id: str, session_id: str | None = None) -> dict:
+    filename = (input.get("filename") or "").strip()
+    if not filename:
+        return {"error": "filename is required"}
+    if not session_id:
+        return {"error": "session_id is required to look up session-scoped files"}
+
+    # Accept either a basename or a full path; use just the basename for matching.
+    basename = filename.rsplit("/", 1)[-1]
 
     try:
         client = get_client()
-        meta = await asyncio.to_thread(
-            client.beta.files.retrieve_metadata, file_id, betas=_BETA,
+        listing = await asyncio.to_thread(
+            client.beta.files.list, scope_id=session_id, betas=_BETA,
         )
-        filename = getattr(meta, "filename", file_id)
-        mime_type = getattr(meta, "mime_type", None) or "application/octet-stream"
-        downloadable = bool(getattr(meta, "downloadable", False))
-
-        if not downloadable:
-            return {"error": f"File {file_id} is not downloadable. Only files created by code execution are downloadable."}
-
-        return {
-            "file_id": file_id,
-            "filename": filename,
-            "mime_type": mime_type,
-        }
     except Exception as exc:
-        logger.exception("create_downloadable_file failed for file_id=%s", file_id)
-        return {"error": str(exc)}
+        logger.exception("files.list failed for session %s", session_id)
+        return {"error": f"Failed to list session files: {exc}"}
+
+    # Pick the most recently created file matching the name.
+    match = None
+    for f in listing.data:
+        if getattr(f, "filename", None) == basename and getattr(f, "downloadable", False):
+            if match is None or f.created_at > match.created_at:
+                match = f
+
+    if match is None:
+        return {
+            "error": (
+                f"No downloadable file named '{basename}' found in this session. "
+                "Make sure you wrote the file with the exact filename before calling this tool."
+            )
+        }
+
+    return {
+        "file_id": match.id,
+        "filename": match.filename,
+        "mime_type": getattr(match, "mime_type", None) or "application/octet-stream",
+    }

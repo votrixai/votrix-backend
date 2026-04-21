@@ -3,8 +3,7 @@
   "name": "CSV Agent",
   "model": "claude-sonnet-4-6",
   "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
-  "skills": [],
+  "skills": ["file-building"],
   "integrations": [],
-  "tools": ["create_downloadable_file"],
-  "code_execution": true
+  "tools": ["create_downloadable_file"]
 }
