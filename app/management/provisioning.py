@@ -69,11 +69,10 @@ def _build_user_system(agent_id: str, display_name: str) -> str:
 
 
 def _build_tools(mcp_server_names: list[str], custom_tools: list[dict]) -> list[dict]:
-    return (
-        [_AGENT_TOOLSET]
-        + [{"type": "mcp_toolset", "mcp_server_name": name, **_MCP_TOOLSET_CONFIG} for name in mcp_server_names]
-        + custom_tools
-    )
+    tools: list[dict] = [_AGENT_TOOLSET]
+    tools += [{"type": "mcp_toolset", "mcp_server_name": name, **_MCP_TOOLSET_CONFIG} for name in mcp_server_names]
+    tools += custom_tools
+    return tools
 
 
 def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str) -> None:
@@ -174,7 +173,10 @@ def create_user_agent(
         }]
 
     system = _build_user_system(agent_id, display_name)
-    tools = _build_tools([s["name"] for s in mcp_servers], custom_tools)
+    tools = _build_tools(
+        [s["name"] for s in mcp_servers],
+        custom_tools,
+    )
 
     client = get_client()
     agent = client.beta.agents.create(
