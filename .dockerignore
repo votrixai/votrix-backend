@@ -1,0 +1,41 @@
+# Never ship local env files into the image — production sets env vars
+# via the container orchestrator, and load_dotenv(override=True) in
+# model_manager.py / server/main.py must not clobber them with dev values
+# like CATER_BUSINESS_BASE_URL=http://localhost:4000/v1.
+.env
+.env.*
+.envdocker
+.envbeta.yaml
+.envprod.yaml
+
+# Python bytecode / caches
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local virtualenvs
+.venv/
+venv/
+
+# VCS
+.git/
+.gitignore
+.gitmodules
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Tests / logs
+*.log
+test/synthetic_test/synthetic_test_log/tmp/
+test/interactive_test_log/
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb
