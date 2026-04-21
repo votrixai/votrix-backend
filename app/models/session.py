@@ -36,3 +36,9 @@ class SessionDetailResponse(BaseModel):
     agent_slug: str | None = None
     created_at: datetime
     events: list[SessionEventResponse]
+
+
+class SessionFileResponse(BaseModel):
+    file_id: str
+    filename: str | None = None
+    mime_type: str | None = None
