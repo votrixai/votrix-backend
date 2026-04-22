@@ -1,8 +1,11 @@
 """
-Downloadable-file tool — the agent writes a file via its `bash`/`write` tools,
-then calls this tool with the filename. The file is already auto-registered
-as a session-scoped file in the Anthropic Files API; we look it up and return
-its file_id so the frontend can render a download link.
+`download_file` tool — after the agent writes a file in its sandbox
+(via `write` or `bash`), it calls this tool with the filename to surface
+the file to the user as a download in the UI.
+
+Managed Agents auto-registers every file the sandbox writes as a
+session-scoped Files-API entry, so we look the file up by filename/scope
+and return its real `file_id`.
 """
 
 from __future__ import annotations
@@ -19,7 +22,7 @@ _BETA = ["files-api-2025-04-14", "managed-agents-2026-04-01"]
 DEFINITIONS = [
     {
         "type": "custom",
-        "name": "create_downloadable_file",
+        "name": "download_file",
         "description": (
             "Signal that a file you just wrote (via the bash or write tool) is ready for the user to download. "
             "Call this AFTER writing the file to the session filesystem. "
@@ -31,7 +34,7 @@ DEFINITIONS = [
             "properties": {
                 "filename": {
                     "type": "string",
-                    "description": "The filename of the file you wrote (e.g. 'report.csv'). Match the basename exactly.",
+                    "description": "Basename of the file you wrote (e.g. 'report.csv'). Must match the saved filename exactly.",
                 },
             },
             "required": ["filename"],
@@ -70,7 +73,7 @@ async def handle(name: str, input: dict, user_id: str, session_id: str | None = 
         return {
             "error": (
                 f"No downloadable file named '{basename}' found in this session. "
-                "Make sure you wrote the file with the exact filename before calling this tool."
+                "Write the file with `write` or `bash` first, then call download_file with the exact basename."
             )
         }
 
