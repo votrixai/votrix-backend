@@ -5,5 +5,5 @@
   "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
   "skills": ["file-building"],
   "integrations": [],
-  "tools": ["create_downloadable_file"]
+  "tools": ["download_file"]
 }
