@@ -110,7 +110,7 @@ integrations: []
 | Twitter Thread | 按条拆分输出，每条 ≤280 字，标注「第 N 条」 |
 | LinkedIn Article | 标题 + 章节大纲 + 正文（不走 publishing 流程，手动发布） |
 
-Hook 公式参考见 `/workspace/skills/social-media-post-content-creation/references/post-templates.md`。
+Hook 公式参考见 `/workspace/skills/social-media-post-content-creation/templates/copywriting.md`。
 
 ---
 
@@ -118,9 +118,7 @@ Hook 公式参考见 `/workspace/skills/social-media-post-content-creation/refer
 
 ### 图片内容（Single Feed / Carousel / Story / LinkedIn Image Post）
 
-按以下规则构建 prompt 并调用 `image_generate`。
-
-**所有 prompt 用英文输出，结尾统一加 `high quality, professional photography`。**
+按以下规则构建 prompt 并调用 `image_generate`。Prompt 公式和风格词参考见 `/workspace/skills/social-media-post-content-creation/templates/image.md`。
 
 ```
 image_generate(
@@ -134,77 +132,17 @@ image_generate(
 
 ---
 
-#### Single Feed / LinkedIn Image Post
+### 视频内容（Reels / Story 视频 / LinkedIn Video）
 
-**aspect_ratio：** Feed `"1:1"` 或 `"4:5"`；LinkedIn / Facebook Feed `"16:9"`
+视频内容**不调用 image_generate**。Twitter 不支持视频，改为配图帖子。
 
-**Prompt 公式：**
-```
-[subject] [action], [scene/background],
-[style], [lighting], [mood/color tone],
-[composition: overhead / close-up / eye-level / rule of thirds],
-high quality, professional photography
-```
+**情况 A — AI 生成视频：**
+参考 `/workspace/skills/social-media-post-content-creation/templates/video.md` 按五维度构建 prompt，调用 `video_generate`（IG/FB → `aspect_ratio="9:16"`，LinkedIn → `"16:9"`，duration 默认 `8`）。生成完成后写入草稿 `## 视频路径`，状态改「待发布」。
 
----
+**情况 B — admin 提供视频 URL：**
+收下 URL 写入草稿 `## 视频路径`，生成配套文案，状态设「待发布」。
 
-#### Carousel（每张均调用 image_generate）
-
-**aspect_ratio：** `"1:1"`（所有张保持统一）
-
-**先从 `marketing-context.md` 锁定 base_style，再逐张变 subject/action/scene，保证系列视觉一致。**
-
-```
-# base_style（全系列复用）
-[style], [lighting], [mood/color tone], consistent series, same visual style and color palette
-
-# 每张 prompt
-[subject] [action], [scene], [base_style], slide N of [总数], high quality, professional photography
-```
-
-草稿 `## 配图路径` 按张记录：
-```
-## 配图路径
-第 1 张：[public_url]
-第 2 张：[public_url]
-...
-最后一张：[public_url]
-```
-
----
-
-#### Story
-
-**aspect_ratio：** `"9:16"`
-
-**Prompt 公式：**
-```
-[subject] [action], [scene/background],
-vertical 9:16 portrait composition, subject centered in middle 72% of frame,
-[style], [lighting], [mood/color tone],
-clean space at top and bottom for text overlay,
-high quality, professional photography
-```
-
----
-
-### 视频内容（Reels / Story 视频 / LinkedIn Video / Twitter 视频）
-
-视频内容**不调用 image_generate**。流程：
-
-**情况 A — admin 先说「做个 Reels / 视频 Story」，还没有视频：**
-1. 生成文案 + 视频脚本大纲（见各平台规格文件）
-2. 将草稿状态设为「待视频」，告知 admin：
-   > 文案和脚本已生成，视频拍好后直接把链接发给我，我帮你发布。
-3. Admin 后续提供视频 URL → 写入草稿 `## 视频路径`，状态改为「待发布」
-
-**情况 B — admin 直接提供视频 URL，要求配文案发布：**
-1. 先收下视频 URL，写入草稿 `## 视频路径`
-2. 根据 admin 描述的视频内容生成配套文案 + hashtag
-3. 草稿状态直接设为「待发布」
-
-**封面图（可选）：**
-如 admin 需要 Reels / 视频 Story 封面图，调用 `image_generate(aspect_ratio="9:16")`，写入草稿 `## 封面图路径`。
+**封面图（可选）：** 调用 `image_generate(aspect_ratio="9:16")`，写入草稿 `## 封面图路径`。
 
 ---
 

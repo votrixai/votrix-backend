@@ -28,6 +28,22 @@ async def _client() -> httpx.AsyncClient:
     return _http
 
 
+async def upload_video(data: bytes, mime_type: str, user_id: str) -> str:
+    """Upload video bytes to Supabase Storage. Returns public URL."""
+    ext = mime_type.split("/")[-1]
+    path = f"{user_id}/videos/{uuid.uuid4()}.{ext}"
+    http = await _client()
+    s = get_settings()
+    resp = await http.post(
+        f"/object/{BUCKET}/{path}",
+        content=data,
+        headers={"Content-Type": mime_type, "x-upsert": "true"},
+        timeout=300,
+    )
+    resp.raise_for_status()
+    return f"{s.supabase_url}/storage/v1/object/public/{BUCKET}/{path}"
+
+
 async def upload_image(data: bytes, mime_type: str, user_id: str) -> str:
     """Upload image bytes to Supabase Storage. Returns public URL."""
     ext = mime_type.split("/")[-1]

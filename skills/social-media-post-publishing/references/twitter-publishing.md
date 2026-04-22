@@ -2,6 +2,14 @@
 
 ---
 
+## 视频内容限制
+
+Twitter（Composio）当前**不支持视频上传**。草稿类型为「Twitter 视频」时，一律按图文帖子发布：
+- 调用 `image_generate` 生成配图（如 content-creator 未生成），附图发布
+- 或纯文字发布，并在正文中说明「完整视频见 [平台]」
+
+---
+
 ## Single Tweet
 
 ```

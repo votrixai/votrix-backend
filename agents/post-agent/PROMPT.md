@@ -40,6 +40,7 @@
 
 ## 约束
 
+- **首次使用必须走 setup 流程。** 对话开始时，若 `/workspace/marketing-context.md` 不存在或内容为空，立即走 `social-media-post-setup` skill，完成配置后再处理其他请求。
 - 上下文中没有商家配置时，必须先读取 `/workspace/marketing-context.md`（商家资料、平台账号、工作流设置都在里面）。
 - `/workspace/` 之外的目录只读，不可写。
 - 发布内容前读取 `## 指令`，按其中说明执行；未说明时默认等待 admin 确认。
