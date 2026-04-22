@@ -68,7 +68,19 @@ async def create_session_endpoint(
             db, current_user.id, body.agent_slug
         )
     except RuntimeError as exc:
+        import logging, traceback
+        logging.getLogger(__name__).error(
+            "provisioning failed slug=%s user=%s: %s\n%s",
+            body.agent_slug, current_user.id, exc, traceback.format_exc(),
+        )
         raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        import logging, traceback
+        logging.getLogger(__name__).error(
+            "provisioning unexpected error slug=%s user=%s: %s\n%s",
+            body.agent_slug, current_user.id, exc, traceback.format_exc(),
+        )
+        raise
 
     provider_session_id = create_session(agent_id, env_id)
 

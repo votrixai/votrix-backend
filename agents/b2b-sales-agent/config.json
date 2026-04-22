@@ -1,0 +1,23 @@
+{
+  "agentId": "b2b-sales-agent",
+  "name": "B2B Sales Agent",
+  "model": "claude-sonnet-4-6",
+  "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
+  "skills": [
+    "business-context",
+    "icp-builder",
+    "market-intel",
+    "apollo-prospector",
+    "human-calibration",
+    "lead-scorer",
+    "account-deep-dive",
+    "lead-intel",
+    "quality-gate"
+  ],
+  "integrations": [
+    {"slug": "apollo"},
+    {"slug": "tavily"},
+    {"slug": "firecrawl"}
+  ],
+  "tools": ["manage_connections", "download_file"]
+}
