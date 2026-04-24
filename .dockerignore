@@ -33,9 +33,22 @@ venv/
 
 # Tests / logs
 *.log
+tests/
+scripts/
 test/synthetic_test/synthetic_test_log/tmp/
 test/interactive_test_log/
 
 # Notebooks
 .ipynb_checkpoints/
 *.ipynb
+
+# Build caches
+agents/**/.cache.json
+skills/**/.cache.json
+
+# Deploy config (not needed inside image)
+service.*.yaml
+cloudbuild.yaml
+Dockerfile
+README.md
+CLAUDE.md
