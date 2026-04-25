@@ -13,7 +13,7 @@ import logging
 import httpx
 
 from app.config import get_settings
-from app.integrations.composio import _get_auth_config_async
+from app.integrations.composio import get_auth_config
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
             return result
 
         # Not connected — initiate auth via REST API (supports both managed and self-registered OAuth)
-        ac = await _get_auth_config_async(toolkit)
+        ac = await get_auth_config(toolkit)
         if ac is None:
             return {"status": False, "message": f"No auth_config found for '{toolkit}'. Create one in Composio dashboard first."}
 

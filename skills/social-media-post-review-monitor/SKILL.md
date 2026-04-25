@@ -23,33 +23,17 @@ integrations:
 
 ## 数据来源
 
-### 帖子评论（Facebook / Instagram / Twitter）
+从 `/workspace/post-history/` 读取近 30 天的帖子记录，拿到各帖子的 post_id。
 
-客户对内容的即时反应，维系互动关系用。
+根据已连接平台，读取对应 reference 文件执行 API 调用：
 
-从 `/workspace/post-history/` 读取近 30 天的帖子记录，拿到各帖子的 post_id：
+| 平台 | Reference 文件 |
+|---|---|
+| Facebook | `/workspace/skills/social-media-post-review-monitor/references/facebook.md` |
+| Instagram | `/workspace/skills/social-media-post-review-monitor/references/instagram.md` |
+| Twitter | `/workspace/skills/social-media-post-review-monitor/references/twitter.md` |
 
-**Facebook：**
-```
-FACEBOOK_GET_COMMENTS
-  传入：post_id
-  返回：comments 列表（message、from、created_time）
-```
-
-**Instagram：**
-```
-INSTAGRAM_GET_IG_MEDIA_COMMENTS
-  传入：media_id（post_id）
-  返回：comments 列表（text、username、timestamp）
-```
-
-**Twitter：**
-```
-通过 Composio Twitter 工具传入 tweet_id
-  返回：replies 列表（text、author、created_at）
-```
-
-只拉上次巡查时间之后的新评论，已处理过的跳过。
+各平台独立拉取，一个失败不影响其他平台继续。
 
 ---
 
@@ -68,6 +52,24 @@ INSTAGRAM_GET_IG_MEDIA_COMMENTS
 
 ---
 
+## 话题信号写入
+
+情感分类完成后，若发现高频主题（同一问题出现 2 次以上），将信号写入 `/workspace/marketing-context.md` 的 `## 内容策略 → 近期重点话题`：
+
+```
+- {日期} [review] {话题描述}（{N} 条评论提及）→ 建议：{内容行动建议}
+```
+
+例：
+```
+- 2024-01-15 [review] 客户询问营业时间（3条）→ 建议：做一条 Story 置顶说明营业时间
+- 2024-01-18 [review] 多次提到停车不便（2条）→ 建议：发帖主动说明周边停车点
+```
+
+最多保留 5 条，超出时删除最旧的一条。更新 `近期重点话题 → 最后更新` 时间。
+
+---
+
 ## 展示评论
 
 按优先级排序展示：
@@ -83,8 +85,6 @@ INSTAGRAM_GET_IG_MEDIA_COMMENTS
 ## 草拟回复
 
 为每条评论生成回复草稿，结合 `/workspace/marketing-context.md` 的品牌语气：
-
-### 回复策略
 
 | 类型 | 策略 |
 |---|---|
@@ -105,24 +105,9 @@ INSTAGRAM_GET_IG_MEDIA_COMMENTS
 - **确认**：提交回复
 - **修改**：更新草稿，再次确认
 - **跳过**：标记为「已查看，暂不回复」
-- **删除评论**（仅 Facebook / Instagram 自己帖子的评论）：确认后调用删除 action
+- **删除评论**（仅 Facebook / Instagram）：确认后调用删除 action；Twitter 无法删除他人评论
 
-**Facebook 回复：**
-```
-FACEBOOK_CREATE_COMMENT
-  传入：post_id、message（回复内容）
-```
-
-**Instagram 回复：**
-```
-INSTAGRAM_POST_IG_COMMENT_REPLIES
-  传入：comment_id、message（≤300字，≤4个hashtag，≤1个URL）
-```
-
-**Twitter 回复：**
-```
-通过 Composio Twitter 工具传入 text、reply.in_reply_to_tweet_id
-```
+回复 / 删除 API 详见各平台 reference 文件。
 
 ---
 

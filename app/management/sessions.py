@@ -9,25 +9,25 @@ from __future__ import annotations
 
 import logging
 
-from app.client import get_client
+from app.client import get_async_client
 
 logger = logging.getLogger(__name__)
 
 
-def get_provider_session_title(provider_session_id: str) -> str | None:
+async def get_provider_session_title(provider_session_id: str) -> str | None:
     """Fetch the provider-assigned session title, or None on failure."""
     try:
-        session = get_client().beta.sessions.retrieve(provider_session_id)
+        session = await get_async_client().beta.sessions.retrieve(provider_session_id)
     except Exception as exc:
         logger.warning("sessions.retrieve failed [%s]: %s", provider_session_id, exc)
         return None
     return session.title or None
 
 
-def delete_provider_session(provider_session_id: str) -> None:
+async def delete_provider_session(provider_session_id: str) -> None:
     """Best-effort delete of the provider-side session. Logs and swallows errors
     so an orphaned provider record never blocks a local DB delete."""
     try:
-        get_client().beta.sessions.delete(provider_session_id)
+        await get_async_client().beta.sessions.delete(provider_session_id)
     except Exception as exc:
         logger.warning("sessions.delete failed [%s]: %s", provider_session_id, exc)

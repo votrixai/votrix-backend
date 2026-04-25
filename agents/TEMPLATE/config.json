@@ -21,5 +21,6 @@
     "cron_delete",
     "cron_list",
     "image_generate"
-  ]
+  ],
+  "mcp_servers": []
 }

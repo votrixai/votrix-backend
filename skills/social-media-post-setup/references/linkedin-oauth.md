@@ -20,13 +20,14 @@ This determines which permissions to request during OAuth.
 
 ## Step 1 — Initiate LinkedIn Connection
 
-调用 `COMPOSIO_MANAGE_CONNECTIONS`，app 设为 `LINKEDIN`，发起授权流程。
+调用 `manage_connections(toolkit="linkedin")`，检查连接状态：
 
-工具会返回一个授权链接，发给 admin：
+- 返回 `connected: true` → 已连接，跳到 Step 2
+- 返回 `connected: false` + `redirect_url` → 把链接发给 admin：
 
-> 「点击这个链接授权 LinkedIn 访问权限：[url]」
+> 「点击这个链接授权 LinkedIn 访问权限：[redirect_url]」
 
-LinkedIn 授权页面会列出需要的权限范围，让 admin 全部批准。等 admin 完成后再继续。
+LinkedIn 授权页面会列出需要的权限范围，让 admin 全部批准。等 admin 完成后，再次调用 `manage_connections(toolkit="linkedin")` 确认 `connected: true`，再继续。
 
 ---
 

@@ -16,13 +16,14 @@ Before starting, confirm with the admin:
 
 ## Step 1 — Initiate Instagram Connection
 
-调用 `COMPOSIO_MANAGE_CONNECTIONS`，app 设为 `INSTAGRAM`，发起授权流程。
+调用 `manage_connections(toolkit="instagram")`，检查连接状态：
 
-工具会返回一个授权链接，发给 admin：
+- 返回 `connected: true` → 已连接，跳到 Step 2
+- 返回 `connected: false` + `redirect_url` → 把链接发给 admin：
 
-> 「点击这个链接授权 Instagram 访问权限：[url]」
+> 「点击这个链接授权 Instagram 访问权限：[redirect_url]」
 
-等 admin 完成后再继续。
+等 admin 完成后，再次调用 `manage_connections(toolkit="instagram")` 确认 `connected: true`，再继续。
 
 ---
 
