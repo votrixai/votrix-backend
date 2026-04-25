@@ -7,9 +7,12 @@
 
 set -e
 
-REGION="${1:-us-central1}"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+. "${SCRIPT_DIR}/config.sh"
 
-for service in votrix-backend votrix-backend-staging; do
+REGION="${1:-$REGION}"
+
+for service in "$PRODUCTION_SERVICE" "$STAGING_SERVICE"; do
   image=$(gcloud run services describe "$service" --region="$REGION" --format="value(spec.template.spec.containers[0].image)" 2>/dev/null) || continue
   sha=$(echo "$image" | grep -o '[^:]*$')
 

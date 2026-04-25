@@ -11,6 +11,9 @@
 
 set -e
 
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+. "${SCRIPT_DIR}/config.sh"
+
 OWNER="${1:?Usage: $0 <github-owner> <repo-name>}"
 REPO="${2:?Usage: $0 <github-owner> <repo-name>}"
 
@@ -21,7 +24,7 @@ gcloud builds triggers create github \
   --branch-pattern="^main$" \
   --build-config=cloudbuild.yaml \
   --name=deploy-production \
-  --substitutions=_SERVICE_NAME=votrix-backend
+  --substitutions=_SERVICE_NAME="${PRODUCTION_SERVICE}",_REPO="${REPOSITORY}",_REGION="${REGION}"
 
 echo "Creating staging trigger (beta branch)..."
 gcloud builds triggers create github \
@@ -30,6 +33,6 @@ gcloud builds triggers create github \
   --branch-pattern="^beta$" \
   --build-config=cloudbuild.yaml \
   --name=deploy-staging \
-  --substitutions=_SERVICE_NAME=votrix-backend-staging
+  --substitutions=_SERVICE_NAME="${STAGING_SERVICE}",_REPO="${REPOSITORY}",_REGION="${REGION}"
 
 echo "Done. Triggers created."

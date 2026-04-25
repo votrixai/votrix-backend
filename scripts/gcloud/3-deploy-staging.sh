@@ -2,9 +2,11 @@
 # Build image and deploy staging service to Cloud Run.
 set -e
 
-REGION="${1:-us-central1}"
-PROJECT_ID=$(gcloud config get project)
-IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/votrix/votrix-backend-staging:initial"
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+. "${SCRIPT_DIR}/config.sh"
+
+REGION="${1:-$REGION}"
+IMAGE="${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${STAGING_SERVICE}:initial"
 
 echo "Building and pushing image..."
 gcloud builds submit --tag "$IMAGE" --quiet

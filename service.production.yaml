@@ -20,16 +20,13 @@ spec:
               memory: 512Mi
               cpu: "1"
           env:
+            - name: APP_ENV
+              value: "production"
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   key: latest
                   name: database-url
-            - name: ANTHROPIC_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: latest
-                  name: anthropic-api-key
             - name: SUPABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -40,13 +37,41 @@ spec:
                 secretKeyRef:
                   key: latest
                   name: supabase-service-key
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: anthropic-api-key
             - name: COMPOSIO_API_KEY
               valueFrom:
                 secretKeyRef:
                   key: latest
                   name: composio-api-key
-            - name: GEMINI_API_KEY
+            - name: APOLLO_API_KEY
               valueFrom:
                 secretKeyRef:
                   key: latest
-                  name: gemini-api-key
+                  name: apollo-api-key
+            - name: TAVILY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: tavily-api-key
+            - name: FIRECRAWL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: firecrawl-api-key
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: sentry-dsn
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: DEBUG
+              value: "false"
+            - name: FORCE_REPROVISION
+              value: "false"
+            - name: GCS_BUCKET_NAME
+              value: "votrixtestbucket"

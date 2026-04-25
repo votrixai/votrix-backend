@@ -8,6 +8,9 @@
 
 set -e
 
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+. "${SCRIPT_DIR}/config.sh"
+
 ENV_FILE="${1:?Usage: $0 <env-file> [--suffix <suffix>]}"
 SUFFIX=""
 

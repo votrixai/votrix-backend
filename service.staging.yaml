@@ -20,16 +20,13 @@ spec:
               memory: 512Mi
               cpu: "1"
           env:
+            - name: APP_ENV
+              value: "staging"
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   key: latest
                   name: database-url-staging
-            - name: ANTHROPIC_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  key: latest
-                  name: anthropic-api-key
             - name: SUPABASE_URL
               valueFrom:
                 secretKeyRef:
@@ -40,15 +37,41 @@ spec:
                 secretKeyRef:
                   key: latest
                   name: supabase-service-key-staging
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: anthropic-api-key-staging
             - name: COMPOSIO_API_KEY
               valueFrom:
                 secretKeyRef:
                   key: latest
-                  name: composio-api-key
-            - name: GEMINI_API_KEY
+                  name: composio-api-key-staging
+            - name: APOLLO_API_KEY
               valueFrom:
                 secretKeyRef:
                   key: latest
-                  name: gemini-api-key
+                  name: apollo-api-key-staging
+            - name: TAVILY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: tavily-api-key-staging
+            - name: FIRECRAWL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: firecrawl-api-key-staging
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: sentry-dsn-staging
+            - name: LOG_LEVEL
+              value: "INFO"
             - name: DEBUG
+              value: "false"
+            - name: FORCE_REPROVISION
               value: "true"
+            - name: GCS_BUCKET_NAME
+              value: "votrixtestbucket"

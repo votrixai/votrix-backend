@@ -2,6 +2,14 @@
 
 One-time setup scripts for deploying votrix-backend to Cloud Run.
 
+Shared constants live in `scripts/gcloud/config.sh`:
+
+```sh
+PROJECT_ID="votrixai-480422"
+REGION="us-central1"
+REGISTRY="us-central1-docker.pkg.dev"
+```
+
 ## Prerequisites
 
 - [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) installed and authenticated (`gcloud auth login`)
@@ -22,12 +30,20 @@ This enables all required APIs (`run`, `secretmanager`, `cloudbuild`, `artifactr
 Create a `.env.production` file (do NOT commit this):
 
 ```
+APP_ENV=production
 DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/dbname
-ANTHROPIC_API_KEY=sk-ant-...
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_KEY=eyJ...
+ANTHROPIC_API_KEY=sk-ant-...
 COMPOSIO_API_KEY=...
-GEMINI_API_KEY=...
+APOLLO_API_KEY=...
+TAVILY_API_KEY=...
+FIRECRAWL_API_KEY=...
+SENTRY_DSN=...
+LOG_LEVEL=INFO
+DEBUG=false
+FORCE_REPROVISION=false
+GCS_BUCKET_NAME=votrixtestbucket
 ```
 
 Then run:

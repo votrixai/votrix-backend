@@ -7,8 +7,10 @@
 
 set -e
 
-REGION="${1:-us-central1}"
-PROJECT_ID=$(gcloud config get project)
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+. "${SCRIPT_DIR}/config.sh"
+
+REGION="${1:-$REGION}"
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
 CB_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
 
@@ -20,7 +22,7 @@ gcloud services enable \
   artifactregistry.googleapis.com
 
 echo "Creating Artifact Registry..."
-gcloud artifacts repositories create votrix \
+gcloud artifacts repositories create "$REPOSITORY" \
   --repository-format=docker \
   --location="$REGION" \
   --description="Votrix Docker images" 2>/dev/null || echo "Registry already exists."
@@ -42,5 +44,5 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --role="roles/secretmanager.secretAccessor" --quiet
 
 echo ""
-echo "Registry: ${REGION}-docker.pkg.dev/${PROJECT_ID}/votrix"
+echo "Registry: ${REGISTRY}/${PROJECT_ID}/${REPOSITORY}"
 echo "Done."
