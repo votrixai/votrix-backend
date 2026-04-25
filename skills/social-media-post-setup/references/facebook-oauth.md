@@ -14,19 +14,20 @@ The admin needs:
 
 ## Step 1 — Initiate Facebook Connection
 
-调用 `COMPOSIO_MANAGE_CONNECTIONS`，app 设为 `FACEBOOK`，发起授权流程。
+调用 `manage_connections(toolkit="facebook")`，检查连接状态：
 
-工具会返回一个授权链接，发给 admin：
+- 返回 `connected: true` → 已连接，跳到 Step 2
+- 返回 `connected: false` + `redirect_url` → 把链接发给 admin：
 
-> 「点击这个链接授权 Facebook 访问权限：[url]」
+> 「点击这个链接授权 Facebook 访问权限：[redirect_url]」
 
-授权页面上需要勾选 **Pages** 权限，提醒 admin 注意确认。等 admin 完成后再继续。
+授权页面上需要勾选 **Pages** 权限，提醒 admin 注意确认。等 admin 完成后，再次调用 `manage_connections(toolkit="facebook")` 确认 `connected: true`，再继续。
 
 ---
 
 ## Step 2 — Select the Facebook Page
 
-调用 `COMPOSIO_MANAGE_CONNECTIONS` 或对应的 Facebook 工具，列出 admin 管理的 Pages。
+调用对应的 Facebook 工具，列出 admin 管理的 Pages。
 
 展示列表给 admin：只有一个 Page 就直接确认；多个的话让 admin 选。
 

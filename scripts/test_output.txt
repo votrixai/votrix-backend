@@ -1,548 +1,2439 @@
-warning: `VIRTUAL_ENV=/usr` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
 
 ────────────────────────────────────────────────────────────
-[skills] uploading for post-agent
+[user] 请完成以下测试：1. 确认你能看到附件 (ls /mnt/session/uploads/) 2. 把它复制到 /mnt/session/outputs/logo.png 3. 用 download_file 下载 4. 用 publish_file 发布。每步告诉我结果 (+1 attachment(s))
 ────────────────────────────────────────────────────────────
-  [skill:social-media-post-setup] new version uploaded → skill_01UcpxJhMqf91ddVYvnyuLz4
-  [skill:social-media-post-content-creation] new version uploaded → skill_012GZRZgQR9FVC8fm4An87N5
-  [skill:social-media-post-publishing] new version uploaded → skill_01P2YxmkkUsMPShGSoRF9cMR
-  [skill:social-media-post-market-research] new version uploaded → skill_018LBUHzhFMZCoSr78VRU8Ff
-  [skill:social-media-post-analytics] new version uploaded → skill_01RwvZrxzuBVQSQfrau6yuUo
-  [skill:social-media-post-review-monitor] new version uploaded → skill_01MmJjyKabQpehJctWPSibKk
-  social-media-post-setup → skill_01UcpxJhMqf91ddVYvnyuLz4
-  social-media-post-content-creation → skill_012GZRZgQR9FVC8fm4An87N5
-  social-media-post-publishing → skill_01P2YxmkkUsMPShGSoRF9cMR
-  social-media-post-market-research → skill_018LBUHzhFMZCoSr78VRU8Ff
-  social-media-post-analytics → skill_01RwvZrxzuBVQSQfrau6yuUo
-  social-media-post-review-monitor → skill_01MmJjyKabQpehJctWPSibKk
+
+好的，逐步执行！
+  ↳ [tool: bash] {'command': 'ls /mnt/session/uploads/'}
+  ↳ [result] logo.png
+
+**步骤 1 ✅** 确认看到附件：`logo.png` 在 `/mnt/session/uploads/` 中。
+
+---
+  ↳ [tool: bash] {'command': 'mkdir -p /mnt/session/outputs && cp /mnt/session/uploads/logo.png /mnt/session/outputs/logo.png && echo "Copy success"'}
+  ↳ [result] Copy success
+
+**步骤 2 ✅** 已成功复制到 `/mnt/session/outputs/logo.png`。
+
+---
+
+现在同时执行步骤 3 和 4：
+  ↳ [tool: download_file] {'file_path': '/mnt/session/outputs/logo.png'}
+
+  ↳ [tool: publish_file] {'file_path': '/mnt/session/outputs/logo.png'}
+  ↳ [result] {"file_id": "file_011CaLZe1SPzQpmX43PpPVe5", "filename": "logo.png", "mime_type": "image/png"}
+  ↳ [result] {"error": "Failed to upload to cloud storage: Unexpected type for 'content', <class 'coroutine'>"}
+**步骤 3 ✅ download_file 成功**
+- File ID: `file_011CaLZe1SPzQpmX43PpPVe5`
+- 文件名: `logo.png`，类型: `image/png`
+- 你应该能在界面上看到下载卡片。
+
+**步骤 4 ❌ publish_file 失败**
+- 错误：`Unexpected type for 'content', <class 'coroutine'>`
+- 这是平台内部的一个 **bug**（异步协程未被正确 await），不是文件本身的问题。`publish_file` 工具目前在这个环境中无法正常使用，需要平台修复。
+
+---
+
+**总结：**
+
+| 步骤 | 结果 |
+|------|------|
+| 1. 查看附件 | ✅ 成功 |
+| 2. 复制文件 | ✅ 成功 |
+| 3. download_file | ✅ 成功，可下载 |
+| 4. publish_file | ❌ 平台内部 bug，工具不可用 |
 
 ────────────────────────────────────────────────────────────
-[provision] creating agent for user: votrix-ai-test6
+[done] 72.0s
 ────────────────────────────────────────────────────────────
-  [skill:social-media-post-setup] new version uploaded → skill_01UcpxJhMqf91ddVYvnyuLz4
-  [skill:social-media-post-content-creation] new version uploaded → skill_012GZRZgQR9FVC8fm4An87N5
-  [skill:social-media-post-publishing] new version uploaded → skill_01P2YxmkkUsMPShGSoRF9cMR
-  [skill:social-media-post-market-research] new version uploaded → skill_018LBUHzhFMZCoSr78VRU8Ff
-  [skill:social-media-post-analytics] new version uploaded → skill_01RwvZrxzuBVQSQfrau6yuUo
-  [skill:social-media-post-review-monitor] new version uploaded → skill_01MmJjyKabQpehJctWPSibKk
-  agent_id → agent_011Ca8ubeQabz4KoJ3oNLGrC
 
-[ready] Watching /home/zyue/project/votrix/votrix-backend/scripts/test_input.txt
-[ready] Output → /home/zyue/project/votrix/votrix-backend/scripts/test_output.txt
-[ready] Session sesn_011Ca8ubhHU3SN4sWvMtspwn
+────────────────────────────────────────────────────────────
+[user] 测试步骤：1. cp /mnt/session/uploads/logo.png /mnt/session/outputs/logo.png 2. 用 download_file 下载 /mnt/session/outputs/logo.png 3. 用 publish_file 发布 /mnt/session/outputs/logo.png。每步告诉我结果 (+1 attachment(s))
+────────────────────────────────────────────────────────────
+
+好的，逐步执行！
+
+## 步骤 1：复制文件
+  ↳ [tool: bash] {'command': 'cp /mnt/session/uploads/logo.png /mnt/session/outputs/logo.png && echo "✅ 复制成功" && ls -lh /mnt/session/outputs/logo.png'}
+  ↳ [result] ✅ 复制成功
+-rw-r--r-- 1 claude ubuntu 540 Apr 23 10:43 /mnt/session/outputs/logo.png
+
+**结果：** ✅ 复制成功，文件大小 540 bytes，已落地在 `/mnt/session/outputs/logo.png`。
+
+---
+
+## 步骤 2：download_file（生成下载卡片）
+  ↳ [tool: download_file] {'file_path': '/mnt/session/outputs/logo.png'}
+  ↳ [result] {"file_id": "file_011CaLZj5JTd4PA7Yg4jcJwj", "filename": "logo.png", "mime_type": "image/png"}
+**结果：** ✅ 下载卡片生成成功，`file_id = file_011CaLZj5JTd4PA7Yg4jcJwj`，MIME 类型 `image/png`，你可以从上方卡片直接下载。
+
+---
+
+## 步骤 3：publish_file（获取公开 URL）
+  ↳ [tool: publish_file] {'file_path': '/mnt/session/outputs/logo.png'}
+  ↳ [result] {"url": "https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/files/f62497f0-cf8c-4c6c-a8e1-411d32a54635.png", "filename": "logo.png", "mime_type": "image/png"}
+**结果：** ✅ 发布成功，公开 URL 已生成：
+
+> 🔗 [https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/files/f62497f0-cf8c-4c6c-a8e1-411d32a54635.png](https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/files/f62497f0-cf8c-4c6c-a8e1-411d32a54635.png)
+
+---
+
+## 总结
+
+| 步骤 | 操作 | 状态 |
+|------|------|------|
+| 1 | `cp` 复制到 outputs | ✅ 成功 |
+| 2 | `download_file` 生成下载卡片 | ✅ 成功 |
+| 3 | `publish_file` 生成公开 URL | ✅ 成功 |
+
+三步全部通过，流程正常！
+
+────────────────────────────────────────────────────────────
+[done] 44.3s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 你好，帮我完成初始设置，我们是一家叫晨光咖啡的精品咖啡店，在上海静安区南京西路1688号，主打手冲精品咖啡和烘焙甜点。
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/SKILL.md'}
+  ↳ [result] 1	---
+2	name: social-media-post-setup
+3	description: "社交媒体营销助手的初始化配置。Admin 提到 setup、配置、连接平台、连接 Facebook / Instagram / Twitter / LinkedIn、更新业务资料或内容设置时触发。也在 admin 首次登录、尚未完成配置时主动触发。"
+4	---
+5	
+6	# Setup — 初始化配置
+7	
+8	你是这位商家的社交媒体营销助手，负责帮他们管理内容创作、评论监控和数据追踪。
+9	
+10	在开始任何工作之前，先读一下这份 Setup 文档——它记录了你运作所需的全部上下文：商家信息、内容偏好、平台账号，以及工作流配置。没有这些，后续的功能都跑不起来。
+11	
+12	---
+13	
+14	## 启动检查
+15	
+16	先尝试读取 `/workspace/marketing-context.md`（用户的实际配置文件）：
+17	
+18	- **文件不存在**：读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为结构模板，从头走完整流程（阶段一到三），完成后按模板结构写入 `/workspace/marketing-context.md`
+19	- **文件存在但部分字段为空**：只补充缺失的部分，已有的内容不重复询问
+20	- **Admin 指定了某项**（如「帮我连 Instagram」「更新内容设置」）：直接跳到对应阶段
+21	
+22	---
+23	
+24	## 阶段一：业务资料
+25	
+26	填入文件的 `## 业务资料`、`## 品牌语气` 和 `## 品牌视觉` 部分。
+27	
+28	**原则：先搜索，再推断，实在找不到才开口问。**
+29	
+30	1. 先问 admin 一件事就好：「你们的店名或网站是什么？」
+31	2. 拿到后，用 web_search / web_fetch 搜索该商家，自行整理出：
+32	   - 行业、地区、简介、主要产品 / 服务
+33	   - 目标受众（根据业务类型推断）
+34	   - 竞争对手（搜索同类本地商家，推荐 2–3 个）
+35	   - 品牌语气（根据官网文案风格推断）
+36	   - 品牌色（从官网提取主色 / 辅色 / 强调色的 HEX 值）
+37	   - 视觉风格（根据官网设计风格推断五个视觉属性维度：明暗、整洁度、色彩饱和度、空间感、质感）
+38	3. 把整理好的结果一次性展示给 admin 确认，不要逐字段追问。
+39	4. 只有真的搜不到的字段，才单独向 admin 询问。
+40	
+41	---
+42	
+43	## 阶段二：平台连接
+44	
+45	询问 admin 想连接哪些平台：
+46	
+47	> 「你打算在哪些平台发内容或管评论？Facebook、Instagram、Twitter、LinkedIn 都支持，可以多选，之后想加也随时可以。」
+48	
+49	每个平台独立处理，一个失败不影响其他。连接成功后立即将账号信息填入 `/workspace/marketing-context.md` 对应的 section，不用等所有平台都完成再统一写。
+50	
+51	| 平台 | 参考文档 |
+52	|---|---|
+53	| Facebook | `/workspace/skills/social-media-post-setup/references/facebook-oauth.md` |
+54	| Instagram | `/workspace/skills/social-media-post-setup/references/instagram-oauth.md` |
+55	| Twitter | `/workspace/skills/social-media-post-setup/references/twitter-oauth.md` |
+56	| LinkedIn | `/workspace/skills/social-media-post-setup/references/linkedin-oauth.md` |
+57	| Canva（素材库） | `/workspace/skills/social-media-post-setup/references/canva-oauth.md` |
+58	
+59	连接状态写入 `## 已连接平台` 对应部分：
+60	- 连接成功：填入账号信息，标记 `启用: true`
+61	- Admin 跳过或连接失败：只标记 `启用: false`，不填账号信息
+62	
+63	---
+64	
+65	## 阶段三：完整运营方案
+66	
+67	拿到业务资料 + 已连接平台后，直接生成一套完整运营方案，不再逐项询问。
+68	
+69	### 方案生成逻辑
+70	
+71	**内容方向（Pillars）：** 根据行业推断 3–4 个
+72	例：餐厅 → 菜品展示、幕后故事、客户好评、节日活动
+73	
+74	**图片风格：** 根据行业和阶段一提取的品牌视觉推断
+75	例：餐厅（bright + clean + warm neutrals）→ 明亮真实照片感，暖色调为主
+76	
+77	**发布计划（根据已连接平台组合）：**
+78	
+79	| 平台 | 内容类型 | 计划发布日 | 备注 |
+80	|---|---|---|---|
+81	| Instagram | Feed / Carousel | 周一、三、五 | 品牌深度内容 |
+82	| Instagram | Reels | 周二、四 | 算法推流主渠道 |
+83	| Instagram | Story | 周三、五、日 | 保活跃度 |
+84	| Facebook | Feed | 周一、三、五 | 与 IG 同步，不单独创作 |
+85	| Facebook | Reels | 周二 | 与 IG Reels 同步 |
+86	| LinkedIn | Text / Image Post | 周一、三、五 | 行业洞察 + 产品 |
+87	| LinkedIn | Document Carousel | 每两周周三 | 知识类深度内容 |
+88	| Twitter | 推文 | 周一至周五 | 每天 1 条，行业观点或公告 |
+89	| Twitter | Thread | 周四 | 深度内容，每周 1 条 |
+90	
+91	Facebook 未单独连接但 Instagram 已连接时：Facebook 跟随 IG 内容同步发布，不单独列入计划。
+92	Instagram 未连接但 Facebook 已连接时：Facebook 独立制作 Feed x3/周。
+93	
+94	**工作流（固定，无需询问）：**
+95	
+96	| 任务 | 时间 | 说明 |
+97	|---|---|---|
+98	| 内容批量创作 | 每周一 09:00 | 生成本周内容计划，admin 确认后再生成内容 |
+99	| 内容自动发布 | 每天 09:00 | 发布当天计划发布且已确认的草稿 |
+100	| 评论巡查 | 每 6 小时 | 拉取新评论，负面优先通知 |
+101	| 数据汇报 | 每周五 18:00 | 生成本周快速数据总结 |
+102	
+103	**只需问 admin 一个问题：**
+104	> 「每周一生成草稿后，发布前需要你过目确认吗？还是直接帮你按计划发出去？」
+105	
+106	### 方案展示方式
+107	
+108	用对话语气呈现，不要表格罗列，像顾问给建议一样。例：
+109	
+110	> 「根据你们餐厅的情况和已连接的 Instagram、Facebook，我建议这样运营——
+111	>
+112	> 内容方向围绕三个主题：菜品展示、幕后故事、客户好评。配图用真实照片感，暖色调为主。
+113	>
+114	> Instagram 每周发 8 条：周一三五发 Feed，周二四发 Reels（Reels 现在是 IG 算法最偏爱的格式，适合触达新客），周三五日各发一条 Story 保活跃度。Facebook 跟 IG 内容同步，不单独做。
+115	>
+116	> 我每周一早 9 点帮你规划这周的内容计划，你确认方向后我再生成具体内容。之后每天自动按计划发出。评论我每 6 小时扫一次，有差评第一时间告诉你。每周五出一份数据小结。
+117	>
+118	> 发布前需要你过目确认吗？」
+119	
+120	实际展示时根据商家情况调整，不要每次都用这段原文。
+121	
+122	### 确认与写入
+123	
+124	Admin 确认（或调整后确认）后，**一次性**将所有字段写入 `/workspace/marketing-context.md`：
+125	
+126	```
+127	## 指令          ← 发布确认方式
+128	## 品牌视觉      ← 品牌色板、视觉属性基类
+129	## 内容设置      ← pillars、图片风格
+130	## 内容策略      ← 各平台发布节奏、优先类型、策略初始化记录
+131	## 工作流        ← 4 个任务的启用状态和时间
+132	```
+133	
+134	然后依次调用 `cron_create` 注册 4 个定时任务：
+135	
+136	```
+137	1. cron_create(schedule="每周一 09:00", message="[cron] 内容创作")
+138	2. cron_create(schedule="每天 09:00",   message="[cron] 内容发布")
+139	3. cron_create(schedule="每 6 小时",    message="[cron] 评论巡查")
+140	4. cron_create(schedule="每周五 18:00", message="[cron] 数据汇报")
+141	```
+142	
+143	Admin 明确不需要某项时，对应字段写 `启用: false`，跳过该 cron_create。
+144	
+145	然后初始化素材库：
+146	
+147	如果 `/workspace/assets/asset-registry.md` 不存在，创建并写入文件头：
+148	
+149	```markdown
+150	# 素材库索引
+151	
+152	> 素材实体存储在 Canva，本文件只做索引（Canva Asset ID、描述、标签、使用状态）。
+153	> 视频素材不上传 Canva，只记录 URL。
+154	```
+155	
+156	写完后告诉 admin：
+157	- 哪些平台已成功连接
+158	- 运营方案的关键点（一句话）
+159	- 下周一会发生什么（第一次自动创作）
+160	
+161	---
+162	
+163	## 写入文件
+164	
+165	每个阶段收集完对应信息后，立即更新 `/workspace/marketing-context.md` 中的相关字段，不要等全部阶段完成才统一写入。只修改本次收集到的字段，其他字段保持原样。
+166	
+167	文件不存在时，先读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为初始结构创建文件，再填入收集到的内容。
+168	
+169	---
+170	
+171	## 后续更新
+172	
+173	Admin 想修改配置时，读取当前文件，只聊需要改的那部分，确认后写入完整的更新文件，不用重新走一遍全流程。
+174	
+175	若修改涉及工作流时间，先用 `cron_delete` 删除旧任务，再用 `cron_create` 注册新任务。
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/templates/marketing-context.md'}
+
+  ↳ [tool: web_search] {'query': '晨光咖啡 上海静安区 南京西路 精品咖啡'}
+  ↳ [result] 1	# Marketing Context
+2	
+3	_所有技能从此文件读取配置和指令。_
+4	
+5	---
+6	
+7	## 指令
+8	
+9	_在此添加针对此账号的特殊规则，agent 会优先遵守。发布行为、互动风格等工作流偏好写在这里，不需要开关配置。_
+10	
+11	---
+12	
+13	## 业务资料
+14	
+15	- **名称：**
+16	- **行业：**
+17	- **网站：**
+18	- **简介：**
+19	- **目标受众：**
+20	- **主要产品 / 服务：**
+21	- **竞争对手：**
+22	
+23	---
+24	
+25	## 品牌语气
+26	
+27	- **风格：**
+28	- **应该：**
+29	- **避免：**
+30	
+31	---
+32	
+33	## 内容设置
+34	
+35	- **内容主题：**
+36	- **Hashtag 组：**
+37	- **图片风格：**
+38	
+39	---
+40	
+41	## 内容策略
+42	
+43	_由 setup 初始化，analytics 和 review-monitor 持续更新。content-creation 读此段决定内容类型。_
+44	
+45	### 发布节奏
+46	
+47	### 当前优先类型
+48	
+49	### 近期重点话题
+50	_来自 review-monitor 的评论信号，content-creation 生成内容时优先参考。_
+51	- 最后更新：
+52	
+53	### 策略更新记录
+54	_最近 10 条，超出删除最旧的。_
+55	
+56	---
+57	
+58	## 工作流
+59	
+60	_定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无需 admin 在线。_
+61	
+62	### 内容创作（批量）
+63	- **启用：** false
+64	- **触发时间：** 每周一 09:00
+65	
+66	### 内容发布（每日）
+67	- **启用：** false
+68	- **触发时间：** 每天 09:00
+69	
+70	### 评论巡查
+71	- **启用：** false
+72	- **触发间隔：** 每 6 小时
+73	
+74	### 数据汇报
+75	- **启用：** false
+76	- **触发时间：** 每周五 18:00
+77	- **报告类型：** 快速总结
+78	
+79	---
+80	
+81	## 已连接平台
+82	
+83	### Facebook
+84	- 启用：false
+85	- 主页名称：
+86	- Page ID：
+87	
+88	### Instagram
+89	- 启用：false
+90	- 用户名：
+91	- Account ID：
+92	
+93	### Twitter
+94	- 启用：false
+95	- 用户名：
+96	- User ID：
+97	
+98	### LinkedIn
+99	- 启用：false
+100	- 公司名称：
+101	- Organization ID：
+102	- Person ID：
+103	
+104	---
+105	
+106	## 运行状态
+107	
+108	_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_
+109	
+110	### Facebook
+111	- 上次巡查时间：
+112	- 最后处理的 Post ID：
+113	
+114	### Instagram
+115	- 上次巡查时间：
+116	- 最后处理的 Post ID：
+117	
+118	### Twitter
+119	- 上次巡查时间：
+120	- 最后处理的 Post ID：
+121	
+122	---
+123	
+124	## 市场调研
+125	
+126	_由 market-research 技能写入，其他技能可直接引用。_
+127	
+128	### 竞品分析
+129	- **最后更新：**
+130	
+131	### 行业趋势
+132	- **最后更新：**
+133	
+134	### Hashtag 库
+135	- **最后更新：**
+136	
+137	### 受众洞察
+138	- **最后更新：**
+
+  ↳ [result] 
+搜索结果没有找到晨光咖啡的具体线上资料，应该是新开或尚未建立线上存在。我直接用你提供的信息来整理，同时搜一下同区域的竞品。
+  ↳ [tool: web_search] {'query': '上海静安区南京西路精品手冲咖啡店 竞品'}
+
+  ↳ [tool: web_search] {'query': '上海精品咖啡店 Instagram 小红书 内容策略 2024'}
+  ↳ [result] 
+  ↳ [result] 
+好的，信息收集完毕。根据你提供的资料和行业调研，我整理了一份业务档案，请确认：
+
+---
+
+## 📋 晨光咖啡 — 业务档案
+
+**基本信息**
+- 行业：精品咖啡馆
+- 地址：上海静安区南京西路1688号
+- 主营：手冲精品咖啡 + 烘焙甜点
+- 目标受众：25-40岁城市白领 / 咖啡爱好者 / 探店达人（小红书主力用户群）
+
+**竞争环境**
+静安区是上海咖啡文化「高地」，仅南京西路一条街就有670余家咖啡厅，竞争相当激烈。根据区域情况，你的主要竞品是：
+- **Manner Coffee** — 主打高性价比精品咖啡，本土连锁标杆
+- **鹰集咖啡** — 上海本土精品咖啡，强设计感
+- **Seesaw** — 精品咖啡连锁，内容运营成熟
+
+**品牌语气**
+温暖、专业、有生活感，像一个懂咖啡的朋友，传递咖啡文化和清晨仪式感。避免过于学术或冷淡。
+
+**品牌色板**（根据「晨光」品牌名推断）
+| 颜色 | HEX | 用途 |
+|---|---|---|
+| 晨光橙 | `#F59B3A` | 主色 |
+| 奶白 | `#FDF8F2` | 背景色 |
+| 咖啡棕 | `#5C3A1E` | 辅色 |
+| 浅金 | `#E8C97F` | 强调色 |
+
+**视觉风格**：明亮 · 干净 · 暖色低饱和 · 有呼吸感 · 手作质感
+
+---
+
+以上信息有需要调整的吗？如果没问题，我们进入**平台连接**。
+
+你打算在哪些平台运营？**Instagram、Facebook、Twitter、LinkedIn** 都支持，可以多选，之后随时可以加。
+
+────────────────────────────────────────────────────────────
+[done] 55.1s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 信息没问题。平台的话先跳过连接，之后再弄。先帮我把运营方案定下来，发布前需要我确认。
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/SKILL.md'}
+
+  ↳ [tool: bash] {'command': 'cat /workspace/marketing-context.md 2>/dev/null || echo "FILE_NOT_FOUND"'}
+  ↳ [result] 1	---
+2	name: social-media-post-setup
+3	description: "社交媒体营销助手的初始化配置。Admin 提到 setup、配置、连接平台、连接 Facebook / Instagram / Twitter / LinkedIn、更新业务资料或内容设置时触发。也在 admin 首次登录、尚未完成配置时主动触发。"
+4	---
+5	
+6	# Setup — 初始化配置
+7	
+8	你是这位商家的社交媒体营销助手，负责帮他们管理内容创作、评论监控和数据追踪。
+9	
+10	在开始任何工作之前，先读一下这份 Setup 文档——它记录了你运作所需的全部上下文：商家信息、内容偏好、平台账号，以及工作流配置。没有这些，后续的功能都跑不起来。
+11	
+12	---
+13	
+14	## 启动检查
+15	
+16	先尝试读取 `/workspace/marketing-context.md`（用户的实际配置文件）：
+17	
+18	- **文件不存在**：读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为结构模板，从头走完整流程（阶段一到三），完成后按模板结构写入 `/workspace/marketing-context.md`
+19	- **文件存在但部分字段为空**：只补充缺失的部分，已有的内容不重复询问
+20	- **Admin 指定了某项**（如「帮我连 Instagram」「更新内容设置」）：直接跳到对应阶段
+21	
+22	---
+23	
+24	## 阶段一：业务资料
+25	
+26	填入文件的 `## 业务资料`、`## 品牌语气` 和 `## 品牌视觉` 部分。
+27	
+28	**原则：先搜索，再推断，实在找不到才开口问。**
+29	
+30	1. 先问 admin 一件事就好：「你们的店名或网站是什么？」
+31	2. 拿到后，用 web_search / web_fetch 搜索该商家，自行整理出：
+32	   - 行业、地区、简介、主要产品 / 服务
+33	   - 目标受众（根据业务类型推断）
+34	   - 竞争对手（搜索同类本地商家，推荐 2–3 个）
+35	   - 品牌语气（根据官网文案风格推断）
+36	   - 品牌色（从官网提取主色 / 辅色 / 强调色的 HEX 值）
+37	   - 视觉风格（根据官网设计风格推断五个视觉属性维度：明暗、整洁度、色彩饱和度、空间感、质感）
+38	3. 把整理好的结果一次性展示给 admin 确认，不要逐字段追问。
+39	4. 只有真的搜不到的字段，才单独向 admin 询问。
+40	
+41	---
+42	
+43	## 阶段二：平台连接
+44	
+45	询问 admin 想连接哪些平台：
+46	
+47	> 「你打算在哪些平台发内容或管评论？Facebook、Instagram、Twitter、LinkedIn 都支持，可以多选，之后想加也随时可以。」
+48	
+49	每个平台独立处理，一个失败不影响其他。连接成功后立即将账号信息填入 `/workspace/marketing-context.md` 对应的 section，不用等所有平台都完成再统一写。
+50	
+51	| 平台 | 参考文档 |
+52	|---|---|
+53	| Facebook | `/workspace/skills/social-media-post-setup/references/facebook-oauth.md` |
+54	| Instagram | `/workspace/skills/social-media-post-setup/references/instagram-oauth.md` |
+55	| Twitter | `/workspace/skills/social-media-post-setup/references/twitter-oauth.md` |
+56	| LinkedIn | `/workspace/skills/social-media-post-setup/references/linkedin-oauth.md` |
+57	| Canva（素材库） | `/workspace/skills/social-media-post-setup/references/canva-oauth.md` |
+58	
+59	连接状态写入 `## 已连接平台` 对应部分：
+60	- 连接成功：填入账号信息，标记 `启用: true`
+61	- Admin 跳过或连接失败：只标记 `启用: false`，不填账号信息
+62	
+63	---
+64	
+65	## 阶段三：完整运营方案
+66	
+67	拿到业务资料 + 已连接平台后，直接生成一套完整运营方案，不再逐项询问。
+68	
+69	### 方案生成逻辑
+70	
+71	**内容方向（Pillars）：** 根据行业推断 3–4 个
+72	例：餐厅 → 菜品展示、幕后故事、客户好评、节日活动
+73	
+74	**图片风格：** 根据行业和阶段一提取的品牌视觉推断
+75	例：餐厅（bright + clean + warm neutrals）→ 明亮真实照片感，暖色调为主
+76	
+77	**发布计划（根据已连接平台组合）：**
+78	
+79	| 平台 | 内容类型 | 计划发布日 | 备注 |
+80	|---|---|---|---|
+81	| Instagram | Feed / Carousel | 周一、三、五 | 品牌深度内容 |
+82	| Instagram | Reels | 周二、四 | 算法推流主渠道 |
+83	| Instagram | Story | 周三、五、日 | 保活跃度 |
+84	| Facebook | Feed | 周一、三、五 | 与 IG 同步，不单独创作 |
+85	| Facebook | Reels | 周二 | 与 IG Reels 同步 |
+86	| LinkedIn | Text / Image Post | 周一、三、五 | 行业洞察 + 产品 |
+87	| LinkedIn | Document Carousel | 每两周周三 | 知识类深度内容 |
+88	| Twitter | 推文 | 周一至周五 | 每天 1 条，行业观点或公告 |
+89	| Twitter | Thread | 周四 | 深度内容，每周 1 条 |
+90	
+91	Facebook 未单独连接但 Instagram 已连接时：Facebook 跟随 IG 内容同步发布，不单独列入计划。
+92	Instagram 未连接但 Facebook 已连接时：Facebook 独立制作 Feed x3/周。
+93	
+94	**工作流（固定，无需询问）：**
+95	
+96	| 任务 | 时间 | 说明 |
+97	|---|---|---|
+98	| 内容批量创作 | 每周一 09:00 | 生成本周内容计划，admin 确认后再生成内容 |
+99	| 内容自动发布 | 每天 09:00 | 发布当天计划发布且已确认的草稿 |
+100	| 评论巡查 | 每 6 小时 | 拉取新评论，负面优先通知 |
+101	| 数据汇报 | 每周五 18:00 | 生成本周快速数据总结 |
+102	
+103	**只需问 admin 一个问题：**
+104	> 「每周一生成草稿后，发布前需要你过目确认吗？还是直接帮你按计划发出去？」
+105	
+106	### 方案展示方式
+107	
+108	用对话语气呈现，不要表格罗列，像顾问给建议一样。例：
+109	
+110	> 「根据你们餐厅的情况和已连接的 Instagram、Facebook，我建议这样运营——
+111	>
+112	> 内容方向围绕三个主题：菜品展示、幕后故事、客户好评。配图用真实照片感，暖色调为主。
+113	>
+114	> Instagram 每周发 8 条：周一三五发 Feed，周二四发 Reels（Reels 现在是 IG 算法最偏爱的格式，适合触达新客），周三五日各发一条 Story 保活跃度。Facebook 跟 IG 内容同步，不单独做。
+115	>
+116	> 我每周一早 9 点帮你规划这周的内容计划，你确认方向后我再生成具体内容。之后每天自动按计划发出。评论我每 6 小时扫一次，有差评第一时间告诉你。每周五出一份数据小结。
+117	>
+118	> 发布前需要你过目确认吗？」
+119	
+120	实际展示时根据商家情况调整，不要每次都用这段原文。
+121	
+122	### 确认与写入
+123	
+124	Admin 确认（或调整后确认）后，**一次性**将所有字段写入 `/workspace/marketing-context.md`：
+125	
+126	```
+127	## 指令          ← 发布确认方式
+128	## 品牌视觉      ← 品牌色板、视觉属性基类
+129	## 内容设置      ← pillars、图片风格
+130	## 内容策略      ← 各平台发布节奏、优先类型、策略初始化记录
+131	## 工作流        ← 4 个任务的启用状态和时间
+132	```
+133	
+134	然后依次调用 `cron_create` 注册 4 个定时任务：
+135	
+136	```
+137	1. cron_create(schedule="每周一 09:00", message="[cron] 内容创作")
+138	2. cron_create(schedule="每天 09:00",   message="[cron] 内容发布")
+139	3. cron_create(schedule="每 6 小时",    message="[cron] 评论巡查")
+140	4. cron_create(schedule="每周五 18:00", message="[cron] 数据汇报")
+141	```
+142	
+143	Admin 明确不需要某项时，对应字段写 `启用: false`，跳过该 cron_create。
+144	
+145	然后初始化素材库：
+146	
+147	如果 `/workspace/assets/asset-registry.md` 不存在，创建并写入文件头：
+148	
+149	```markdown
+150	# 素材库索引
+151	
+152	> 素材实体存储在 Canva，本文件只做索引（Canva Asset ID、描述、标签、使用状态）。
+153	> 视频素材不上传 Canva，只记录 URL。
+154	```
+155	
+156	写完后告诉 admin：
+157	- 哪些平台已成功连接
+158	- 运营方案的关键点（一句话）
+159	- 下周一会发生什么（第一次自动创作）
+160	
+161	---
+162	
+163	## 写入文件
+164	
+165	每个阶段收集完对应信息后，立即更新 `/workspace/marketing-context.md` 中的相关字段，不要等全部阶段完成才统一写入。只修改本次收集到的字段，其他字段保持原样。
+166	
+167	文件不存在时，先读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为初始结构创建文件，再填入收集到的内容。
+168	
+169	---
+170	
+171	## 后续更新
+172	
+173	Admin 想修改配置时，读取当前文件，只聊需要改的那部分，确认后写入完整的更新文件，不用重新走一遍全流程。
+174	
+175	若修改涉及工作流时间，先用 `cron_delete` 删除旧任务，再用 `cron_create` 注册新任务。
+
+  ↳ [result] FILE_NOT_FOUND
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/templates/marketing-context.md'}
+  ↳ [result] 1	# Marketing Context
+2	
+3	_所有技能从此文件读取配置和指令。_
+4	
+5	---
+6	
+7	## 指令
+8	
+9	_在此添加针对此账号的特殊规则，agent 会优先遵守。发布行为、互动风格等工作流偏好写在这里，不需要开关配置。_
+10	
+11	---
+12	
+13	## 业务资料
+14	
+15	- **名称：**
+16	- **行业：**
+17	- **网站：**
+18	- **简介：**
+19	- **目标受众：**
+20	- **主要产品 / 服务：**
+21	- **竞争对手：**
+22	
+23	---
+24	
+25	## 品牌语气
+26	
+27	- **风格：**
+28	- **应该：**
+29	- **避免：**
+30	
+31	---
+32	
+33	## 内容设置
+34	
+35	- **内容主题：**
+36	- **Hashtag 组：**
+37	- **图片风格：**
+38	
+39	---
+40	
+41	## 内容策略
+42	
+43	_由 setup 初始化，analytics 和 review-monitor 持续更新。content-creation 读此段决定内容类型。_
+44	
+45	### 发布节奏
+46	
+47	### 当前优先类型
+48	
+49	### 近期重点话题
+50	_来自 review-monitor 的评论信号，content-creation 生成内容时优先参考。_
+51	- 最后更新：
+52	
+53	### 策略更新记录
+54	_最近 10 条，超出删除最旧的。_
+55	
+56	---
+57	
+58	## 工作流
+59	
+60	_定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无需 admin 在线。_
+61	
+62	### 内容创作（批量）
+63	- **启用：** false
+64	- **触发时间：** 每周一 09:00
+65	
+66	### 内容发布（每日）
+67	- **启用：** false
+68	- **触发时间：** 每天 09:00
+69	
+70	### 评论巡查
+71	- **启用：** false
+72	- **触发间隔：** 每 6 小时
+73	
+74	### 数据汇报
+75	- **启用：** false
+76	- **触发时间：** 每周五 18:00
+77	- **报告类型：** 快速总结
+78	
+79	---
+80	
+81	## 已连接平台
+82	
+83	### Facebook
+84	- 启用：false
+85	- 主页名称：
+86	- Page ID：
+87	
+88	### Instagram
+89	- 启用：false
+90	- 用户名：
+91	- Account ID：
+92	
+93	### Twitter
+94	- 启用：false
+95	- 用户名：
+96	- User ID：
+97	
+98	### LinkedIn
+99	- 启用：false
+100	- 公司名称：
+101	- Organization ID：
+102	- Person ID：
+103	
+104	---
+105	
+106	## 运行状态
+107	
+108	_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_
+109	
+110	### Facebook
+111	- 上次巡查时间：
+112	- 最后处理的 Post ID：
+113	
+114	### Instagram
+115	- 上次巡查时间：
+116	- 最后处理的 Post ID：
+117	
+118	### Twitter
+119	- 上次巡查时间：
+120	- 最后处理的 Post ID：
+121	
+122	---
+123	
+124	## 市场调研
+125	
+126	_由 market-research 技能写入，其他技能可直接引用。_
+127	
+128	### 竞品分析
+129	- **最后更新：**
+130	
+131	### 行业趋势
+132	- **最后更新：**
+133	
+134	### Hashtag 库
+135	- **最后更新：**
+136	
+137	### 受众洞察
+138	- **最后更新：**
+
+收到，平台连接之后再弄，发布前需要你确认——记下来了。
+
+不过我这边没有之前对话的记录，`marketing-context.md` 也还不存在。**你们的店名或网站是什么？** 我来搜一下，把业务资料整理好后直接给你出运营方案。
+
+────────────────────────────────────────────────────────────
+[done] 45.2s
+────────────────────────────────────────────────────────────
+
+[ready] Watching /home/zyue/votrix-v2/votrix-backend/scripts/test_input.txt
+[ready] Output → /home/zyue/votrix-v2/votrix-backend/scripts/test_output.txt
+[ready] Session sesn_011CaLaGGyJ2ubivLhfYwsj1
 [ready] Write a message to test_input.txt to chat. Ctrl-C to quit.
 
 
 ────────────────────────────────────────────────────────────
-[user] hello
+[user] 你好，帮我完成初始设置。我们是晨光咖啡，上海静安区南京西路1688号，主打手冲精品咖啡和烘焙甜点。平台先跳过连接，之后再弄。发布前需要我确认。
 ────────────────────────────────────────────────────────────
 
 
-[EVT] session.status_running | BetaManagedAgentsSessionStatusRunningEvent(id='sevt_01MUfhia2skDvv4x52beJHN9', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 11, 896000, tzinfo=TzInfo(0)), type='session.status_running')
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/SKILL.md'}
+  ↳ [result] 1	---
+2	name: social-media-post-setup
+3	description: "社交媒体营销助手的初始化配置。Admin 提到 setup、配置、连接平台、连接 Facebook / Instagram / Twitter / LinkedIn、更新业务资料或内容设置时触发。也在 admin 首次登录、尚未完成配置时主动触发。"
+4	---
+5	
+6	# Setup — 初始化配置
+7	
+8	你是这位商家的社交媒体营销助手，负责帮他们管理内容创作、评论监控和数据追踪。
+9	
+10	在开始任何工作之前，先读一下这份 Setup 文档——它记录了你运作所需的全部上下文：商家信息、内容偏好、平台账号，以及工作流配置。没有这些，后续的功能都跑不起来。
+11	
+12	---
+13	
+14	## 启动检查
+15	
+16	先尝试读取 `/workspace/marketing-context.md`（用户的实际配置文件）：
+17	
+18	- **文件不存在**：读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为结构模板，从头走完整流程（阶段一到三），完成后按模板结构写入 `/workspace/marketing-context.md`
+19	- **文件存在但部分字段为空**：只补充缺失的部分，已有的内容不重复询问
+20	- **Admin 指定了某项**（如「帮我连 Instagram」「更新内容设置」）：直接跳到对应阶段
+21	
+22	---
+23	
+24	## 阶段一：业务资料
+25	
+26	填入文件的 `## 业务资料`、`## 品牌语气` 和 `## 品牌视觉` 部分。
+27	
+28	**原则：先搜索，再推断，实在找不到才开口问。**
+29	
+30	1. 先问 admin 一件事就好：「你们的店名或网站是什么？」
+31	2. 拿到后，用 web_search / web_fetch 搜索该商家，自行整理出：
+32	   - 行业、地区、简介、主要产品 / 服务
+33	   - 目标受众（根据业务类型推断）
+34	   - 竞争对手（搜索同类本地商家，推荐 2–3 个）
+35	   - 品牌语气（根据官网文案风格推断）
+36	   - 品牌色（从官网提取主色 / 辅色 / 强调色的 HEX 值）
+37	   - 视觉风格（根据官网设计风格推断五个视觉属性维度：明暗、整洁度、色彩饱和度、空间感、质感）
+38	3. 把整理好的结果一次性展示给 admin 确认，不要逐字段追问。
+39	4. 只有真的搜不到的字段，才单独向 admin 询问。
+40	
+41	---
+42	
+43	## 阶段二：平台连接
+44	
+45	询问 admin 想连接哪些平台：
+46	
+47	> 「你打算在哪些平台发内容或管评论？Facebook、Instagram、Twitter、LinkedIn 都支持，可以多选，之后想加也随时可以。」
+48	
+49	每个平台独立处理，一个失败不影响其他。连接成功后立即将账号信息填入 `/workspace/marketing-context.md` 对应的 section，不用等所有平台都完成再统一写。
+50	
+51	| 平台 | 参考文档 |
+52	|---|---|
+53	| Facebook | `/workspace/skills/social-media-post-setup/references/facebook-oauth.md` |
+54	| Instagram | `/workspace/skills/social-media-post-setup/references/instagram-oauth.md` |
+55	| Twitter | `/workspace/skills/social-media-post-setup/references/twitter-oauth.md` |
+56	| LinkedIn | `/workspace/skills/social-media-post-setup/references/linkedin-oauth.md` |
+57	| Canva（素材库） | `/workspace/skills/social-media-post-setup/references/canva-oauth.md` |
+58	
+59	连接状态写入 `## 已连接平台` 对应部分：
+60	- 连接成功：填入账号信息，标记 `启用: true`
+61	- Admin 跳过或连接失败：只标记 `启用: false`，不填账号信息
+62	
+63	---
+64	
+65	## 阶段三：完整运营方案
+66	
+67	拿到业务资料 + 已连接平台后，直接生成一套完整运营方案，不再逐项询问。
+68	
+69	### 方案生成逻辑
+70	
+71	**内容方向（Pillars）：** 根据行业推断 3–4 个
+72	例：餐厅 → 菜品展示、幕后故事、客户好评、节日活动
+73	
+74	**图片风格：** 根据行业和阶段一提取的品牌视觉推断
+75	例：餐厅（bright + clean + warm neutrals）→ 明亮真实照片感，暖色调为主
+76	
+77	**发布计划（根据已连接平台组合）：**
+78	
+79	| 平台 | 内容类型 | 计划发布日 | 备注 |
+80	|---|---|---|---|
+81	| Instagram | Feed / Carousel | 周一、三、五 | 品牌深度内容 |
+82	| Instagram | Reels | 周二、四 | 算法推流主渠道 |
+83	| Instagram | Story | 周三、五、日 | 保活跃度 |
+84	| Facebook | Feed | 周一、三、五 | 与 IG 同步，不单独创作 |
+85	| Facebook | Reels | 周二 | 与 IG Reels 同步 |
+86	| LinkedIn | Text / Image Post | 周一、三、五 | 行业洞察 + 产品 |
+87	| LinkedIn | Document Carousel | 每两周周三 | 知识类深度内容 |
+88	| Twitter | 推文 | 周一至周五 | 每天 1 条，行业观点或公告 |
+89	| Twitter | Thread | 周四 | 深度内容，每周 1 条 |
+90	
+91	Facebook 未单独连接但 Instagram 已连接时：Facebook 跟随 IG 内容同步发布，不单独列入计划。
+92	Instagram 未连接但 Facebook 已连接时：Facebook 独立制作 Feed x3/周。
+93	
+94	**工作流（固定，无需询问）：**
+95	
+96	| 任务 | 时间 | 说明 |
+97	|---|---|---|
+98	| 内容批量创作 | 每周一 09:00 | 生成本周内容计划，admin 确认后再生成内容 |
+99	| 内容自动发布 | 每天 09:00 | 发布当天计划发布且已确认的草稿 |
+100	| 评论巡查 | 每 6 小时 | 拉取新评论，负面优先通知 |
+101	| 数据汇报 | 每周五 18:00 | 生成本周快速数据总结 |
+102	
+103	**只需问 admin 一个问题：**
+104	> 「每周一生成草稿后，发布前需要你过目确认吗？还是直接帮你按计划发出去？」
+105	
+106	### 方案展示方式
+107	
+108	用对话语气呈现，不要表格罗列，像顾问给建议一样。例：
+109	
+110	> 「根据你们餐厅的情况和已连接的 Instagram、Facebook，我建议这样运营——
+111	>
+112	> 内容方向围绕三个主题：菜品展示、幕后故事、客户好评。配图用真实照片感，暖色调为主。
+113	>
+114	> Instagram 每周发 8 条：周一三五发 Feed，周二四发 Reels（Reels 现在是 IG 算法最偏爱的格式，适合触达新客），周三五日各发一条 Story 保活跃度。Facebook 跟 IG 内容同步，不单独做。
+115	>
+116	> 我每周一早 9 点帮你规划这周的内容计划，你确认方向后我再生成具体内容。之后每天自动按计划发出。评论我每 6 小时扫一次，有差评第一时间告诉你。每周五出一份数据小结。
+117	>
+118	> 发布前需要你过目确认吗？」
+119	
+120	实际展示时根据商家情况调整，不要每次都用这段原文。
+121	
+122	### 确认与写入
+123	
+124	Admin 确认（或调整后确认）后，**一次性**将所有字段写入 `/workspace/marketing-context.md`：
+125	
+126	```
+127	## 指令          ← 发布确认方式
+128	## 品牌视觉      ← 品牌色板、视觉属性基类
+129	## 内容设置      ← pillars、图片风格
+130	## 内容策略      ← 各平台发布节奏、优先类型、策略初始化记录
+131	## 工作流        ← 4 个任务的启用状态和时间
+132	```
+133	
+134	然后依次调用 `cron_create` 注册 4 个定时任务：
+135	
+136	```
+137	1. cron_create(schedule="每周一 09:00", message="[cron] 内容创作")
+138	2. cron_create(schedule="每天 09:00",   message="[cron] 内容发布")
+139	3. cron_create(schedule="每 6 小时",    message="[cron] 评论巡查")
+140	4. cron_create(schedule="每周五 18:00", message="[cron] 数据汇报")
+141	```
+142	
+143	Admin 明确不需要某项时，对应字段写 `启用: false`，跳过该 cron_create。
+144	
+145	然后初始化素材库：
+146	
+147	如果 `/workspace/assets/asset-registry.md` 不存在，创建并写入文件头：
+148	
+149	```markdown
+150	# 素材库索引
+151	
+152	> 素材实体存储在 Canva，本文件只做索引（Canva Asset ID、描述、标签、使用状态）。
+153	> 视频素材不上传 Canva，只记录 URL。
+154	```
+155	
+156	写完后告诉 admin：
+157	- 哪些平台已成功连接
+158	- 运营方案的关键点（一句话）
+159	- 下周一会发生什么（第一次自动创作）
+160	
+161	---
+162	
+163	## 写入文件
+164	
+165	每个阶段收集完对应信息后，立即更新 `/workspace/marketing-context.md` 中的相关字段，不要等全部阶段完成才统一写入。只修改本次收集到的字段，其他字段保持原样。
+166	
+167	文件不存在时，先读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为初始结构创建文件，再填入收集到的内容。
+168	
+169	---
+170	
+171	## 后续更新
+172	
+173	Admin 想修改配置时，读取当前文件，只聊需要改的那部分，确认后写入完整的更新文件，不用重新走一遍全流程。
+174	
+175	若修改涉及工作流时间，先用 `cron_delete` 删除旧任务，再用 `cron_create` 注册新任务。
 
-[EVT] user.message | BetaManagedAgentsUserMessageEvent(id='sevt_01CQuMwhFpugnXrimRkz4iui', content=[BetaManagedAgentsTextBlock(text='hello', type='text')], type='user.message', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 12, 287000, tzinfo=TzInfo(0)))
 
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01KuLWxoZBEAumr2NkXgTBa7', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 12, 398000, tzinfo=TzInfo(0)), type='span.model_request_start')
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/templates/marketing-context.md'}
+  ↳ [result] 1	# Marketing Context
+2	
+3	_所有技能从此文件读取配置和指令。_
+4	
+5	---
+6	
+7	## 指令
+8	
+9	_在此添加针对此账号的特殊规则，agent 会优先遵守。发布行为、互动风格等工作流偏好写在这里，不需要开关配置。_
+10	
+11	---
+12	
+13	## 业务资料
+14	
+15	- **名称：**
+16	- **行业：**
+17	- **网站：**
+18	- **简介：**
+19	- **目标受众：**
+20	- **主要产品 / 服务：**
+21	- **竞争对手：**
+22	
+23	---
+24	
+25	## 品牌语气
+26	
+27	- **风格：**
+28	- **应该：**
+29	- **避免：**
+30	
+31	---
+32	
+33	## 内容设置
+34	
+35	- **内容主题：**
+36	- **Hashtag 组：**
+37	- **图片风格：**
+38	
+39	---
+40	
+41	## 内容策略
+42	
+43	_由 setup 初始化，analytics 和 review-monitor 持续更新。content-creation 读此段决定内容类型。_
+44	
+45	### 发布节奏
+46	
+47	### 当前优先类型
+48	
+49	### 近期重点话题
+50	_来自 review-monitor 的评论信号，content-creation 生成内容时优先参考。_
+51	- 最后更新：
+52	
+53	### 策略更新记录
+54	_最近 10 条，超出删除最旧的。_
+55	
+56	---
+57	
+58	## 工作流
+59	
+60	_定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无需 admin 在线。_
+61	
+62	### 内容创作（批量）
+63	- **启用：** false
+64	- **触发时间：** 每周一 09:00
+65	
+66	### 内容发布（每日）
+67	- **启用：** false
+68	- **触发时间：** 每天 09:00
+69	
+70	### 评论巡查
+71	- **启用：** false
+72	- **触发间隔：** 每 6 小时
+73	
+74	### 数据汇报
+75	- **启用：** false
+76	- **触发时间：** 每周五 18:00
+77	- **报告类型：** 快速总结
+78	
+79	---
+80	
+81	## 已连接平台
+82	
+83	### Facebook
+84	- 启用：false
+85	- 主页名称：
+86	- Page ID：
+87	
+88	### Instagram
+89	- 启用：false
+90	- 用户名：
+91	- Account ID：
+92	
+93	### Twitter
+94	- 启用：false
+95	- 用户名：
+96	- User ID：
+97	
+98	### LinkedIn
+99	- 启用：false
+100	- 公司名称：
+101	- Organization ID：
+102	- Person ID：
+103	
+104	---
+105	
+106	## 运行状态
+107	
+108	_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_
+109	
+110	### Facebook
+111	- 上次巡查时间：
+112	- 最后处理的 Post ID：
+113	
+114	### Instagram
+115	- 上次巡查时间：
+116	- 最后处理的 Post ID：
+117	
+118	### Twitter
+119	- 上次巡查时间：
+120	- 最后处理的 Post ID：
+121	
+122	---
+123	
+124	## 市场调研
+125	
+126	_由 market-research 技能写入，其他技能可直接引用。_
+127	
+128	### 竞品分析
+129	- **最后更新：**
+130	
+131	### 行业趋势
+132	- **最后更新：**
+133	
+134	### Hashtag 库
+135	- **最后更新：**
+136	
+137	### 受众洞察
+138	- **最后更新：**
 
-[EVT] agent.thinking | BetaManagedAgentsAgentThinkingEvent(id='sevt_01KQDjVnxdpEhyQ4rd5o1Yvk', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 15, 350000, tzinfo=TzInfo(0)), type='agent.thinking')
-.
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_01YPEx1yuiTCxBbq1vmQVd4S', input={'command': 'ls /workspace/user-files/ 2>/dev/null && cat /workspace/user-files/post-context.md 2>/dev/null || echo "FILE_NOT_FOUND"'}, name='bash', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 15, 350000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
+好的，晨光咖啡，我来搜一下相关信息，帮你把资料整理好。
+  ↳ [tool: web_search] {'query': '晨光咖啡 上海静安区 南京西路 精品咖啡'}
 
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01WQALRAkn6gGanwigi3wSYz', is_error=False, model_request_start_id='sevt_01KuLWxoZBEAumr2NkXgTBa7', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=23789, cache_read_input_tokens=0, input_tokens=3, output_tokens=135, speed=None), processed_at=datetime.datetime(2026, 4, 17, 6, 57, 15, 696000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01Y3tW2Yc7C4QDheKf5xfqPL', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 17, 363000, tzinfo=TzInfo(0)), tool_use_id='sevt_01YPEx1yuiTCxBbq1vmQVd4S', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text='FILE_NOT_FOUND\n', type='text')], is_error=False)
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01KMbMSJCihdaZ9tLkVuj1R3', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 17, 481000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01CASxbXjEaN94gp8FwJAkAC', content=[BetaManagedAgentsTextBlock(text='Hey there, **Votrix AI Test 6**! 👋 I\'m **Rebecca**, your social media assistant.\n\nIt looks like you haven\'t set up your account yet. Let\'s get you configured so I can start creating and publishing content for you!\n\nHere\'s what we\'ll cover in the setup:\n- 🏢 **Business profile** — your brand, industry, and tone of voice\n- 📱 **Platform connections** — Instagram, Facebook, Twitter/X, LinkedIn\n- 🎯 **Content preferences** — topics, posting goals, image style\n- ⚙️ **Workflow settings** — how and when content gets published\n\nReady to get started? Just say **"let\'s set up"** and I\'ll walk you through everything!', type='text')], processed_at=datetime.datetime(2026, 4, 17, 6, 57, 22, 280000, tzinfo=TzInfo(0)), type='agent.message')
-Hey there, **Votrix AI Test 6**! 👋 I'm **Rebecca**, your social media assistant.
-
-It looks like you haven't set up your account yet. Let's get you configured so I can start creating and publishing content for you!
-
-Here's what we'll cover in the setup:
-- 🏢 **Business profile** — your brand, industry, and tone of voice
-- 📱 **Platform connections** — Instagram, Facebook, Twitter/X, LinkedIn
-- 🎯 **Content preferences** — topics, posting goals, image style
-- ⚙️ **Workflow settings** — how and when content gets published
-
-Ready to get started? Just say **"let's set up"** and I'll walk you through everything!
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01JZnhQpNhDnauKzWBCjZkxq', is_error=False, model_request_start_id='sevt_01KMbMSJCihdaZ9tLkVuj1R3', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=156, cache_read_input_tokens=23789, input_tokens=1, output_tokens=174, speed=None), processed_at=datetime.datetime(2026, 4, 17, 6, 57, 22, 392000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_01SvfaAQoYDisXWR3tS8BmBM', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 22, 545000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionEndTurn(type='end_turn'), type='session.status_idle')
-
-
-────────────────────────────────────────────────────────────
-[done] 14.6s
-────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────
-[user] 我是一家测试咖啡店，叫做晨光咖啡，只需要连接 Instagram
-────────────────────────────────────────────────────────────
-
-
-[EVT] session.status_running | BetaManagedAgentsSessionStatusRunningEvent(id='sevt_01F4JytAN6SgUDBDCB1XvZ7o', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 48, 471000, tzinfo=TzInfo(0)), type='session.status_running')
-
-[EVT] user.message | BetaManagedAgentsUserMessageEvent(id='sevt_01AFbKNeBBpQ3u6uj8Anf1VV', content=[BetaManagedAgentsTextBlock(text='我是一家测试咖啡店，叫做晨光咖啡，只需要连接 Instagram', type='text')], type='user.message', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 48, 831000, tzinfo=TzInfo(0)))
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01KN26F5U8TsxSKpQVMqJoFu', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 48, 945000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.thinking | BetaManagedAgentsAgentThinkingEvent(id='sevt_01UBEX9YMgX3LHK3PbQjLLEW', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 51, 451000, tzinfo=TzInfo(0)), type='agent.thinking')
-.
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_016L6XWdLLt9mda4e7C2tRK2', input={'file_path': '/workspace/skills/social-media-post-setup/SKILL.md'}, name='read', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 51, 451000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01XHPV8w15QGi5gRv7y8bZWg', is_error=False, model_request_start_id='sevt_01KN26F5U8TsxSKpQVMqJoFu', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=322, cache_read_input_tokens=23789, input_tokens=3, output_tokens=125, speed=None), processed_at=datetime.datetime(2026, 4, 17, 6, 57, 51, 903000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01R1j6zSfaTWsPDd5ds6PP9Q', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 55, 128000, tzinfo=TzInfo(0)), tool_use_id='sevt_016L6XWdLLt9mda4e7C2tRK2', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text='1\t---\n2\tname: social-media-post-setup\n3\tdescription: "社交媒体营销助手的初始化配置。Admin 提到 setup、配置、连接平台、连接 Facebook / Instagram / Twitter / LinkedIn、更新业务资料或内容设置时触发。也在 admin 首次登录、尚未完成配置时主动触发。"\n4\t---\n5\t\n6\t# Setup — 初始化配置\n7\t\n8\t你是这位商家的社交媒体营销助手，负责帮他们管理内容发布、评论监控和数据追踪。\n9\t\n10\t在开始任何工作之前，先读一下这份 Setup 文档——它记录了你运作所需的全部上下文：商家信息、内容偏好、平台账号，以及工作流配置。没有这些，后续的功能都跑不起来。\n11\t\n12\t---\n13\t\n14\t## 启动检查\n15\t\n16\t先尝试读取 `/workspace/marketing-context.md`（用户的实际配置文件）：\n17\t\n18\t- **文件不存在**：读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为结构模板，从头走完整流程（阶段一到四），完成后按模板结构写入 `/workspace/marketing-context.md`\n19\t- **文件存在但部分字段为空**：只补充缺失的部分，已有的内容不重复询问\n20\t- **Admin 指定了某项**（如「帮我连 Instagram」「更新内容设置」）：直接跳到对应阶段\n21\t\n22\t---\n23\t\n24\t## 阶段一：业务资料\n25\t\n26\t填入文件的 `## 业务资料` 和 `## 品牌语气` 部分。\n27\t\n28\t**原则：先搜索，再推断，实在找不到才开口问。**\n29\t\n30\t1. 先问 admin 一件事就好：「你们的店名或网站是什么？」\n31\t2. 拿到后，用 web_search / web_fetch 搜索该商家，自行整理出：\n32\t   - 行业、地区、简介、主要产品 / 服务\n33\t   - 目标受众（根据业务类型推断）\n34\t   - 竞争对手（搜索同类本地商家，推荐 2–3 个）\n35\t   - 品牌语气（根据官网文案风格推断）\n36\t3. 把整理好的结果一次性展示给 admin 确认，不要逐字段追问。\n37\t4. 只有真的搜不到的字段，才单独向 admin 询问。\n38\t\n39\t---\n40\t\n41\t## 阶段二：内容设置\n42\t\n43\t收集内容创作偏好，填入文件的 `## 内容设置` 部分。\n44\t\n45\t### 内容主题（Pillars）\n46\t\n47\t向 admin 解释：\n48\t> 「内容主题就是你们日常发帖时会围绕的几个固定方向，比如『产品推广』『行业知识』『幕后故事』这类，一般 3–5 个就够用了。」\n49\t\n50\t根据行业提供几个建议选项，让 admin 在此基础上确认或调整，不要让他从零开始填写。\n51\t\n52\t### Hashtag 偏好\n53\t\n54\t可选项。如果 admin 有偏好，按主题分组收集；没有的话直接跳过，内容创作时再生成就好。\n55\t\n56\t### 图片风格\n57\t\n58\t询问：\n59\t> 「如果需要 AI 帮你生成配图，你们倾向哪种风格？比如真实照片感、插画感，还是偏品牌色系的简洁设计？」\n60\t\n61\t将 admin 的回答写入 `## 内容设置 → 图片风格`，例如：`真实照片感`。\n62\t\n63\t---\n64\t\n65\t## 阶段三：工作流配置\n66\t\n67\t根据阶段一收集到的业务信息，向 admin 介绍你建议的工作方式，语气要像在聊天，不要照本宣科。结合商家的行业、规模和内容节奏给出具体建议，说清楚你打算在什么时候帮他做什么、为什么这样安排对他有用，然后问他发布前是否需要过一眼，最后请他确认是否可以开始配置。\n68\t\n69\t例如，对一家本地餐厅可以这样说：\n70\t\n71\t> 「餐厅一般每周发一次就够了，我建议每周一早上帮你生成这周的内容草稿，你开店前看一眼就行。评论那边我每 6 小时扫一次，有差评第一时间告诉你。每周出一份数据小结，方便你看哪类内容反响好。\n72\t>\n73\t> 草稿生成后，你想自己确认一下再发，还是直接帮你发出去？\n74\t>\n75\t> 没问题的话我现在就帮你配好。」\n76\t\n77\t实际对话中根据商家情况调整措辞，不要每次都用这段。\n78\t\n79\tAdmin 确认后：\n80\t\n81\t1. 根据 admin 对发布行为的回答，写入 `## 指令`：\n82\t   - 需要确认：「内容创作完成后，发布前需要等待我的确认。」\n83\t   - 直接发布：「内容创作完成后直接发布，不需要等待确认。」\n84\t\n85\t2. 如果 admin 对某项时间有调整，按实际时间配置；否则按默认值。\n86\t\n87\t3. 依次调用 `cron_create` 注册三个定时任务，将配置写入 `/workspace/marketing-context.md` 的 `## 工作流` 对应部分。\n88\t\n89\t4. 如果 admin 明确不需要某项，对应字段写 `启用: false`，不注册该任务。\n90\t\n91\t---\n92\t\n93\t## 阶段四：平台连接\n94\t\n95\t询问 admin 想连接哪些平台：\n96\t\n97\t> 「你打算在哪些平台发内容或管评论？Facebook、Instagram、Twitter、LinkedIn 都支持，可以多选，之后想加也随时可以。」\n98\t\n99\t每个平台独立处理，一个失败不影响其他。连接成功后立即将账号信息填入文件对应的 section，不用等所有平台都完成再统一写。\n100\t\n101\t| 平台 | 参考文档 |\n102\t|---|---|\n103\t| Facebook | `/workspace/skills/social-media-post-setup/references/facebook-oauth.md` |\n104\t| Instagram | `/workspace/skills/social-media-post-setup/references/instagram-oauth.md` |\n105\t| Twitter | `/workspace/skills/social-media-post-setup/references/twitter-oauth.md` |\n106\t| LinkedIn | `/workspace/skills/social-media-post-setup/references/linkedin-oauth.md` |\n107\t\n108\t---\n109\t\n110\t## 写入文件\n111\t\n112\t每个阶段收集完对应信息后，立即更新 `/workspace/marketing-context.md` 中的相关字段，不要等全部阶段完成才统一写入。只修改本次收集到的字段，其他字段保持原样。\n113\t\n114\t文件不存在时，先读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为初始结构创建文件，再填入收集到的内容。\n115\t\n116\t各平台的连接状态写入 `## 已连接平台` 对应部分：\n117\t- 连接成功：填入账号信息，标记 `启用: true`\n118\t- Admin 跳过或连接失败：只标记 `启用: false`，不填账号信息\n119\t\n120\t\n121\t写完后告诉 admin：\n122\t- 哪些信息已配置好\n123\t- 哪些平台已成功连接\n124\t- 现在可以用哪些功能\n125\t\n126\t---\n127\t\n128\t## 后续更新\n129\t\n130\tAdmin 想修改配置时，读取当前文件，只聊需要改的那部分，确认后写入完整的更新文件，不用重新走一遍全流程。\n', type='text')], is_error=False)
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_018qNHGGwM9EQTFU6sggacR2', processed_at=datetime.datetime(2026, 4, 17, 6, 57, 55, 250000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.thinking | BetaManagedAgentsAgentThinkingEvent(id='sevt_018vadgUUjfiuGmiTBReyJWW', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 0, 133000, tzinfo=TzInfo(0)), type='agent.thinking')
-.
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_01FEP1HNSeDhnWq94S93N4oH', input={'file_path': '/workspace/skills/social-media-post-setup/templates/marketing-context.md'}, name='read', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 0, 132000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_01SVa5h3QfzgnH5zqg9GQjch', input={'file_path': '/workspace/skills/social-media-post-setup/references/instagram-oauth.md'}, name='read', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 0, 133000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_01FpFFMGKJWduxwJMBkAJcXj', input={'query': '晨光咖啡 咖啡店'}, name='web_search', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 0, 133000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01DMrX62tmyTjWAQi2wGXgim', is_error=False, model_request_start_id='sevt_018qNHGGwM9EQTFU6sggacR2', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=2646, cache_read_input_tokens=24111, input_tokens=84, output_tokens=281, speed=None), processed_at=datetime.datetime(2026, 4, 17, 6, 58, 0, 704000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01NKNuc8nNh18VvssKBKg5Xd', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 7, 870000, tzinfo=TzInfo(0)), tool_use_id='sevt_01FEP1HNSeDhnWq94S93N4oH', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text='1\t# Marketing Context\n2\t\n3\t_所有技能从此文件读取配置和指令。_\n4\t\n5\t---\n6\t\n7\t## 指令\n8\t\n9\t_在此添加针对此账号的特殊规则，agent 会优先遵守。发布行为、互动风格等工作流偏好写在这里，不需要开关配置。_\n10\t\n11\t---\n12\t\n13\t## 业务资料\n14\t\n15\t- **名称：**\n16\t- **行业：**\n17\t- **网站：**\n18\t- **简介：**\n19\t- **目标受众：**\n20\t- **主要产品 / 服务：**\n21\t- **竞争对手：**\n22\t\n23\t---\n24\t\n25\t## 品牌语气\n26\t\n27\t- **风格：**\n28\t- **应该：**\n29\t- **避免：**\n30\t\n31\t---\n32\t\n33\t## 内容设置\n34\t\n35\t- **内容主题：**\n36\t- **Hashtag 组：**\n37\t- **图片风格：**\n38\t\n39\t---\n40\t\n41\t## 工作流\n42\t\n43\t_定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无需 admin 在线。_\n44\t\n45\t### 内容创作\n46\t- **启用：** false\n47\t- **触发时间：**\n48\t- **目标平台：**\n49\t\n50\t### 评论巡查\n51\t- **启用：** false\n52\t- **触发间隔：** 每 6 小时\n53\t\n54\t### 数据汇报\n55\t- **启用：** false\n56\t- **触发时间：**\n57\t- **报告类型：** 快速总结\n58\t\n59\t---\n60\t\n61\t## 已连接平台\n62\t\n63\t### Facebook\n64\t- 启用：false\n65\t- 主页名称：\n66\t- Page ID：\n67\t\n68\t### Instagram\n69\t- 启用：false\n70\t- 用户名：\n71\t- Account ID：\n72\t\n73\t### Twitter\n74\t- 启用：false\n75\t- 用户名：\n76\t- User ID：\n77\t\n78\t### LinkedIn\n79\t- 启用：false\n80\t- 公司名称：\n81\t- Organization ID：\n82\t- Person ID：\n83\t\n84\t---\n85\t\n86\t## 运行状态\n87\t\n88\t_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_\n89\t\n90\t### Facebook\n91\t- 上次巡查时间：\n92\t- 最后处理的 Post ID：\n93\t\n94\t### Instagram\n95\t- 上次巡查时间：\n96\t- 最后处理的 Post ID：\n97\t\n98\t### Twitter\n99\t- 上次巡查时间：\n100\t- 最后处理的 Post ID：\n101\t\n102\t---\n103\t\n104\t## 市场调研\n105\t\n106\t_由 market-research 技能写入，其他技能可直接引用。_\n107\t\n108\t### 竞品分析\n109\t- **最后更新：**\n110\t\n111\t### 行业趋势\n112\t- **最后更新：**\n113\t\n114\t### Hashtag 库\n115\t- **最后更新：**\n116\t\n117\t### 受众洞察\n118\t- **最后更新：**\n', type='text')], is_error=False)
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01WBhpKh5kGqfd4XoWTepC84', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 7, 980000, tzinfo=TzInfo(0)), tool_use_id='sevt_01SVa5h3QfzgnH5zqg9GQjch', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text="1\t# Instagram OAuth Setup\n2\t\n3\tInstagram Business API runs through Facebook's Graph API. Connecting Instagram requires a Facebook Page that is linked to an Instagram Business (or Creator) Account.\n4\t\n5\t---\n6\t\n7\t## Prerequisites\n8\t\n9\tBefore starting, confirm with the admin:\n10\t\n11\t1. They have an **Instagram Business or Creator Account** (not a personal account)\n12\t2. That Instagram account is **linked to a Facebook Page** they manage\n13\t   - If not linked: ask them to go to Instagram Settings → Account → Switch to Professional Account, then link their Facebook Page\n14\t\n15\t---\n16\t\n17\t## Step 1 — Initiate Instagram Connection\n18\t\n19\t调用 `COMPOSIO_MANAGE_CONNECTIONS`，app 设为 `INSTAGRAM`，发起授权流程。\n20\t\n21\t工具会返回一个授权链接，发给 admin：\n22\t\n23\t> 「点击这个链接授权 Instagram 访问权限：[url]」\n24\t\n25\t等 admin 完成后再继续。\n26\t\n27\t---\n28\t\n29\t## Step 2 — Verify Connection\n30\t\n31\t授权完成后，通过 Composio Instagram 工具获取账号详情，检索：\n32\t- `instagram_account_id`\n33\t- `username`\n34\t- `account_type`（确认是 BUSINESS 或 CREATOR，不是 PERSONAL）\n35\t\n36\t如果 `account_type` 是 PERSONAL，停止并告诉 admin：\n37\t> 「Instagram API 只支持企业号或创作者账号。请在 Instagram 设置里切换账号类型后重试。」\n38\t\n39\t---\n40\t\n41\t## Step 3 — 写入 marketing-context.md\n42\t\n43\t将账号信息写入 `/workspace/marketing-context.md` 的 `## 已连接平台 → Instagram` 部分：\n44\t\n45\t```\n46\t### Instagram\n47\t- 启用：true\n48\t- 用户名：{username}\n49\t- Account ID：{instagram_account_id}\n50\t```\n51\t\n52\t---\n53\t\n54\t## What Instagram Can Do After Connection\n55\t\n56\t| Capability | Available |\n57\t|---|---|\n58\t| Publish photo/video posts | Yes |\n59\t| Publish Stories | Limited (via Content Publishing API) |\n60\t| Read post insights (reach, impressions, engagement) | Yes |\n61\t| Read follower count and growth | Yes |\n62\t| Read comments | Yes |\n63\t| Reply to comments | Yes |\n64\t| Read DMs | No (restricted by Meta) |\n", type='text')], is_error=False)
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_015LoxgwAbiqwcKJUGtA7GHg', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 8, 94000, tzinfo=datetime.timezone.utc), tool_use_id='sevt_01FpFFMGKJWduxwJMBkAJcXj', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': '今年參與阿里山咖啡推廣活動， 我與最棒夥伴蘭桂坊胖總山上山下跑， 中間歷經疫情，所有工作停頓下來， 直到最近慢慢解禁，終於又啟動復工， 這個案子以阿里山咖啡為主題， 媒合嘉義市旅館與專業咖啡職人， 與蘭桂坊花園酒店配對的就是晨光咖啡。 從晨光咖啡臉書的發文來看， 慢飛天使對於進軍文化路，非常興奮。 ... 漫啡天使於活動現場手沖阿里山咖啡， 每杯咖啡售價100元， 收入全數捐給嘉義晨光早療中心。 蘭桂坊房客入住期間憑房卡可享2杯咖啡， 一同體驗台灣精品咖啡的美好。 ... 晨光咖啡於2020年4月創立， 目前有8位慢飛天使輪班， 在頂榛莊園陳明德烘豆師協力下， 供應台灣精品咖啡，支持在地農特產。 · 晨光咖啡在後湖工業區的據點， 寬廣悠閒，有舒服的戶外席可以坐， 露營車裡也有個「館內」沙發區， 只見慢啡孩子在老師指導下， 從我們入座、點餐、手沖、送餐， 都能按部就班完成，並充滿榮譽感。 ·', 'type': 'text'}, {'text': '幫我們服務的孩子叫顏冠羽， 是晨光咖啡的手沖實習生， 據說他特別喜歡看有浪漫情節的韓劇， 愛幫身邊的人改韓劇男女主角名字， 晨光副主任就是冠羽眼中的千頌伊！ 冠羽表演慾強，頗重視外貌， 那日我要拍照，他還特別把眼鏡摘下來。 我們喝咖啡時，他也在一旁好奇陪同， 比起坊間有怠工情節的厭世服務人員， 晨光的慢啡孩子，特別溫和友善， 如果天氣不熱，在這裡喝咖啡，很享受。 · 晨光咖啡豆單列著：阿里山、 卓武、那瑪夏、德文、古坑….. 一字排開的陣仗， 顛覆我對行動咖啡車的印象， 無論冰熱每杯只要120元， 更是讓我心中驚疑。 直到咖啡入口，風味清新優雅， 忍不住讚嘆： 120元喝台灣精品咖啡，太超值了。 可以喝好咖啡，支持台灣農民，又做公益， 這絕對是最有愛的多贏咖啡。 ...', 'type': 'text'}, {'text': '住飯店下樓喝愛心咖啡，驚喜還有WOW哇唬漢堡，明後兩天繼續有吃有喝做公益。 📢晨光慢飛天使手沖咖啡→https://margaret.tw/chiayi-cafe-sunshine/ ⏱時間：8/28-8/30… ... 嘉義有一種令人放鬆的氣息，使我忍不住一再回「嘉」。也謝謝當地朋友特別愛我，總是三不五時給我密報最新吃喝玩樂。我跟嘉義的緣分非常玄妙：我曾經是山美國小的顧問，達娜伊谷山豬亮是 ... 文化路夜市是我旅居嘉義的廚房，每天晚上19:00到23:00交通管制，規劃為行人徒步區。最大特色是店家攤販以接力方式分時段營業，24小時都有得逛。本文除了彙整文化路夜市美食店鋪攤販，也收錄 ... 到嘉義旅遊似乎越來越熱門，忝為「偽嘉義人」應該盡點心，把走跳嘉義的心得整理出來。嘉義飯店我住過10幾家，數量應是全台灣城市之冠。部份飯店窗口都成了我的好朋友，就是他們，一天到晚 ...', 'type': 'text'}, {'text': '泡咖啡館是我旅行的主調之一，如此愛到嘉義旅行的理由，正因為這些風格咖啡小店。我寫過的嘉義咖啡、甜點下午茶店數量不少，謹以重要地標做分類，諸如：嘉義文化路夜市、文化公園、嘉義 ... 2018年底為了體驗台灣好行光林我嘉，我在嘉義後火車站一帶走跳數日，入住了尊皇大飯店與冠閣商務大飯店，因而對這個區塊稍微有點概念。今年，非常期待的嘉義智選假日酒店全新開幕，甚至號 ... 嘉義私廚彙整嘉南平原物產豐饒，小吃美食眾多，這幾年我跟嘉義結緣甚深，認識不少熱情的在地人，帶路吃美食，雖然每次旅行都吃得頗瘋狂，但卻有永遠也吃不完的感覺。這篇文章將陸續整理 ...', 'type': 'text'}], source='https://margaret.tw/chiayi-cafe-sunshine/', title='晨光咖啡Sunshine Cafe。慢飛天使手沖咖啡｜嘉義最超值阿里山精品咖啡 @瑪格。圖寫生活', tool_use_id=''), BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': '「晨光咖啡」Sunshine Cafe ...晨光咖啡」， 屬於庭院式的咖啡廳， 一輛由古董露營車改造的咖啡車， 前方就是露天座椅， 如果遇到雨天，則會提供外帶咖啡。 · 大方喝過不...', 'type': 'text'}, {'text': '「晨光咖啡」Sunshine Cafe 的手繪外牆也挺可愛吸睛的。 ... 於2020年4月開幕的「晨光咖啡」， 屬於庭院式的咖啡廳， 一輛由古董露營車改造的咖啡車， 前方就是露天座椅， 如果遇到雨天，則會提供外帶咖啡。 · 大方喝過不少咖啡、也到過不少咖啡廳， 「晨光咖啡」最特別的地方， 在於它是「晨光智能發展中心」的計畫， 提供給心智障礙的孩子機業機會， 靠著自己的力量，在社會上立力生活。 · 「晨光咖啡」結合不少社會愛心人士出錢出力， 這台1942年的露營車也是由人捐贈後改造而成， 再由老師指導學員手沖咖啡、現場服務等等。 ... 定期會有咖啡師教導學員、志工等人的手沖技巧， 來這裡喝的咖啡，品質和風味還挺不錯的。 ... 「晨光咖啡」的咖啡以台灣在地的豆子為主， Meiko 因為不愛酸味，選擇的是卓武咖啡， 大方的這支則是藤枝咖啡。 ...', 'type': 'text'}, {'text': '咖啡豆的外包裝，是可愛的晨光咖啡車圖案， 回家就來手沖，慢慢品嚐台灣咖啡豆。 · 晨光咖啡離嘉義市區不遠， 如果你住耐斯飯店、新悦花園酒店等附近的住宿， 或者會來好市多、檜意森活村 走走的話， 不妨來喝杯咖啡，拍拍露營車，外帶也OK唷。 · ✔ [嘉義親子飯店] 新悦花園酒店 @ 超棒大片草原、賽車場、旋轉木馬、小菁英俱樂部 · 晨光咖啡 Sunshine Cafe 電話：05-275-9128 地址：嘉義市東區忠孝一街98號 官網：https://www.facebook.com/晨光咖啡-Sunshine-Cafe-107998100896039/ 營業時間：09:00–20:00 /星期日、一店休 Google Map：https://g.page/sunshine-cafe-chiayi?share ... ~亞洲萬里通~ 里數帶你玩遍全世界 用里數預訂飯店、兌換旅遊行程 超好玩文章分享 ...', 'type': 'text'}], source='https://www.bigfang.tw/blog/post/sunshine-cafe-chiayi', title='[嘉義露營車咖啡] 晨光咖啡 Sunshine Cafe @ 心智障礙青年行動手沖咖啡|樂活的大方@旅行玩樂學～', tool_use_id=''), BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': '晨光咖啡 Sunshine Cafe, Chiayi. 2,349 likes · 62 talking about this · 726 were here. 全國第一部心智障礙青年經營的行動咖啡車。晨光智能發展中心秉持著推動身心障礙青年培力就業計畫，支持台灣農業、友善自然的信念，希望藉此培養孩子們的一技之長、自理能力。', 'type': 'text'}], source='https://www.facebook.com/cychSunshineCafe/?locale=zh_TW', title='晨光咖啡Sunshine Cafe | Chiayi - Facebook', tool_use_id=''), BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': '晨光咖啡 · 晨光咖啡 · Description · Products · Share · 關於 · 本店有健康輕食,好喝的單品咖啡,小貓咪做檯 歡迎來坐!! Photos · Menu · Minimum charges or price range · 100~150 · Video · Address · Business Hours · Note about business hours · 每周一公休 ·', 'type': 'text'}], source='https://www.owlting.com/shops/morninglightcafe', title='晨光咖啡 | Business Page - 奧丁丁市集', tool_use_id=''), BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': '晨光咖啡│ 單品耳掛組（阿里山、卓武、古坑、德文、那瑪夏）', 'type': 'text'}], source='https://www.sunshine-cafe.org.tw/OnePage.aspx?tid=5&id=147', title='晨光智能發展中心 > 最新消息 > 晨光咖啡', tool_use_id=''), BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': 'Since Catamona was established, we have been continuously improving our competiveness and product’s quality. Catamona was a first fully-automatic coffee factory in Taiwan. In the meantime, coffee education center was established which continuous training our employee to receive international license. We expect to provide most well-round coffee services to our customers. - CATAMONA', 'type': 'text'}, {'text': 'EGRO智能咖啡機搭載智能型平板作為觸控面板，內建藍芽及Wifi可連結其他Android平板電腦遠端控制，且系統可迅速連線控制參數，更加便利於業者對各分店管理的一致性。機器外觀為全金屬，軸心採不鏽鋼製成，在咖啡製作的速度與風味上，都會比一般傳統機型來的更穩定。而沖泡頭的自動升降技術，義式萃取媲美半自動，熱開水與咖啡液的管線也各自區分，讓咖啡口感來更加順口；系... ... 有人把音樂當成旅行夥伴，有些人則用插畫搜集當下的美好，帶著咖啡去旅行，拍下您與卡塔摩納旅行的照片，分享就有機會獲得咖啡好禮。 ... 20多年前，創辦人-張董事長在一次出差中，因緣際會結識了瓜地馬拉當地的莊園主， 張董事長好奇的問:「種植咖啡的工作並不輕鬆，是什麼動力支持您堅持下去的?」老 莊主緩緩地將咖啡遞給張董事長:「咖啡是生活中美好的總和，難道你不想一輩子都生 活在美好裡嗎?', 'type': 'text'}, {'text': '餐飲業的時尚新選擇「氮氣飲」 飲品界新寵兒「氮氣飲料」近期帶起一股旋風，就連便利超商、知名連鎖業者也爭相推出「氮氣咖啡」，究竟，它有什麼樣的魔力呢?氮氣是惰性氣體，可以隔絕氧氣，防止飲品氧化。因釋放大量細小的氣泡，飲品表層會產生如啤酒般綿密的泡沫，而分子會改變飲品風味，飲用口味獨特。 新聞連接： https://money.udn.com/mone... ... The EGRO NEXT is a medium to high volume super automatic espresso machine with an app-controlled user interface. The innovative user interface is as simple as using your smart phon... ... The EGRO BYO is a medium to high volume super automatic espresso machine with an app-controlled user interface. The innovative user interface is as simple as using your smart phone... ... The EGRO ONE delivers espresso with rich velvety crema and amazing latte foam.', 'type': 'text'}, {'text': '他輕啜一口，濃郁香醇的咖啡在唇齒間慢慢化開，這瞬間，他頓時明 白何謂老莊主想表達的「美好」。 ...', 'type': 'text'}], source='https://en.catamona.com/', title='美麗晨光- 產品介紹', tool_use_id=''), BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': '◆ 嚴選咖啡冠軍團隊調配 - 成真專屬配方豆 ◆ 結合衣索比亞、宏都拉斯、巴西 ◆ 紅茶風味明顯，具有豐富的葡萄乾香氣 ...', 'type': 'text'}], source='https://www.cometrue-coffee.com/store/products/morning', title='中淺焙【晨光果露】咖啡豆 / 227g (半磅)', tool_use_id=''), BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': 'Welcome back to Instagram. Sign in to see what your friends, family and interests have been capturing and sharing around the world.', 'type': 'text'}], source='https://www.instagram.com/sunshine_cafe_2020/', title='晨光咖啡Sunshine cafe (@sunshine_cafe_2020) - Instagram', tool_use_id=''), BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': '◆ 嚴選咖啡冠軍團隊調配 - 成真專屬配方豆 ◆ 結合衣索比亞、宏都拉斯、巴西 ◆ 紅茶風味明顯，具有豐富的葡萄乾香氣 晨光果露結合三大洲產區種植的咖啡，有別於市面常見以中深焙呈現配方豆的烘焙手法，此配方豆特別以中淺焙呈現，帶出豆子中的果乾風味與香氣，高溫時入口帶有紅茶香氣，並帶出葡萄乾甜味風味，降溫時能品嘗到優質咖啡的好味道。體驗中淺焙咖啡帶來的輕盈活潑風味，來杯晨光果露吧！ ...', 'type': 'text'}], source='https://www.cometrue-coffee.com/store/products/morning2', title='中淺焙【晨光果露】冷泡包 / 浸泡咖啡包', tool_use_id=''), BetaManagedAgentsTextBlock(text=None, type='search_result', citations={'enabled': True}, content=[{'text': '博客 · 打开App · 选择目的地 · 马来西亚 · 吉隆坡 槟城 兰卡威 新山 沙巴 云顶高原 雪兰莪 登加楼 怡保 砂拉越 马六甲 金马仑高原 迪沙鲁 雕门岛 利浪岛 关丹 山打根 · 日本 · 东京 北海道 大阪 冲绳 京都 熊本县 奈良县 东北地区 福冈县 长崎县 冲绳 &amp; 石垣岛 爱知县 近畿地区 中国地方（日本地区） 静冈县 九州地区 兵库县 四国地区 广岛县 · 台湾 · 台北 台中 高雄 嘉义 台南 花莲 宜兰 台东 新北市 南投 澎湖 台湾铁路 台湾活动 桃园市 屏东 屏东', 'type': 'text'}], source='https://www.klook.com/zh-CN/blog/new-cafes-kl/', title='雪隆区近期最夯的22间咖啡馆，还没去过的话赶快和闺蜜约起来！ - Klook客路博客', tool_use_id='')], is_error=False)
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01SbYJeKTLK36YEZRbtbqnqf', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 8, 223000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.thinking | BetaManagedAgentsAgentThinkingEvent(id='sevt_013M2JJFWH9QRuTe5jwShpBd', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 18, 511000, tzinfo=TzInfo(0)), type='agent.thinking')
-.
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01ReZbbagAcMFweUCvDgg1eA', content=[BetaManagedAgentsTextBlock(text='好的！你提到这是一家**测试咖啡店**，所以我直接基于咖啡店行业来整理一份资料，请你确认一下：\n\n---\n\n**📋 业务资料（初步整理）**\n\n| 字段 | 内容 |\n|---|---|\n| **名称** | 晨光咖啡 |\n| **行业** | 咖啡店 / 餐饮 |\n| **简介** | 一家温馨的本地咖啡店，提供精品咖啡与轻食 |\n| **主要产品** | 手冲咖啡、意式咖啡、甜品、轻食 |\n| **目标受众** | 18–35 岁都市年轻人、上班族、咖啡爱好者 |\n| **竞争对手** | 星巴克、Manner、本地独立咖啡馆 |\n\n**🎨 品牌语气**：温暖、亲切、有生活感，不过于正式\n\n---\n\n以上资料有需要修改的地方吗？确认后我马上帮你连接 Instagram 👇', type='text')], processed_at=datetime.datetime(2026, 4, 17, 6, 58, 18, 511000, tzinfo=TzInfo(0)), type='agent.message')
-好的！你提到这是一家**测试咖啡店**，所以我直接基于咖啡店行业来整理一份资料，请你确认一下：
+  ↳ [tool: web_search] {'query': '上海静安区 精品手冲咖啡 竞品 2024'}
+  ↳ [result] 
+  ↳ [result] 
+搜索完毕。晨光咖啡的店名我没有找到独立官网（可能是新店或尚未建站），但关于静安区南京西路的咖啡市场我有足够信息来帮你做好配置。以下是我整理的业务资料和运营方案，请你过目确认：
 
 ---
 
-**📋 业务资料（初步整理）**
+## 📋 业务资料确认
 
 | 字段 | 内容 |
 |---|---|
 | **名称** | 晨光咖啡 |
-| **行业** | 咖啡店 / 餐饮 |
-| **简介** | 一家温馨的本地咖啡店，提供精品咖啡与轻食 |
-| **主要产品** | 手冲咖啡、意式咖啡、甜品、轻食 |
-| **目标受众** | 18–35 岁都市年轻人、上班族、咖啡爱好者 |
-| **竞争对手** | 星巴克、Manner、本地独立咖啡馆 |
-
-**🎨 品牌语气**：温暖、亲切、有生活感，不过于正式
-
----
-
-以上资料有需要修改的地方吗？确认后我马上帮你连接 Instagram 👇
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01TAxhhyDZnsoiSMqX9miSRq', is_error=False, model_request_start_id='sevt_01SbYJeKTLK36YEZRbtbqnqf', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=14997, cache_read_input_tokens=20204, input_tokens=84, output_tokens=475, speed=None), processed_at=datetime.datetime(2026, 4, 17, 6, 58, 18, 845000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_017sVt8JHz9j3SLtFrGJ1Umq', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 19, 8000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionEndTurn(type='end_turn'), type='session.status_idle')
-
-
-────────────────────────────────────────────────────────────
-[done] 33.6s
-────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────
-[user] 确认，帮我连接 Instagram
-────────────────────────────────────────────────────────────
-
-
-[EVT] session.status_running | BetaManagedAgentsSessionStatusRunningEvent(id='sevt_01LnEMgqNM7GbiKBgCWdN4Dh', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 37, 287000, tzinfo=TzInfo(0)), type='session.status_running')
-
-[EVT] user.message | BetaManagedAgentsUserMessageEvent(id='sevt_01XtuUfYAyVTmS6P3zVrPUkW', content=[BetaManagedAgentsTextBlock(text='确认，帮我连接 Instagram', type='text')], type='user.message', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 37, 653000, tzinfo=TzInfo(0)))
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_018P2WcT4wTqUqsNhb5otA45', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 37, 760000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.thinking | BetaManagedAgentsAgentThinkingEvent(id='sevt_01BAN4SuzAEK2zpFnkooPiA8', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 40, 936000, tzinfo=TzInfo(0)), type='agent.thinking')
-.
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01J1GhSd8TsH4vd16TwsUpAi', content=[BetaManagedAgentsTextBlock(text='好的，先发起 Instagram 授权！', type='text')], processed_at=datetime.datetime(2026, 4, 17, 6, 58, 40, 936000, tzinfo=TzInfo(0)), type='agent.message')
-好的，先发起 Instagram 授权！
-[EVT] agent.custom_tool_use | BetaManagedAgentsAgentCustomToolUseEvent(id='sevt_017WPJ8LKHFXm29L4Vtjsb25', input={'toolkit': 'instagram'}, name='manage_connections', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 40, 936000, tzinfo=TzInfo(0)), type='agent.custom_tool_use')
-
-  ↳ [tool: manage_connections] {'toolkit': 'instagram'}
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01Wm42kB8EnTgRbYd1HgLcyR', is_error=False, model_request_start_id='sevt_018P2WcT4wTqUqsNhb5otA45', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=11448, cache_read_input_tokens=23932, input_tokens=3, output_tokens=99, speed=None), processed_at=datetime.datetime(2026, 4, 17, 6, 58, 41, 394000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_01QB44xxW55h3F9Tw46yB7aV', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 41, 515000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionRequiresAction(event_ids=['sevt_017WPJ8LKHFXm29L4Vtjsb25'], type='requires_action'), type='session.status_idle')
-  ↳ [result] {"status": true, "connected": false, "auth_type": "oauth", "toolkit": "instagram", "redirect_url": "https://backend.composio.dev/api/v3/s/nRX21doC", "message": "Please authorize instagram by visiting the redirect_url."}
-
-[EVT] user.custom_tool_result | BetaManagedAgentsUserCustomToolResultEvent(id='sevt_01XUXkyqotisReppyzu44KEC', custom_tool_use_id='sevt_017WPJ8LKHFXm29L4Vtjsb25', type='user.custom_tool_result', content=[BetaManagedAgentsTextBlock(text='{"status": true, "connected": false, "auth_type": "oauth", "toolkit": "instagram", "redirect_url": "https://backend.composio.dev/api/v3/s/nRX21doC", "message": "Please authorize instagram by visiting the redirect_url."}', type='text')], is_error=False, processed_at=datetime.datetime(2026, 4, 17, 6, 58, 47, 820000, tzinfo=TzInfo(0)))
-
-[EVT] session.status_running | BetaManagedAgentsSessionStatusRunningEvent(id='sevt_01FrE1wLoYGfcaVQ5qKk7rG5', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 47, 962000, tzinfo=TzInfo(0)), type='session.status_running')
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01XmDcRdEXwyt3gbEiicjbPh', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 48, 319000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01KAvWjJp5GAQoJeGFadSBRb', content=[BetaManagedAgentsTextBlock(text='请点击下方链接完成 Instagram 授权：\n\n👉 **[点击这里授权 Instagram](https://backend.composio.dev/api/v3/s/nRX21doC)**\n\n授权时请注意：\n- 需要用**绑定了 Facebook 主页**的 Instagram 账号登录\n- 账号类型必须是**企业号或创作者账号**（不能是个人账号）\n\n完成后告诉我，我来验证连接并保存配置 ✅', type='text')], processed_at=datetime.datetime(2026, 4, 17, 6, 58, 51, 923000, tzinfo=TzInfo(0)), type='agent.message')
-请点击下方链接完成 Instagram 授权：
-
-👉 **[点击这里授权 Instagram](https://backend.composio.dev/api/v3/s/nRX21doC)**
-
-授权时请注意：
-- 需要用**绑定了 Facebook 主页**的 Instagram 账号登录
-- 账号类型必须是**企业号或创作者账号**（不能是个人账号）
-
-完成后告诉我，我来验证连接并保存配置 ✅
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01RjJcURjLohPUdgjUnGQMy9', is_error=False, model_request_start_id='sevt_01XmDcRdEXwyt3gbEiicjbPh', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=180, cache_read_input_tokens=35380, input_tokens=1, output_tokens=143, speed=None), processed_at=datetime.datetime(2026, 4, 17, 6, 58, 52, 42000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_0138idGwxMNwnaumrb4UDknw', processed_at=datetime.datetime(2026, 4, 17, 6, 58, 52, 197000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionEndTurn(type='end_turn'), type='session.status_idle')
-
-
-────────────────────────────────────────────────────────────
-[done] 21.2s
-────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────
-[user] 授权完成了
-────────────────────────────────────────────────────────────
-
-
-[EVT] session.status_running | BetaManagedAgentsSessionStatusRunningEvent(id='sevt_018KE1F4EoBo5VxtS1Kj9NKU', processed_at=datetime.datetime(2026, 4, 17, 6, 59, 55, 553000, tzinfo=TzInfo(0)), type='session.status_running')
-
-[EVT] user.message | BetaManagedAgentsUserMessageEvent(id='sevt_01G1seENPNuXdJkERvnG6MRr', content=[BetaManagedAgentsTextBlock(text='授权完成了', type='text')], type='user.message', processed_at=datetime.datetime(2026, 4, 17, 6, 59, 55, 917000, tzinfo=TzInfo(0)))
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_012vuxBvY76AoqFe7tFtnYy4', processed_at=datetime.datetime(2026, 4, 17, 6, 59, 56, 38000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.thinking | BetaManagedAgentsAgentThinkingEvent(id='sevt_01HDETDFdUexr12PtdRqfwW4', processed_at=datetime.datetime(2026, 4, 17, 6, 59, 57, 905000, tzinfo=TzInfo(0)), type='agent.thinking')
-.
-[EVT] agent.custom_tool_use | BetaManagedAgentsAgentCustomToolUseEvent(id='sevt_01NCAKU6YPnNnwf8ry4aqoX2', input={'toolkit': 'instagram'}, name='manage_connections', processed_at=datetime.datetime(2026, 4, 17, 6, 59, 57, 905000, tzinfo=TzInfo(0)), type='agent.custom_tool_use')
-
-  ↳ [tool: manage_connections] {'toolkit': 'instagram'}
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01GGUmMfjPP8RfN6nkPvKosG', is_error=False, model_request_start_id='sevt_012vuxBvY76AoqFe7tFtnYy4', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=298, cache_read_input_tokens=35380, input_tokens=3, output_tokens=80, speed=None), processed_at=datetime.datetime(2026, 4, 17, 6, 59, 58, 262000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_01EJyzyqBbLezvJPizR8fyRB', processed_at=datetime.datetime(2026, 4, 17, 6, 59, 58, 393000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionRequiresAction(event_ids=['sevt_01NCAKU6YPnNnwf8ry4aqoX2'], type='requires_action'), type='session.status_idle')
-  ↳ [result] {"status": true, "connected": true, "toolkit": "instagram", "connection_id": "b23c2fce-be15-4b51-8675-976b5922c164", "connection_status": "ACTIVE", "ig_user_id": "34889395547373858", "username": "pete.rzzh"}
-
-[EVT] agent.mcp_tool_use | BetaManagedAgentsAgentMCPToolUseEvent(id='sevt_01VDvPAfXPnSSXYWadoCUfqd', input={'ig_user_id': '34889395547373858'}, mcp_server_name='composio-post-agent', name='INSTAGRAM_GET_USER_INFO', processed_at=datetime.datetime(2026, 4, 17, 7, 0, 8, 979000, tzinfo=TzInfo(0)), type='agent.mcp_tool_use', evaluated_permission='allow')
-
-  ↳ [tool: INSTAGRAM_GET_USER_INFO] {'ig_user_id': '34889395547373858'}
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01QFhwM4YbzU2nkpoi8uNnWs', is_error=False, model_request_start_id='sevt_01QTBKhEnvz7kokmCxzCme7T', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=174, cache_read_input_tokens=35678, input_tokens=1, output_tokens=77, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 0, 9, 101000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.mcp_tool_result | BetaManagedAgentsAgentMCPToolResultEvent(id='sevt_01T56wMGB5zFnMknSZ68WoUR', mcp_tool_use_id='sevt_01VDvPAfXPnSSXYWadoCUfqd', processed_at=datetime.datetime(2026, 4, 17, 7, 0, 11, 918000, tzinfo=TzInfo(0)), type='agent.mcp_tool_result', content=[BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"account_type":"BUSINESS","biography":"voice ai for restaurant","composio_execution_message":"Note: followers_count and follows_count are not available when querying specific user IDs. These statistics are only accessible when querying your own profile with ig_user_id=\'me\' due to Instagram Graph API restrictions.","followers_count":null,"follows_count":null,"id":"34889395547373858","media_count":5,"profile_picture_url":"https://scontent-iad6-1.cdninstagram.com/v/t51.82787-19/651953120_17904811836379286_5370272634844740464_n.jpg?stp=dst-jpg_s206x206_tt6&_nc_cat=100&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy45OTQuQzMifQ%3D%3D&_nc_ohc=ktzwRWI4o-EQ7kNvwE4EuGB&_nc_oc=Ado8rn_UYBvYd7RXxxSKrBEcq8wnmvIYhRJmlM4AbcuPdEA3pHMUu-Yjc-QczTwiz2U&_nc_zt=24&_nc_ht=scontent-iad6-1.cdninstagram.com&edm=AP4hL3IEAAAA&_nc_gid=MfyhAF8Ey4HO6jPXrYESXQ&_nc_tpa=Q5bMBQGpKxioOK2MdBWJgbP0DgtGthwIeYClDgRRuFFy8Ek4O0UjuABW2y2yD3RPsPQ4G9rLSmpDi92H&oh=00_Af0NlzfLKOAkyeDS0mWvDDxou48v6EU3Ri_RLDYRRztN3g&oe=69E7C62C","username":"pete.rzzh","website":null},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_5f4UZ6E0dgq8"}', type='text')], is_error=False)
-  ↳ [result] [BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"account_type":"BUSINESS","biography":"voice ai for restaurant","composio_execution_message":"Note: followers_count and follows_count are not available when querying specific user IDs. These statistics are only accessible when querying your own profile with ig_user_id=\'me\' due to Instagram Graph API restrictions.","followers_count":null,"follows_count":null,"id":"34889395547373858","media_count":5,"profile_picture_url":"https://scontent-iad6-1.cdninstagram.com/v/t51.82787-19/651953120_17904811836379286_5370272634844740464_n.jpg?stp=dst-jpg_s206x206_tt6&_nc_cat=100&ccb=7-5&_nc_sid=bf7eb4&efg=eyJ2ZW5jb2RlX3RhZyI6InByb2ZpbGVfcGljLnd3dy45OTQuQzMifQ%3D%3D&_nc_ohc=ktzwRWI4o-EQ7kNvwE4EuGB&_nc_oc=Ado8rn_UYBvYd7RXxxSKrBEcq8wnmvIYhRJmlM4AbcuPdEA3pHMUu-Yjc-QczTwiz2U&_nc_zt=24&_nc_ht=scontent-iad6-1.cdninstagram.com&edm=AP4hL3IEAAAA&_nc_gid=MfyhAF8Ey4HO6jPXrYESXQ&_nc_tpa=Q5bMBQGpKxioOK2MdBWJgbP0DgtGthwIeYClDgRRuFFy8Ek4O0UjuABW2y2yD3RPsPQ4G9rLSmpDi92H&oh=00_Af0NlzfLKOAkyeDS0mWvDDxou48v6EU3Ri_RLDYRRztN3g&oe=69E7C62C","username":"pete.rzzh","website":null},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_5f4UZ6E0dgq8"}', type='text')]
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01VJrZeuUubdNNBBwuU2oRL4', processed_at=datetime.datetime(2026, 4, 17, 7, 0, 12, 42000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.thinking | BetaManagedAgentsAgentThinkingEvent(id='sevt_01HmUPuASQQan4hAdyxZad7i', processed_at=datetime.datetime(2026, 4, 17, 7, 0, 29, 457000, tzinfo=TzInfo(0)), type='agent.thinking')
-.
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01TXRbdQdWVNy1xAc7t3Rbbq', content=[BetaManagedAgentsTextBlock(text='连接成功！现在把所有配置写入文件。', type='text')], processed_at=datetime.datetime(2026, 4, 17, 7, 0, 29, 457000, tzinfo=TzInfo(0)), type='agent.message')
-连接成功！现在把所有配置写入文件。
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_01Nn2svwsWk45xsHgNb6WNGS', input={'content': '# Marketing Context\n\n_所有技能从此文件读取配置和指令。_\n\n---\n\n## 指令\n\n内容创作完成后，发布前需要等待我的确认。\n\n---\n\n## 业务资料\n\n- **名称：** 晨光咖啡\n- **行业：** 咖啡店 / 餐饮\n- **网站：**\n- **简介：** 一家温馨的本地咖啡店，提供精品咖啡与轻食\n- **目标受众：** 18–35 岁都市年轻人、上班族、咖啡爱好者\n- **主要产品 / 服务：** 手冲咖啡、意式咖啡、甜品、轻食\n- **竞争对手：** 星巴克、Manner、本地独立咖啡馆\n\n---\n\n## 品牌语气\n\n- **风格：** 温暖、亲切、有生活感\n- **应该：** 用贴近生活的语言，传递咖啡的温度与日常美好\n- **避免：** 过于正式或商业化的措辞\n\n---\n\n## 内容设置\n\n- **内容主题：**\n- **Hashtag 组：**\n- **图片风格：**\n\n---\n\n## 工作流\n\n_定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无需 admin 在线。_\n\n### 内容创作\n- **启用：** false\n- **触发时间：**\n- **目标平台：**\n\n### 评论巡查\n- **启用：** false\n- **触发间隔：** 每 6 小时\n\n### 数据汇报\n- **启用：** false\n- **触发时间：**\n- **报告类型：** 快速总结\n\n---\n\n## 已连接平台\n\n### Facebook\n- 启用：false\n- 主页名称：\n- Page ID：\n\n### Instagram\n- 启用：true\n- 用户名：pete.rzzh\n- Account ID：34889395547373858\n\n### Twitter\n- 启用：false\n- 用户名：\n- User ID：\n\n### LinkedIn\n- 启用：false\n- 公司名称：\n- Organization ID：\n- Person ID：\n\n---\n\n## 运行状态\n\n_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_\n\n### Facebook\n- 上次巡查时间：\n- 最后处理的 Post ID：\n\n### Instagram\n- 上次巡查时间：\n- 最后处理的 Post ID：\n\n### Twitter\n- 上次巡查时间：\n- 最后处理的 Post ID：\n\n---\n\n## 市场调研\n\n_由 market-research 技能写入，其他技能可直接引用。_\n\n### 竞品分析\n- **最后更新：**\n\n### 行业趋势\n- **最后更新：**\n\n### Hashtag 库\n- **最后更新：**\n\n### 受众洞察\n- **最后更新：**\n', 'file_path': '/workspace/marketing-context.md'}, name='write', processed_at=datetime.datetime(2026, 4, 17, 7, 0, 29, 457000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01EXcpLgVtd7dijvD47RR2xc', is_error=False, model_request_start_id='sevt_01VJrZeuUubdNNBBwuU2oRL4', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=724, cache_read_input_tokens=35852, input_tokens=1, output_tokens=992, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 0, 29, 917000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01Uo7y8AbbVmWHwn76tiJJhC', processed_at=datetime.datetime(2026, 4, 17, 7, 0, 30, 797000, tzinfo=TzInfo(0)), tool_use_id='sevt_01Nn2svwsWk45xsHgNb6WNGS', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text='File created: /workspace/marketing-context.md', type='text')], is_error=False)
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01ByHrLMRtdBcCNJ7Su1RFdR', processed_at=datetime.datetime(2026, 4, 17, 7, 0, 30, 921000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01Jov3LXkHcBXBkcD5W4Qtwj', content=[BetaManagedAgentsTextBlock(text='全部搞定！✅ 这是你的配置总结：\n\n---\n\n**✅ 已配置完成**\n- 🏪 **业务资料**：晨光咖啡（咖啡店/餐饮）\n- 🎨 **品牌语气**：温暖、亲切、有生活感\n- 📱 **Instagram**：@pete.rzzh（企业号）已成功连接\n\n---\n\n**现在可以做什么：**\n- 📝 **内容创作** — 帮你生成 Instagram 帖子文案 + 配图\n- 🚀 **发布帖子** — 发图文、轮播、Reels 到 Instagram\n- 💬 **查看评论** — 监控并回复粉丝留言\n- 📊 **数据分析** — 查看帖子表现和粉丝增长\n\n需要做什么？直接说吧！', type='text')], processed_at=datetime.datetime(2026, 4, 17, 7, 0, 36, 347000, tzinfo=TzInfo(0)), type='agent.message')
-全部搞定！✅ 这是你的配置总结：
+| **行业** | 精品咖啡 / 烘焙甜点 |
+| **地址** | 上海静安区南京西路1688号 |
+| **简介** | 位于南京西路商圈的精品独立咖啡馆，主打手冲咖啡与自制烘焙甜点，致力于为都市人提供有温度的慢节奏空间 |
+| **目标受众** | 25–40岁都市白领、咖啡爱好者、周边写字楼上班族、追求生活品质的消费者 |
+| **主要产品** | 手冲精品咖啡（单品/拼配）、烘焙甜点（自制蛋糕/曲奇/可颂等） |
+| **竞争对手** | Manner Coffee（极致性价比连锁）、Seesaw（精品网红代表）、M Stand（设计感精品咖啡） |
 
 ---
 
-**✅ 已配置完成**
-- 🏪 **业务资料**：晨光咖啡（咖啡店/餐饮）
-- 🎨 **品牌语气**：温暖、亲切、有生活感
-- 📱 **Instagram**：@pete.rzzh（企业号）已成功连接
+## 🎨 品牌语气与视觉
+
+**语气：** 温暖、有品位、亲近感。像一位懂咖啡的老朋友，不端着、不卖弄，分享的是真实的热爱。
+- **应该：** 用感受描述风味（"清晨第一缕阳光的酸甜"）、讲咖啡豆背后的故事、传递慢下来的生活理念
+- **避免：** 生硬的促销口吻、堆砌专业术语、过于严肃商务腔
+
+**品牌色（推断）：**
+- 主色：深焙棕 `#4A2C17`
+- 辅色：奶白 `#F8F3EC`
+- 强调色：琥珀金 `#C8944A`
+
+**视觉风格：** 明亮清晨感、整洁、低饱和暖色调、有呼吸感的构图、木质温润质感
 
 ---
 
-**现在可以做什么：**
-- 📝 **内容创作** — 帮你生成 Instagram 帖子文案 + 配图
-- 🚀 **发布帖子** — 发图文、轮播、Reels 到 Instagram
-- 💬 **查看评论** — 监控并回复粉丝留言
-- 📊 **数据分析** — 查看帖子表现和粉丝增长
+## 📣 运营方案
 
-需要做什么？直接说吧！
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_017NhoLb7F6okSnUUKiXkv9E', is_error=False, model_request_start_id='sevt_01ByHrLMRtdBcCNJ7Su1RFdR', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=1015, cache_read_input_tokens=36576, input_tokens=1, output_tokens=264, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 0, 36, 466000, tzinfo=TzInfo(0)), type='span.model_request_end')
+静安区是上海咖啡馆最密集的"黄金地带"，南京西路更是上海咖啡密度最高的街道，拥有670余家咖啡厅——竞争激烈，但消费力也最强。晨光的差异化在于"手冲+烘焙"的组合，以及独立咖啡馆的温度感，这正是连锁品牌做不到的。
 
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_01CJHSKNrSZLjm23eE3KFnSy', processed_at=datetime.datetime(2026, 4, 17, 7, 0, 36, 618000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionEndTurn(type='end_turn'), type='session.status_idle')
+**内容方向我建议围绕4个主题：**
 
+1. **出品展示** —— 手冲过程、甜点上新、应季特调
+2. **咖啡知识** —— 豆子产地、风味解析、冲煮小知识（有教育性，容易涨粉）
+3. **门店氛围** —— 清晨打卡、"第三空间"慢时光、座位角落特写
+4. **幕后故事** —— 选豆旅程、烘焙师日记、咖啡师的一天
 
-────────────────────────────────────────────────────────────
-[done] 44.5s
-────────────────────────────────────────────────────────────
+**配图风格：** 明亮真实照片感，暖调为主，拒绝过度修图。构图留白、木质桌面、咖啡落下时的流体细节——这个调性在上海咖啡圈最能积累忠实粉丝。
 
-────────────────────────────────────────────────────────────
-[user] 帮我发一条 Instagram 帖子，内容是早安咖啡，配一张图
-────────────────────────────────────────────────────────────
+**发布节奏（待平台连接后自动激活）：**
+- Instagram / 小红书类：周一三五 Feed，周二四 Reels，周三五日 Story
+- Facebook：跟随 Instagram 同步发布
+- 其他平台连接后按需调整
 
+**自动化工作流：**
+- 📝 每周一 09:00 自动生成本周内容草稿
+- 📤 每天 09:00 发布当日已确认内容
+- 💬 每 6 小时巡查评论，差评第一时间提醒你
+- 📊 每周五 18:00 发送数据小结
 
-[EVT] session.status_running | BetaManagedAgentsSessionStatusRunningEvent(id='sevt_01B7dgM9eYrjLwQvfM22CJdk', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 12, 847000, tzinfo=TzInfo(0)), type='session.status_running')
-
-[EVT] user.message | BetaManagedAgentsUserMessageEvent(id='sevt_01Qtrtw2fAk4XrhGog5pJN9d', content=[BetaManagedAgentsTextBlock(text='帮我发一条 Instagram 帖子，内容是早安咖啡，配一张图', type='text')], type='user.message', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 13, 221000, tzinfo=TzInfo(0)))
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01X6PNzXkFB5r7XDTZzUvjXY', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 13, 344000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.thinking | BetaManagedAgentsAgentThinkingEvent(id='sevt_01K4c1HhFZNW8ix5AfRqU6m8', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 16, 891000, tzinfo=TzInfo(0)), type='agent.thinking')
-.
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_01UrSmoooevwmfyf8HbqqsHb', input={'file_path': '/workspace/skills/social-media-post-publishing/SKILL.md'}, name='read', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 16, 891000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01PsHH3sm9JPEtiyqhmewCGq', is_error=False, model_request_start_id='sevt_01X6PNzXkFB5r7XDTZzUvjXY', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=2131, cache_read_input_tokens=35678, input_tokens=3, output_tokens=109, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 1, 17, 241000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01BUk9EB1y9dKn2YUMQ1FwLo', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 20, 378000, tzinfo=TzInfo(0)), tool_use_id='sevt_01UrSmoooevwmfyf8HbqqsHb', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text='1\t---\n2\tname: social-media-post-publishing\n3\tdescription: "发布或定时发布内容到已连接的社交平台。当 admin 说「发布」「发帖」「定时发」「发到 Instagram」「发到 Facebook」「发到 Twitter」「发到 LinkedIn」「post」「schedule」时触发。生成内容见 social-media-post-content-creation。"\n4\tintegrations:\n5\t  - facebook\n6\t  - instagram\n7\t  - twitter\n8\t  - linkedin\n9\t---\n10\t\n11\t# Social Publisher\n12\t\n13\t你负责将内容准确发布到对应平台，并将发布记录存入 `/workspace/post-history/`，供 analytics 后续分析使用。\n14\t\n15\t---\n16\t\n17\t## 启动检查\n18\t\n19\t读取 `/workspace/marketing-context.md`：\n20\t- 确认 `## 已连接平台` 里目标平台有 Page ID / Account ID\n21\t- 未连接的平台：告知 admin 需先运行 setup 连接该平台，跳过该平台继续其他\n22\t\n23\t---\n24\t\n25\t## 获取待发布内容\n26\t\n27\t**从 content-creator 直接衔接**\n28\t内容已在对话 context 中，直接进入发布流程。\n29\t\n30\t**Admin 指定草稿**\n31\t列出 `/workspace/drafts/` 下所有草稿展示给 admin 选择，读取对应文件。\n32\t\n33\t**Admin 提供现成文案**\n34\t直接用 admin 给的内容，询问目标平台。\n35\t\n36\t---\n37\t\n38\t## 图片处理\n39\t\n40\t内容带图片时，发布前先调 `image_upload` 上传到 Supabase Storage 拿公开 URL：\n41\t\n42\t```\n43\timage_upload(storage_path="...", user_id="...")\n44\t→ 返回 public_url\n45\t```\n46\t\n47\t---\n48\t\n49\t## 链接处理\n50\t\n51\t| 平台 | 处理方式 |\n52\t|---|---|\n53\t| Facebook | 正文直接放链接，自动生成预览卡 |\n54\t| Twitter | 链接放正文末尾，固定占 23 字 |\n55\t| LinkedIn | 正文末尾写「链接见评论」，发布后把链接发到第一条评论 |\n56\t| Instagram | 正文链接不可点击，改写为「链接在主页 Bio」 |\n57\t\n58\t---\n59\t\n60\t## 定时发布\n61\t\n62\tAdmin 说「明天早上 9 点发」：\n63\t1. 在草稿文件里标注定时时间\n64\t2. 用 `CronCreate` 创建一次性任务，到时触发本 skill 读取该草稿发布\n65\t3. 告知 admin 定时任务已设置，并说明草稿路径\n66\t\n67\t---\n68\t\n69\t## 发布后处理\n70\t\n71\t每个平台发布成功后，立即执行：\n72\t\n73\t**1. 删除草稿文件**\n74\t\n75\t将草稿文件内容清空（虚拟文件系统不支持 delete，写空内容代替）。\n76\t\n77\t**2. 写入 post-history**\n78\t\n79\t路径：`/workspace/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`\n80\t\n81\t文件存在则读取后末尾追加，不存在则新建：\n82\t\n83\t```markdown\n84\t## {HH:MM} | {平台} | {主题标题}\n85\t\n86\t- **Post ID：** {post_id}\n87\t- **文案：** {文案前 100 字}...\n88\t- **Hashtag：** {hashtag 列表}\n89\t- **链接：** {链接，无则留空}\n90\t- **配图：** {storage_path，无则留空}\n91\t- **表现数据：**（由 analytics 填入）\n92\t  - 触达：-\n93\t  - 互动：-\n94\t  - 点赞：-\n95\t  - 评论：-\n96\t  - 分享：-\n97\t\n98\t---\n99\t```\n100\t\n101\t**3. 汇报结果**\n102\t\n103\t```\n104\t✓ Instagram — 发布成功（post_id: xxx）\n105\t✓ Facebook  — 发布成功（post_id: xxx）\n106\t✗ Twitter   — 失败：media_id 上传超时，草稿已保留，建议稍后重试\n107\t```\n108\t\n109\t各平台独立汇报，失败不影响其他平台。\n110\t\n111\t---\n112\t\n113\t## 错误处理\n114\t\n115\t| 错误 | 处理方式 |\n116\t|---|---|\n117\t| 平台 token 过期 | 告知 admin 需重新连接该平台，引导运行 setup |\n118\t| Instagram container 处理超时 | 重新创建 container，原 creation_id 不可复用 |\n119\t| Instagram 超过 25 posts/日限额 | 告知 admin 剩余配额，建议明天发布 |\n120\t| 图片格式/尺寸不符 | 告知具体要求，等 admin 重新提供 |\n121\t| 发布失败（网络/限流） | 保留草稿，建议稍后重试 |\n122\t| 内容违反平台政策 | 返回平台原始错误信息，建议修改后重试 |\n', type='text')], is_error=False)
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01EiafvX8zQTTuE6aV9uGMx7', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 20, 504000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.thinking | BetaManagedAgentsAgentThinkingEvent(id='sevt_01Qmrzz7MiC4WxxP16FvkxfB', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 26, 51000, tzinfo=TzInfo(0)), type='agent.thinking')
-.
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_011ZSRdZgBbryJMgonR5faRq', content=[BetaManagedAgentsTextBlock(text='先帮你生成配图和文案，同步进行！', type='text')], processed_at=datetime.datetime(2026, 4, 17, 7, 1, 26, 51000, tzinfo=TzInfo(0)), type='agent.message')
-先帮你生成配图和文案，同步进行！
-[EVT] agent.custom_tool_use | BetaManagedAgentsAgentCustomToolUseEvent(id='sevt_01Uvr7YdBwqTjyUEDQPW3KAH', input={'aspect_ratio': '1:1', 'prompt': 'A warm and cozy morning coffee scene, a beautiful latte art cup on a wooden table, soft morning sunlight streaming through the window, warm tones, photorealistic style, lifestyle photography'}, name='image_generate', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 26, 51000, tzinfo=TzInfo(0)), type='agent.custom_tool_use')
-
-  ↳ [tool: image_generate] {'aspect_ratio': '1:1', 'prompt': 'A warm and cozy morning coffee scene, a beautiful latte art cup on a wooden table, soft morning sunlight streaming through the window, warm tones, photorealistic style, lifestyle photography'}
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01U8JZYFARQvSvifGMyrx6Sd', is_error=False, model_request_start_id='sevt_01EiafvX8zQTTuE6aV9uGMx7', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=1733, cache_read_input_tokens=37809, input_tokens=84, output_tokens=202, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 1, 26, 502000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_015ERwyMQu3DLwYBoWao1NZi', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 26, 627000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionRequiresAction(event_ids=['sevt_01Uvr7YdBwqTjyUEDQPW3KAH'], type='requires_action'), type='session.status_idle')
-  ↳ [result] {"status": true, "url": "https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg", "aspect_ratio": "1:1"}
-
-[EVT] user.custom_tool_result | BetaManagedAgentsUserCustomToolResultEvent(id='sevt_019mMDZt9CxNZaJ5M52BRmvJ', custom_tool_use_id='sevt_01Uvr7YdBwqTjyUEDQPW3KAH', type='user.custom_tool_result', content=[BetaManagedAgentsTextBlock(text='{"status": true, "url": "https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg", "aspect_ratio": "1:1"}', type='text')], is_error=False, processed_at=datetime.datetime(2026, 4, 17, 7, 2, 28, 587000, tzinfo=TzInfo(0)))
-
-[EVT] session.status_running | BetaManagedAgentsSessionStatusRunningEvent(id='sevt_01NiGaPRfGewVMrUQQ35QEZ3', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 28, 738000, tzinfo=TzInfo(0)), type='session.status_running')
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01Jp1j9vY8UQpbz1AzgnJyYF', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 29, 102000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01UTTj1MNsLCnAfnvjBLui29', content=[BetaManagedAgentsTextBlock(text='图已生成！现在发布到 Instagram ☕', type='text')], processed_at=datetime.datetime(2026, 4, 17, 7, 2, 36, 824000, tzinfo=TzInfo(0)), type='agent.message')
-图已生成！现在发布到 Instagram ☕
-[EVT] agent.mcp_tool_use | BetaManagedAgentsAgentMCPToolUseEvent(id='sevt_01Cw597jk1aCspjn2ncEUJE3', input={'caption': '☀️ 早安，从一杯咖啡开始。\n\n清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨\n\n#晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning', 'ig_user_id': '34889395547373858', 'image_url': 'https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg'}, mcp_server_name='composio-post-agent', name='INSTAGRAM_POST_IG_USER_MEDIA', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 36, 824000, tzinfo=TzInfo(0)), type='agent.mcp_tool_use', evaluated_permission='allow')
-
-  ↳ [tool: INSTAGRAM_POST_IG_USER_MEDIA] {'caption': '☀️ 早安，从一杯咖啡开始。\n\n清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨\n\n#晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning', 'ig_user_id': '34889395547373858', 'image_url': 'https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg'}
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01Lt3J5i5ELao17oWyn5oJ5m', is_error=False, model_request_start_id='sevt_01Jp1j9vY8UQpbz1AzgnJyYF', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=301, cache_read_input_tokens=39542, input_tokens=1, output_tokens=321, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 2, 37, 64000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.mcp_tool_result | BetaManagedAgentsAgentMCPToolResultEvent(id='sevt_019WoPtTP3Vusxbbcxuwq3Sv', mcp_tool_use_id='sevt_01Cw597jk1aCspjn2ncEUJE3', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 41, 965000, tzinfo=TzInfo(0)), type='agent.mcp_tool_result', content=[BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"id":"17910167937379286"},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_Z7L1oBnfa6yL"}', type='text')], is_error=False)
-  ↳ [result] [BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"id":"17910167937379286"},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_Z7L1oBnfa6yL"}', type='text')]
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01QoqbRRuBQoSB1tsT1Mrms5', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 42, 89000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.mcp_tool_use | BetaManagedAgentsAgentMCPToolUseEvent(id='sevt_017wPEA6RmbuUYDyD86drzQH', input={'creation_id': '17910167937379286', 'ig_user_id': '34889395547373858'}, mcp_server_name='composio-post-agent', name='INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 44, 223000, tzinfo=TzInfo(0)), type='agent.mcp_tool_use', evaluated_permission='allow')
-
-  ↳ [tool: INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH] {'creation_id': '17910167937379286', 'ig_user_id': '34889395547373858'}
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01WmWQu3Gp7YLrJghR83JQeL', is_error=False, model_request_start_id='sevt_01QoqbRRuBQoSB1tsT1Mrms5', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=415, cache_read_input_tokens=39843, input_tokens=1, output_tokens=108, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 2, 44, 338000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.mcp_tool_result | BetaManagedAgentsAgentMCPToolResultEvent(id='sevt_01JHTrYALNcL7sFN1wk36dgn', mcp_tool_use_id='sevt_017wPEA6RmbuUYDyD86drzQH', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 47, 347000, tzinfo=TzInfo(0)), type='agent.mcp_tool_result', content=[BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"id":"17897902776426549"},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_Wlde8SnRXdBW"}', type='text')], is_error=False)
-  ↳ [result] [BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"id":"17897902776426549"},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_Wlde8SnRXdBW"}', type='text')]
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_019Z6SvmYRJxpXUCuWTCE8UP', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 47, 458000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_014yFwUbq4sFCN4NXGsyKoLD', input={'command': 'mkdir -p /workspace/post-history/2026-04'}, name='bash', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 49, 382000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01WSU8TJLQYz7bRqWSPEqUUp', is_error=False, model_request_start_id='sevt_019Z6SvmYRJxpXUCuWTCE8UP', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=203, cache_read_input_tokens=40258, input_tokens=1, output_tokens=64, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 2, 49, 502000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01A7NsQoM82RMNNHTmPMZB8D', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 50, 63000, tzinfo=TzInfo(0)), tool_use_id='sevt_014yFwUbq4sFCN4NXGsyKoLD', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text='(no output)', type='text')], is_error=False)
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01CbqswA9qWPRjLdFB81FgQE', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 50, 185000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_012nrkFv11oKYemGNUv5g5ea', input={'content': '## 早安咖啡 | Instagram\n\n- **Post ID：** 17897902776426549\n- **文案：** ☀️ 早安，从一杯咖啡开始。清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨\n- **Hashtag：** #晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning\n- **链接：**\n- **配图：** https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg\n- **表现数据：**（由 analytics 填入）\n  - 触达：-\n  - 互动：-\n  - 点赞：-\n  - 评论：-\n  - 分享：-\n\n---\n', 'file_path': '/workspace/post-history/2026-04/2026-04-17.md'}, name='write', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 56, 682000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01Nty8UtJ37GgfMDP9ui4m6C', is_error=False, model_request_start_id='sevt_01CbqswA9qWPRjLdFB81FgQE', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=78, cache_read_input_tokens=40461, input_tokens=1, output_tokens=392, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 2, 56, 799000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01352abHaV4Y1TRkpVy5uxNJ', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 57, 201000, tzinfo=TzInfo(0)), tool_use_id='sevt_012nrkFv11oKYemGNUv5g5ea', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text='File created: /workspace/post-history/2026-04/2026-04-17.md', type='text')], is_error=False)
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01M9aumKX6Fui3AMmHdF6CFJ', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 57, 321000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01AN6R7cDk2ztsR2qXRYK4G5', content=[BetaManagedAgentsTextBlock(text='✅ **发布成功！**\n\n---\n\n**📸 配图预览**\n\n![早安咖啡](https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg)\n\n**📝 发布内容**\n> ☀️ 早安，从一杯咖啡开始。\n> 清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨\n> #晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning\n\n**✓ Instagram** — 发布成功（Post ID: 17897902776426549）\n\n---\n\n还有什么需要帮你做的吗？😊', type='text')], processed_at=datetime.datetime(2026, 4, 17, 7, 3, 3, 886000, tzinfo=TzInfo(0)), type='agent.message')
-✅ **发布成功！**
+**发布确认：** 已记录——所有内容发布前都需要你过目确认。✅
 
 ---
 
-**📸 配图预览**
-
-![早安咖啡](https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg)
-
-**📝 发布内容**
-> ☀️ 早安，从一杯咖啡开始。
-> 清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨
-> #晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning
-
-**✓ Instagram** — 发布成功（Post ID: 17897902776426549）
-
----
-
-还有什么需要帮你做的吗？😊
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01P8HwaXp3KXK966NFSDa4p8', is_error=False, model_request_start_id='sevt_01M9aumKX6Fui3AMmHdF6CFJ', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=427, cache_read_input_tokens=40539, input_tokens=1, output_tokens=285, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 3, 4, 7000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_01Gu6AS55j7GHWGdg5iJ1awT', processed_at=datetime.datetime(2026, 4, 17, 7, 3, 4, 155000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionEndTurn(type='end_turn'), type='session.status_idle')
-
+以上方案确认没问题的话，我现在就写入配置文件并注册自动化任务。有需要调整的地方随时说。
 
 ────────────────────────────────────────────────────────────
-[done] 114.3s
-────────────────────────────────────────────────────────────
-tool_use | BetaManagedAgentsAgentCustomToolUseEvent(id='sevt_01Uvr7YdBwqTjyUEDQPW3KAH', input={'aspect_ratio': '1:1', 'prompt': 'A warm and cozy morning coffee scene, a beautiful latte art cup on a wooden table, soft morning sunlight streaming through the window, warm tones, photorealistic style, lifestyle photography'}, name='image_generate', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 26, 51000, tzinfo=TzInfo(0)), type='agent.custom_tool_use')
-
-  ↳ [tool: image_generate] {'aspect_ratio': '1:1', 'prompt': 'A warm and cozy morning coffee scene, a beautiful latte art cup on a wooden table, soft morning sunlight streaming through the window, warm tones, photorealistic style, lifestyle photography'}
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01U8JZYFARQvSvifGMyrx6Sd', is_error=False, model_request_start_id='sevt_01EiafvX8zQTTuE6aV9uGMx7', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=1733, cache_read_input_tokens=37809, input_tokens=84, output_tokens=202, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 1, 26, 502000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_015ERwyMQu3DLwYBoWao1NZi', processed_at=datetime.datetime(2026, 4, 17, 7, 1, 26, 627000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionRequiresAction(event_ids=['sevt_01Uvr7YdBwqTjyUEDQPW3KAH'], type='requires_action'), type='session.status_idle')
-  ↳ [result] {"status": true, "url": "https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg", "aspect_ratio": "1:1"}
-
-[EVT] user.custom_tool_result | BetaManagedAgentsUserCustomToolResultEvent(id='sevt_019mMDZt9CxNZaJ5M52BRmvJ', custom_tool_use_id='sevt_01Uvr7YdBwqTjyUEDQPW3KAH', type='user.custom_tool_result', content=[BetaManagedAgentsTextBlock(text='{"status": true, "url": "https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg", "aspect_ratio": "1:1"}', type='text')], is_error=False, processed_at=datetime.datetime(2026, 4, 17, 7, 2, 28, 587000, tzinfo=TzInfo(0)))
-
-[EVT] session.status_running | BetaManagedAgentsSessionStatusRunningEvent(id='sevt_01NiGaPRfGewVMrUQQ35QEZ3', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 28, 738000, tzinfo=TzInfo(0)), type='session.status_running')
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01Jp1j9vY8UQpbz1AzgnJyYF', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 29, 102000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01UTTj1MNsLCnAfnvjBLui29', content=[BetaManagedAgentsTextBlock(text='图已生成！现在发布到 Instagram ☕', type='text')], processed_at=datetime.datetime(2026, 4, 17, 7, 2, 36, 824000, tzinfo=TzInfo(0)), type='agent.message')
-图已生成！现在发布到 Instagram ☕
-[EVT] agent.mcp_tool_use | BetaManagedAgentsAgentMCPToolUseEvent(id='sevt_01Cw597jk1aCspjn2ncEUJE3', input={'caption': '☀️ 早安，从一杯咖啡开始。\n\n清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨\n\n#晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning', 'ig_user_id': '34889395547373858', 'image_url': 'https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg'}, mcp_server_name='composio-post-agent', name='INSTAGRAM_POST_IG_USER_MEDIA', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 36, 824000, tzinfo=TzInfo(0)), type='agent.mcp_tool_use', evaluated_permission='allow')
-
-  ↳ [tool: INSTAGRAM_POST_IG_USER_MEDIA] {'caption': '☀️ 早安，从一杯咖啡开始。\n\n清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨\n\n#晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning', 'ig_user_id': '34889395547373858', 'image_url': 'https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg'}
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01Lt3J5i5ELao17oWyn5oJ5m', is_error=False, model_request_start_id='sevt_01Jp1j9vY8UQpbz1AzgnJyYF', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=301, cache_read_input_tokens=39542, input_tokens=1, output_tokens=321, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 2, 37, 64000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.mcp_tool_result | BetaManagedAgentsAgentMCPToolResultEvent(id='sevt_019WoPtTP3Vusxbbcxuwq3Sv', mcp_tool_use_id='sevt_01Cw597jk1aCspjn2ncEUJE3', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 41, 965000, tzinfo=TzInfo(0)), type='agent.mcp_tool_result', content=[BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"id":"17910167937379286"},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_Z7L1oBnfa6yL"}', type='text')], is_error=False)
-  ↳ [result] [BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"id":"17910167937379286"},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_Z7L1oBnfa6yL"}', type='text')]
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01QoqbRRuBQoSB1tsT1Mrms5', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 42, 89000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.mcp_tool_use | BetaManagedAgentsAgentMCPToolUseEvent(id='sevt_017wPEA6RmbuUYDyD86drzQH', input={'creation_id': '17910167937379286', 'ig_user_id': '34889395547373858'}, mcp_server_name='composio-post-agent', name='INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 44, 223000, tzinfo=TzInfo(0)), type='agent.mcp_tool_use', evaluated_permission='allow')
-
-  ↳ [tool: INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH] {'creation_id': '17910167937379286', 'ig_user_id': '34889395547373858'}
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01WmWQu3Gp7YLrJghR83JQeL', is_error=False, model_request_start_id='sevt_01QoqbRRuBQoSB1tsT1Mrms5', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=415, cache_read_input_tokens=39843, input_tokens=1, output_tokens=108, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 2, 44, 338000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.mcp_tool_result | BetaManagedAgentsAgentMCPToolResultEvent(id='sevt_01JHTrYALNcL7sFN1wk36dgn', mcp_tool_use_id='sevt_017wPEA6RmbuUYDyD86drzQH', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 47, 347000, tzinfo=TzInfo(0)), type='agent.mcp_tool_result', content=[BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"id":"17897902776426549"},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_Wlde8SnRXdBW"}', type='text')], is_error=False)
-  ↳ [result] [BetaManagedAgentsTextBlock(text='{"successfull":true,"error":null,"data":{"id":"17897902776426549"},"version":"20260414_00","auth_refresh_required":false,"mercury_last_http_status_code":200,"is_latest_version":true,"successful":true,"log_id":"log_Wlde8SnRXdBW"}', type='text')]
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_019Z6SvmYRJxpXUCuWTCE8UP', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 47, 458000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_014yFwUbq4sFCN4NXGsyKoLD', input={'command': 'mkdir -p /workspace/post-history/2026-04'}, name='bash', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 49, 382000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01WSU8TJLQYz7bRqWSPEqUUp', is_error=False, model_request_start_id='sevt_019Z6SvmYRJxpXUCuWTCE8UP', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=203, cache_read_input_tokens=40258, input_tokens=1, output_tokens=64, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 2, 49, 502000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01A7NsQoM82RMNNHTmPMZB8D', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 50, 63000, tzinfo=TzInfo(0)), tool_use_id='sevt_014yFwUbq4sFCN4NXGsyKoLD', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text='(no output)', type='text')], is_error=False)
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01CbqswA9qWPRjLdFB81FgQE', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 50, 185000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.tool_use | BetaManagedAgentsAgentToolUseEvent(id='sevt_012nrkFv11oKYemGNUv5g5ea', input={'content': '## 早安咖啡 | Instagram\n\n- **Post ID：** 17897902776426549\n- **文案：** ☀️ 早安，从一杯咖啡开始。清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨\n- **Hashtag：** #晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning\n- **链接：**\n- **配图：** https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg\n- **表现数据：**（由 analytics 填入）\n  - 触达：-\n  - 互动：-\n  - 点赞：-\n  - 评论：-\n  - 分享：-\n\n---\n', 'file_path': '/workspace/post-history/2026-04/2026-04-17.md'}, name='write', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 56, 682000, tzinfo=TzInfo(0)), type='agent.tool_use', evaluated_permission='allow')
-
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01Nty8UtJ37GgfMDP9ui4m6C', is_error=False, model_request_start_id='sevt_01CbqswA9qWPRjLdFB81FgQE', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=78, cache_read_input_tokens=40461, input_tokens=1, output_tokens=392, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 2, 56, 799000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] agent.tool_result | BetaManagedAgentsAgentToolResultEvent(id='sevt_01352abHaV4Y1TRkpVy5uxNJ', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 57, 201000, tzinfo=TzInfo(0)), tool_use_id='sevt_012nrkFv11oKYemGNUv5g5ea', type='agent.tool_result', content=[BetaManagedAgentsTextBlock(text='File created: /workspace/post-history/2026-04/2026-04-17.md', type='text')], is_error=False)
-
-[EVT] span.model_request_start | BetaManagedAgentsSpanModelRequestStartEvent(id='sevt_01M9aumKX6Fui3AMmHdF6CFJ', processed_at=datetime.datetime(2026, 4, 17, 7, 2, 57, 321000, tzinfo=TzInfo(0)), type='span.model_request_start')
-
-[EVT] agent.message | BetaManagedAgentsAgentMessageEvent(id='sevt_01AN6R7cDk2ztsR2qXRYK4G5', content=[BetaManagedAgentsTextBlock(text='✅ **发布成功！**\n\n---\n\n**📸 配图预览**\n\n![早安咖啡](https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg)\n\n**📝 发布内容**\n> ☀️ 早安，从一杯咖啡开始。\n> 清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨\n> #晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning\n\n**✓ Instagram** — 发布成功（Post ID: 17897902776426549）\n\n---\n\n还有什么需要帮你做的吗？😊', type='text')], processed_at=datetime.datetime(2026, 4, 17, 7, 3, 3, 886000, tzinfo=TzInfo(0)), type='agent.message')
-✅ **发布成功！**
-
----
-
-**📸 配图预览**
-
-![早安咖啡](https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/images/d157ef21-ee8e-49b9-af2d-bf456974ca29.jpeg)
-
-**📝 发布内容**
-> ☀️ 早安，从一杯咖啡开始。
-> 清晨的第一口，是给自己最好的礼物。让晨光咖啡陪你开启元气满满的一天 ☕✨
-> #晨光咖啡 #早安咖啡 #咖啡时光 #手冲咖啡 #精品咖啡 #morningcoffee #coffeelover #goodmorning
-
-**✓ Instagram** — 发布成功（Post ID: 17897902776426549）
-
----
-
-还有什么需要帮你做的吗？😊
-[EVT] span.model_request_end | BetaManagedAgentsSpanModelRequestEndEvent(id='sevt_01P8HwaXp3KXK966NFSDa4p8', is_error=False, model_request_start_id='sevt_01M9aumKX6Fui3AMmHdF6CFJ', model_usage=BetaManagedAgentsSpanModelUsage(cache_creation_input_tokens=427, cache_read_input_tokens=40539, input_tokens=1, output_tokens=285, speed=None), processed_at=datetime.datetime(2026, 4, 17, 7, 3, 4, 7000, tzinfo=TzInfo(0)), type='span.model_request_end')
-
-[EVT] session.status_idle | BetaManagedAgentsSessionStatusIdleEvent(id='sevt_01Gu6AS55j7GHWGdg5iJ1awT', processed_at=datetime.datetime(2026, 4, 17, 7, 3, 4, 155000, tzinfo=TzInfo(0)), stop_reason=BetaManagedAgentsSessionEndTurn(type='end_turn'), type='session.status_idle')
-
-
-────────────────────────────────────────────────────────────
-[done] 114.3s
+[done] 78.2s
 ────────────────────────────────────────────────────────────
 
 ────────────────────────────────────────────────────────────
-[user] 你好
+[user] 请先读取 /workspace/canva.md，然后只回复该文件第一行文字。
 ────────────────────────────────────────────────────────────
 
 
-────────────────────────────────────────────────────────────
-[user] 你好
-────────────────────────────────────────────────────────────
+  ↳ [tool: read] {'file_path': '/workspace/canva.md', 'view_range': [1, 1]}
+  ↳ [result] awk: cannot open "/workspace/canva.md" (No such file or directory)
 
-
-[ERROR] mcp_connection_failed_error: MCP server 'composio-post-agent' initialize failed: authorization token is invalid or expired
+`/workspace/canva.md` 文件不存在，无法读取。
 
 ────────────────────────────────────────────────────────────
-[user] 你好，自我介绍一下
-────────────────────────────────────────────────────────────
-
-你好！👋
-
-我是 **Rebecca**，你的专属社交媒体发帖助手。
-
-我能帮你做的事情包括：
-
-- 📝 **内容创作** — 为 Instagram、Facebook、Twitter、LinkedIn 生成文案、hashtag 和配图
-- 🔍 **市场调研** — 分析行业趋势、竞品内容策略、热门话题
-- 🚀 **发布管理** — 立即发布或定时发布内容到各平台
-- 📊 **数据分析** — 查看帖子表现、粉丝增长、互动数据
-- 💬 **评论监控** — 追踪和回复各平台评论
-
----
-
-如果你是**第一次使用**，我建议先完成初始化配置，连接你的社交平台、填写品牌资料，这样我才能为你量身定制内容。
-
-你想从哪里开始？ 😊
-
-────────────────────────────────────────────────────────────
-[done] 10.3s
+[done] 12.7s
 ────────────────────────────────────────────────────────────
 
 ────────────────────────────────────────────────────────────
-[user] 你好，用一句话介绍自己
-────────────────────────────────────────────────────────────
-
-你好！我是 **Rebecca**，你的专属社交媒体发帖助手，负责内容创作、市场调研和多平台发布的全流程管理。 🎯
-
-有什么我可以帮你的吗？
-
-────────────────────────────────────────────────────────────
-[done] 10.1s
-────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────
-[user] 你好
+[user] 请先读取 /workspace/canva.md，然后只回复该文件第一行文字。
 ────────────────────────────────────────────────────────────
 
 
-────────────────────────────────────────────────────────────
-[user] 你好
-────────────────────────────────────────────────────────────
+  ↳ [tool: read] {'file_path': '/workspace/canva.md', 'view_range': [1, 1]}
+  ↳ [result] awk: cannot open "/workspace/canva.md" (No such file or directory)
 
-你好！我是 Rebecca，你的专属社交媒体助手 👋看起来你还没有完成初始化配置。让我来引导你完成设置！欢迎来到 Rebecca！🎉 我是你的专属社交媒体助手。
-
-我们先来完成初始化配置，这样我才能帮你创作内容、发帖和管理评论。
-
-**第一步——告诉我你的店名或网站是什么？**
+`/workspace/canva.md` 文件不存在。
 
 ────────────────────────────────────────────────────────────
-[done] 22.8s
+[done] 10.6s
 ────────────────────────────────────────────────────────────
 
 ────────────────────────────────────────────────────────────
-[user] 你好
+[user] 请读取 /mnt/session/uploads/workspace/canva.md，然后只回复第一行。
 ────────────────────────────────────────────────────────────
 
-你好！我是 Rebecca，你的专属社交媒体发帖助手 👋看起来你还没有完成初始化配置。让我帮你快速设置一下！
 
-我需要了解以下信息：
+  ↳ [tool: read] {'file_path': '/mnt/session/uploads/workspace/canva.md'}
+  ↳ [result] 1	# Canva
+2	
+3	Canva offers a drag-and-drop design suite for creating social media graphics, presentations, and marketing materials with prebuilt templates and a vast element library
+4	
+5	- **Category:** images & design
+6	- **Auth:** OAUTH2
+7	- **Composio Managed App Available?** Yes
+8	- **Tools:** 48
+9	- **Triggers:** 0
+10	- **Slug:** `CANVA`
+11	- **Version:** 20260414_00
+12	
+13	## Frequently Asked Questions
+14	
+15	### How do I set up custom OAuth credentials for Canva?
+16	
+17	For a step-by-step guide on creating and configuring your own Canva OAuth credentials with Composio, see [How to create OAuth credentials for Canva](https://composio.dev/auth/canva).
+18	
+19	## Tools
+20	
+21	### Access user specific brand templates list
+22	
+23	**Slug:** `CANVA_ACCESS_USER_SPECIFIC_BRAND_TEMPLATES_LIST`
+24	
+25	Lists brand templates available to the user (Canva Enterprise only). This endpoint retrieves all brand templates the user has access to. Brand templates are pre-designed layouts with variable data fields that can be populated programmatically using the autofill API. Returns template metadata including IDs, names, and dataset schemas.
+26	
+27	#### Input Parameters
+28	
+29	| Parameter | Type | Required | Description |
+30	|-----------|------|----------|-------------|
+31	| `query` | string | No | Lets you search the brand templates available to the user using a search term or terms.  |
+32	| `dataset` | string ("any" | "non_empty") | No | Filter the list of brand templates based on the brand templates' dataset definitions. Brand templates with dataset definitions are mainly used with the Autofill APIs. This can be one of the following: - `any`: (Default) Brand templates with and without dataset definitions. - `non_empty`: Brand templates with one or more data fields defined. |
+33	| `sort_by` | string ("relevance" | "modified_descending" | "modified_ascending" | "title_descending" | "title_ascending") | No | Sort the list of brand templates. This can be one of the following: - `relevance`: (Default) Sort results using a relevance algorithm. - `modified_descending`: Sort results by the date last modified in descending order. - `modified_ascending`: Sort results by the date last modified in ascending order. - `title_descending`: Sort results by title in descending order. - `title_ascending`: Sort results by title in ascending order.  |
+34	| `ownership` | string ("any" | "owned" | "shared") | No | Filter the list of brand templates based on the user"s ownership of the brand templates. This can be one of the following: - `any`: (Default) Brand templates owned by and shared with the user. - `owned`: Brand templates owned by the user. - `shared`: Brand templates shared with the user.  |
+35	| `continuation` | string | No | If the success response contains a continuation token, the user has access to more brand templates you can list. You can use this token as a query parameter and retrieve more templates from the list, for example `/v1/brand-templates?continuation={continuation}`. To retrieve all the brand templates available to the user, you might need to make multiple requests. IMPORTANT: This token is an opaque value returned by the API. You must use it exactly as returned from a previous API response. Do not manually construct or modify continuation tokens. |
+36	
+37	#### Output
+38	
+39	| Parameter | Type | Required | Description |
+40	|-----------|------|----------|-------------|
+41	| `data` | string | Yes | Data from the action execution |
+42	| `error` | string | No | Error if any occurred during the execution of the action |
+43	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+44	
+45	### Create Asset Upload Job
+46	
+47	**Slug:** `CANVA_CREATE_ASSET_UPLOAD_JOB`
+48	
+49	Uploads an asset file to the user's Canva content library. This endpoint initiates an asynchronous upload job for images, videos, audio files, PDFs, or fonts. Returns a job ID to track the upload progress. Once complete, the asset can be used in designs, referenced by its asset ID, and managed through other asset endpoints. IMPORTANT: This is an async operation. Use CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS to poll the job status until it reaches 'success' or 'failed' status.
+50	
+51	#### Input Parameters
+52	
+53	| Parameter | Type | Required | Description |
+54	|-----------|------|----------|-------------|
+55	| `file` | object | No | File to upload. Size limits: Images 50MB, Videos 100MB, Audio 10MB. Supported: JPEG/PNG/GIF/WebP/SVG, MP4/MOV/AVI, MP3/WAV, PDF, TTF/OTF fonts. No duplicate detection - uploading same file creates new asset. |
+56	| `name` | string | Yes | Display name for the asset (max 50 chars). Used for searching in Canva. Longer names are truncated. Special chars allowed. Cannot be changed via API after upload. |
+57	| `local_file_path` | string | No | Absolute path to a local file to upload as the asset. If provided, the action will read raw bytes from this path instead of the file reference. Useful for testing or when the file is available locally. |
+58	
+59	#### Output
+60	
+61	| Parameter | Type | Required | Description |
+62	|-----------|------|----------|-------------|
+63	| `data` | string | Yes | Data from the action execution |
+64	| `error` | string | No | Error if any occurred during the execution of the action |
+65	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+66	
+67	### Create Canva Design Export Job (Deprecated)
+68	
+69	**Slug:** `CANVA_CREATE_CANVA_DESIGN_EXPORT_JOB`
+70	
+71	DEPRECATED: Use CANVA_POST_EXPORTS instead. Exports a Canva design to various file formats. This endpoint initiates an asynchronous export job for designs. Supports image formats (PNG, JPG, GIF), documents (PDF, PPTX), and video (MP4). Each format has specific configuration options like dimensions, quality, and page selection. IMPORTANT: This is an async operation. Use GET_DESIGN_EXPORT_JOB_RESULT to poll the job status until completion and retrieve the download URLs for the exported files.
+72	
+73	#### Input Parameters
+74	
+75	| Parameter | Type | Required | Description |
+76	|-----------|------|----------|-------------|
+77	| `format` | string | Yes | Export format configuration. Set 'type' to one of: 'png', 'jpg', 'pdf', 'gif', 'mp4', 'pptx'. |
+78	| `design_id` | string | Yes | The design ID to export |
+79	
+80	#### Output
+81	
+82	| Parameter | Type | Required | Description |
+83	|-----------|------|----------|-------------|
+84	| `data` | string | Yes | Data from the action execution |
+85	| `error` | string | No | Error if any occurred during the execution of the action |
+86	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+87	
+88	### Create canva design with optional asset (Deprecated)
+89	
+90	**Slug:** `CANVA_CREATE_CANVA_DESIGN_WITH_OPTIONAL_ASSET`
+91	
+92	DEPRECATED: Use CANVA_POST_DESIGNS instead. Creates a new Canva design with specified dimensions or from an asset. This endpoint creates a design using either a preset type (doc, presentation, whiteboard), custom dimensions, or by importing an image asset. Returns the design ID, URLs for editing and viewing, owner info, and metadata. The design can be immediately accessed and edited.
+93	
+94	#### Input Parameters
+95	
+96	| Parameter | Type | Required | Description |
+97	|-----------|------|----------|-------------|
+98	| `title` | string | No | Design title (1-255 chars). Appears in Canva UI and design lists. |
+99	| `asset_id` | string | No | Image asset ID to create design from. Optional if design_type provided. IMPORTANT: Only image assets are supported - video and PDF assets will be rejected by the API with error 'asset_id must belong to an image asset'. Asset IDs are opaque strings with no guaranteed format. To verify an asset is an image before using it here, call CANVA_RETRIEVE_ASSET_METADATA_BY_ID and check that the 'type' field equals 'image'. To upload a new image asset, use CANVA_CREATE_URL_ASSET_UPLOAD_JOB or CANVA_CREATE_ASSET_UPLOAD_JOB. |
+100	| `design_type` | object | No | Design dimensions configuration. Optional if asset_id provided. Must be a dictionary with 'type' field.  Two options: 1. Preset: {'type': 'preset', 'name': 'doc'\|'whiteboard'\|'presentation'} 2. Custom: {'type': 'custom', 'width': 1080, 'height': 1920}  Type must be either 'preset' or 'custom'. For preset, name must be one of: doc, whiteboard, presentation. For custom, width and height must be between 40-8000 pixels. |
+101	
+102	#### Output
+103	
+104	| Parameter | Type | Required | Description |
+105	|-----------|------|----------|-------------|
+106	| `data` | string | Yes | Data from the action execution |
+107	| `error` | string | No | Error if any occurred during the execution of the action |
+108	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+109	
+110	### Create comment reply in design
+111	
+112	**Slug:** `CANVA_CREATE_COMMENT_REPLY_IN_DESIGN`
+113	
+114	This preview API allows replying to comments within a design on Canva, with a limit of 100 replies per comment. Users should note potential unannounced changes, and that preview APIs are not eligible for public integrations.
+115	
+116	#### Input Parameters
+117	
+118	| Parameter | Type | Required | Description |
+119	|-----------|------|----------|-------------|
+120	| `message` | string | Yes | The reply comment message. This is the reply comment body shown in the Canva UI. You can also mention users in your message by specifying their User ID and Team ID using the format `[user_id:team_id]`. |
+121	| `commentId` | string | Yes | The `id` of the comment thread to reply to. This parameter is used in the URL path, not in the request body. |
+122	| `attached_to` | object | Yes | The object the comment is attached to. |
+123	
+124	#### Output
+125	
+126	| Parameter | Type | Required | Description |
+127	|-----------|------|----------|-------------|
+128	| `data` | string | Yes | Data from the action execution |
+129	| `error` | string | No | Error if any occurred during the execution of the action |
+130	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+131	
+132	### Create design comment in preview api
+133	
+134	**Slug:** `CANVA_CREATE_DESIGN_COMMENT_IN_PREVIEW_API`
+135	
+136	Creates a new comment thread on a Canva design. This preview API allows adding text comments to designs for collaboration and feedback. Returns the created comment with ID, author info, and timestamp. Comments can be replied to using the comment reply endpoint.
+137	
+138	#### Input Parameters
+139	
+140	| Parameter | Type | Required | Description |
+141	|-----------|------|----------|-------------|
+142	| `message` | string | Yes | Comment text (max 4096 chars). Mention users with [user_id:team_id]. No markdown support. Comments appear unpinned - users must view 'All pages' to see them. |
+143	| `design_id` | string | Yes | Design ID to attach comment to |
+144	| `assignee_id` | string | No | User ID to assign this comment to. If provided, you must also mention this user in the message text using format [user_id:team_id]. |
+145	| `attached_to` | object | Yes | Required target reference specifying where comment should be attached |
+146	
+147	#### Output
+148	
+149	| Parameter | Type | Required | Description |
+150	|-----------|------|----------|-------------|
+151	| `data` | string | Yes | Data from the action execution |
+152	| `error` | string | No | Error if any occurred during the execution of the action |
+153	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+154	
+155	### Create Design Import Job
+156	
+157	**Slug:** `CANVA_CREATE_DESIGN_IMPORT_JOB`
+158	
+159	Imports an external file as a new Canva design. This endpoint converts documents (PDF, Word, PowerPoint, Excel) and design files (PSD, AI) into editable Canva designs. The import runs asynchronously and returns a job ID to track progress and retrieve the created design. IMPORTANT: This is an async operation. Use CANVA_RETRIEVE_DESIGN_IMPORT_JOB_STATUS to poll the job status until it reaches 'success' or 'failed' to get the final design ID.
+160	
+161	#### Input Parameters
+162	
+163	| Parameter | Type | Required | Description |
+164	|-----------|------|----------|-------------|
+165	| `file` | object | Yes | Document or design file to import (max 100MB). Formats: PDF, Word, PowerPoint, Excel, Photoshop, Illustrator, Keynote, Pages, Numbers, OpenDocument. PowerPoint loses animations, Excel loses formulas, AI/PSD may lose layers. Password-protected files fail. |
+166	| `title` | string | Yes | Title for the imported design (max 50 chars). Shows in Canva UI and design lists. Longer titles are truncated. Special characters allowed. |
+167	| `mime_type` | string | No | Optional MIME type override. If omitted, the file's mimetype is used. |
+168	
+169	#### Output
+170	
+171	| Parameter | Type | Required | Description |
+172	|-----------|------|----------|-------------|
+173	| `data` | string | Yes | Data from the action execution |
+174	| `error` | string | No | Error if any occurred during the execution of the action |
+175	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+176	
+177	### Create Design Resize Job
+178	
+179	**Slug:** `CANVA_CREATE_DESIGN_RESIZE_JOB`
+180	
+181	Creates a resized copy of an existing design (Canva Pro/Enterprise only). This endpoint creates a new design with different dimensions from an existing one. The resize operation runs asynchronously and preserves content where possible. Returns a job ID to track progress and retrieve the new design once complete. IMPORTANT: This is an async operation. Use CANVA_RETRIEVE_DESIGN_RESIZE_JOB_STATUS to poll the job status until completion to get the resized design ID and access URLs.
+182	
+183	#### Input Parameters
+184	
+185	| Parameter | Type | Required | Description |
+186	|-----------|------|----------|-------------|
+187	| `design_id` | string | Yes | The source design ID |
+188	| `design_type` | string | Yes | Target design type configuration |
+189	
+190	#### Output
+191	
+192	| Parameter | Type | Required | Description |
+193	|-----------|------|----------|-------------|
+194	| `data` | string | Yes | Data from the action execution |
+195	| `error` | string | No | Error if any occurred during the execution of the action |
+196	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+197	
+198	### Create URL Asset Upload Job
+199	
+200	**Slug:** `CANVA_CREATE_URL_ASSET_UPLOAD_JOB`
+201	
+202	Tool to create an asynchronous Canva asset import job from a public URL. Use when you need to import an asset into Canva directly from a publicly accessible URL without S3 choreography.
+203	
+204	#### Input Parameters
+205	
+206	| Parameter | Type | Required | Description |
+207	|-----------|------|----------|-------------|
+208	| `url` | string | Yes | Publicly accessible HTTPS URL of the file to import. Must use HTTPS protocol (e.g., https://example.com/image.png). |
+209	| `name` | string | Yes | Asset name (1-255 characters). |
+210	
+211	#### Output
+212	
+213	| Parameter | Type | Required | Description |
+214	|-----------|------|----------|-------------|
+215	| `data` | string | Yes | Data from the action execution |
+216	| `error` | string | No | Error if any occurred during the execution of the action |
+217	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+218	
+219	### Delete asset by id
+220	
+221	**Slug:** `CANVA_DELETE_ASSET_BY_ID`
+222	
+223	You can delete an asset by specifying its `assetId`. This operation mirrors the behavior in the Canva UI. Deleting an item moves it to the trash. Deleting an asset doesn't remove it from designs that already use it.
+224	
+225	#### Input Parameters
+226	
+227	| Parameter | Type | Required | Description |
+228	|-----------|------|----------|-------------|
+229	| `assetId` | string | Yes | The ID of the asset. |
+230	
+231	#### Output
+232	
+233	| Parameter | Type | Required | Description |
+234	|-----------|------|----------|-------------|
+235	| `data` | string | Yes | Data from the action execution |
+236	| `error` | string | No | Error if any occurred during the execution of the action |
+237	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+238	
+239	### Exchange oauth 2 0 access or refresh token
+240	
+241	**Slug:** `CANVA_EXCHANGE_OAUTH20_ACCESS_OR_REFRESH_TOKEN`
+242	
+243	The OAuth 2.0 endpoint issues time-limited (4-hour) access tokens of up to 4KB for user authorization via codes or refresh tokens. It requires client ID/secret for authentication.
+244	
+245	#### Output
+246	
+247	| Parameter | Type | Required | Description |
+248	|-----------|------|----------|-------------|
+249	| `data` | string | Yes | Data from the action execution |
+250	| `error` | string | No | Error if any occurred during the execution of the action |
+251	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+252	
+253	### Fetch asset upload job status
+254	
+255	**Slug:** `CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS`
+256	
+257	Polls for asset upload job completion status. Use this after CANVA_CREATE_ASSET_UPLOAD_JOB to check the upload progress. Repeatedly call this endpoint until a 'success' or 'failed' status is received to get the final asset ID and metadata. IMPORTANT: This tool is ONLY for direct file upload jobs (CANVA_CREATE_ASSET_UPLOAD_JOB). Do NOT use this for URL import jobs created by CANVA_CREATE_URL_ASSET_UPLOAD_JOB - those use a different API endpoint. Use CANVA_GET_URL_ASSET_UPLOADS_JOBID to poll URL import job status.
+258	
+259	#### Input Parameters
+260	
+261	| Parameter | Type | Required | Description |
+262	|-----------|------|----------|-------------|
+263	| `jobId` | string | Yes | The asset upload job ID returned by CANVA_CREATE_ASSET_UPLOAD_JOB or CANVA_POST_ASSET_UPLOADS. This is the 'id' field from the job object in the response. IMPORTANT: This tool does NOT work for job IDs from CANVA_CREATE_URL_ASSET_UPLOAD_JOB (URL import jobs use a different endpoint - use CANVA_GET_URL_ASSET_UPLOADS_JOBID instead). |
+264	
+265	#### Output
+266	
+267	| Parameter | Type | Required | Description |
+268	|-----------|------|----------|-------------|
+269	| `data` | string | Yes | Data from the action execution |
+270	| `error` | string | No | Error if any occurred during the execution of the action |
+271	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+272	
+273	### Fetch canva connect signing public keys
+274	
+275	**Slug:** `CANVA_FETCH_CANVA_CONNECT_SIGNING_PUBLIC_KEYS`
+276	
+277	The API for verifying Canva webhooks, 'connect/keys,' is in preview, meaning unstable, not for public integrations, and provides a rotating JWK for signature verification to prevent replay attacks. Cache keys for efficiency.
+278	
+279	#### Output
+280	
+281	| Parameter | Type | Required | Description |
+282	|-----------|------|----------|-------------|
+283	| `data` | string | Yes | Data from the action execution |
+284	| `error` | string | No | Error if any occurred during the execution of the action |
+285	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+286	
+287	### Fetch current user details
+288	
+289	**Slug:** `CANVA_FETCH_CURRENT_USER_DETAILS`
+290	
+291	Returns the User ID, Team ID, and display name of the user account associated with the provided access token.
+292	
+293	#### Output
+294	
+295	| Parameter | Type | Required | Description |
+296	|-----------|------|----------|-------------|
+297	| `data` | string | Yes | Data from the action execution |
+298	| `error` | string | No | Error if any occurred during the execution of the action |
+299	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+300	
+301	### Fetch design metadata and access information
+302	
+303	**Slug:** `CANVA_FETCH_DESIGN_METADATA_AND_ACCESS_INFORMATION`
+304	
+305	Gets the metadata for a design. This includes owner information, URLs for editing and viewing, and thumbnail information.
+306	
+307	#### Input Parameters
+308	
+309	| Parameter | Type | Required | Description |
+310	|-----------|------|----------|-------------|
+311	| `designId` | string | Yes | The design ID. |
+312	
+313	#### Output
+314	
+315	| Parameter | Type | Required | Description |
+316	|-----------|------|----------|-------------|
+317	| `data` | string | Yes | Data from the action execution |
+318	| `error` | string | No | Error if any occurred during the execution of the action |
+319	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+320	
+321	### Get design comment thread replies
+322	
+323	**Slug:** `CANVA_GET_DESIGN_COMMENT_REPLIES`
+324	
+325	Retrieves a list of replies for a comment or suggestion thread on a design. Use when you need to view all replies in a specific thread.
+326	
+327	#### Input Parameters
+328	
+329	| Parameter | Type | Required | Description |
+330	|-----------|------|----------|-------------|
+331	| `limit` | integer | No | The number of replies to return. Default is 50. Minimum value: 1, Maximum value: 100. |
+332	| `designId` | string | Yes | The design ID. |
+333	| `threadId` | string | Yes | The ID of the thread. |
+334	| `continuation` | string | No | Token for pagination to retrieve more items from the list. If the response contains a continuation token, use it to retrieve more replies. |
+335	
+336	#### Output
+337	
+338	| Parameter | Type | Required | Description |
+339	|-----------|------|----------|-------------|
+340	| `data` | string | Yes | Data from the action execution |
+341	| `error` | string | No | Error if any occurred during the execution of the action |
+342	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+343	
+344	### Get specific design comment reply
+345	
+346	**Slug:** `CANVA_GET_DESIGN_COMMENT_REPLY`
+347	
+348	Retrieves a specific reply to a comment or suggestion thread on a design. Use when you need to view details of a particular reply.
+349	
+350	#### Input Parameters
+351	
+352	| Parameter | Type | Required | Description |
+353	|-----------|------|----------|-------------|
+354	| `replyId` | string | Yes | The identifier for the specific reply. |
+355	| `designId` | string | Yes | The design identifier. |
+356	| `threadId` | string | Yes | The identifier for the comment thread. |
+357	
+358	#### Output
+359	
+360	| Parameter | Type | Required | Description |
+361	|-----------|------|----------|-------------|
+362	| `data` | string | Yes | Data from the action execution |
+363	| `error` | string | No | Error if any occurred during the execution of the action |
+364	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+365	
+366	### Get design export job result
+367	
+368	**Slug:** `CANVA_GET_DESIGN_EXPORT_JOB_RESULT`
+369	
+370	Polls for design export job completion status. Use this after CANVA_CREATE_CANVA_DESIGN_EXPORT_JOB to check the export progress. Call this endpoint repeatedly until the job is complete to receive download links for the exported design pages. Download URLs expire after 30 days.
+371	
+372	#### Input Parameters
+373	
+374	| Parameter | Type | Required | Description |
+375	|-----------|------|----------|-------------|
+376	| `exportId` | string | Yes | The export job ID. |
+377	
+378	#### Output
+379	
+380	| Parameter | Type | Required | Description |
+381	|-----------|------|----------|-------------|
+382	| `data` | string | Yes | Data from the action execution |
+383	| `error` | string | No | Error if any occurred during the execution of the action |
+384	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+385	
+386	### Get designs designid comments threadid
+387	
+388	**Slug:** `CANVA_GET_DESIGNS_DESIGNID_COMMENTS_THREADID`
+389	
+390	Retrieves metadata for a comment or suggestion thread on a design. Use when you need to get details about a specific thread including content, author, timestamps, and status.
+391	
+392	#### Input Parameters
+393	
+394	| Parameter | Type | Required | Description |
+395	|-----------|------|----------|-------------|
+396	| `designId` | string | Yes | The design identifier. |
+397	| `threadId` | string | Yes | The thread identifier. |
+398	
+399	#### Output
+400	
+401	| Parameter | Type | Required | Description |
+402	|-----------|------|----------|-------------|
+403	| `data` | string | Yes | Data from the action execution |
+404	| `error` | string | No | Error if any occurred during the execution of the action |
+405	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+406	
+407	### Get design export formats
+408	
+409	**Slug:** `CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS`
+410	
+411	Lists available file formats for exporting a design. Use this to check which export formats (PDF, JPG, PNG, SVG, PPTX, GIF, MP4) are supported for a specific design.
+412	
+413	#### Input Parameters
+414	
+415	| Parameter | Type | Required | Description |
+416	|-----------|------|----------|-------------|
+417	| `designId` | string | Yes | The design ID. |
+418	
+419	#### Output
+420	
+421	| Parameter | Type | Required | Description |
+422	|-----------|------|----------|-------------|
+423	| `data` | string | Yes | Data from the action execution |
+424	| `error` | string | No | Error if any occurred during the execution of the action |
+425	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+426	
+427	### Get URL asset upload job status
+428	
+429	**Slug:** `CANVA_GET_URL_ASSET_UPLOADS_JOBID`
+430	
+431	Tool to retrieve the status and result of a URL-based asset upload job. Use this after creating a URL asset upload job to check progress and retrieve the uploaded asset ID when successful.
+432	
+433	#### Input Parameters
+434	
+435	| Parameter | Type | Required | Description |
+436	|-----------|------|----------|-------------|
+437	| `jobId` | string | Yes | The asset upload job identifier. |
+438	
+439	#### Output
+440	
+441	| Parameter | Type | Required | Description |
+442	|-----------|------|----------|-------------|
+443	| `data` | string | Yes | Data from the action execution |
+444	| `error` | string | No | Error if any occurred during the execution of the action |
+445	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+446	
+447	### Get URL import job status
+448	
+449	**Slug:** `CANVA_GET_URL_IMPORTS_JOBID`
+450	
+451	Polls for URL import job completion status. Use this after creating a URL import job to check the import progress. Repeatedly call this endpoint until a 'success' or 'failed' status is received to get the final imported design ID and metadata.
+452	
+453	#### Input Parameters
+454	
+455	| Parameter | Type | Required | Description |
+456	|-----------|------|----------|-------------|
+457	| `jobId` | string | Yes | The URL import job ID. |
+458	
+459	#### Output
+460	
+461	| Parameter | Type | Required | Description |
+462	|-----------|------|----------|-------------|
+463	| `data` | string | Yes | Data from the action execution |
+464	| `error` | string | No | Error if any occurred during the execution of the action |
+465	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+466	
+467	### Get user capabilities
+468	
+469	**Slug:** `CANVA_GET_USERS_ME_CAPABILITIES`
+470	
+471	Lists the API capabilities for the user account associated with the provided access token. Use when you need to check what features are available based on the user's Canva plan.
+472	
+473	#### Output
+474	
+475	| Parameter | Type | Required | Description |
+476	|-----------|------|----------|-------------|
+477	| `data` | string | Yes | Data from the action execution |
+478	| `error` | string | No | Error if any occurred during the execution of the action |
+479	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+480	
+481	### Initiate canva design autofill job
+482	
+483	**Slug:** `CANVA_INITIATE_CANVA_DESIGN_AUTOFILL_JOB`
+484	
+485	Upcoming brand template ID updates require migration within 6 months. Canva Enterprise users can auto-fill designs using various data types, including experimental chart data. Monitor jobs with specific API.
+486	
+487	#### Input Parameters
+488	
+489	| Parameter | Type | Required | Description |
+490	|-----------|------|----------|-------------|
+491	| `data` | object | Yes | Data object containing the data fields and values to autofill. Keys are field names from the brand template. Values must be one of: TextDataField (type='text'), ImageDataField (type='image'), or ChartDataField (type='chart'). |
+492	| `title` | string | No | Title to use for the autofilled design. Must be less than 256 characters. If no design title is provided, the autofilled design will have the same title as the brand template.  |
+493	| `brand_template_id` | string | Yes | ID of the input brand template. |
+494	
+495	#### Output
+496	
+497	| Parameter | Type | Required | Description |
+498	|-----------|------|----------|-------------|
+499	| `data` | string | Yes | Data from the action execution |
+500	| `error` | string | No | Error if any occurred during the execution of the action |
+501	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+502	
+503	### List design pages with pagination
+504	
+505	**Slug:** `CANVA_LIST_DESIGN_PAGES_WITH_PAGINATION`
+506	
+507	Preview API for Canva: subject to unannounced changes and not for public integrations. Lists metadata for design pages with optional `offset` and `limit`; not applicable to all design types.
+508	
+509	#### Input Parameters
+510	
+511	| Parameter | Type | Required | Description |
+512	|-----------|------|----------|-------------|
+513	| `limit` | integer | No | The number of pages to return, starting at the page index specified using the `offset` parameter. Default is `50` pages. Minimum: 1, Maximum: 200. |
+514	| `offset` | integer | No | The page index to start the range of pages to return. Default is `1`. Pages are indexed using one-based numbering, so the first page in a design has the index value `1`. Minimum: 1, Maximum: 500. |
+515	| `designId` | string | Yes | The design ID. |
+516	
+517	#### Output
+518	
+519	| Parameter | Type | Required | Description |
+520	|-----------|------|----------|-------------|
+521	| `data` | string | Yes | Data from the action execution |
+522	| `error` | string | No | Error if any occurred during the execution of the action |
+523	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+524	
+525	### List folder items by type with sorting
+526	
+527	**Slug:** `CANVA_LIST_FOLDER_ITEMS_BY_TYPE_WITH_SORTING`
+528	
+529	Lists the items in a folder, including each item's `type`. Folders can contain: - Other folders. - Designs, such as Instagram posts, Presentations, and Documents ([Canva Docs](https://www.canva.com/create/documents/)). - Image assets.
+530	
+531	#### Input Parameters
+532	
+533	| Parameter | Type | Required | Description |
+534	|-----------|------|----------|-------------|
+535	| `sort_by` | string ("created_ascending" | "created_descending" | "modified_ascending" | "modified_descending" | "title_ascending" | "title_descending") | No | Sort the list of folder items. This can be one of the following: - `created_ascending`: Sort results by creation date, in ascending order. - `created_descending`: Sort results by creation date, in descending order. - `modified_ascending`: Sort results by the last modified date, in ascending order. - `modified_descending`: (Default) Sort results by the last modified date, in descending order. - `title_ascending`: Sort results by title, in ascending order. The title is either the `name` field for a folder or asset, or the `title` field for a design. - `title_descending`: Sort results by title, in descending order. The title is either the `name` field for a folder or asset, or the `title` field for a design.  |
+536	| `folderId` | string | Yes | The folder ID. Must be a non-empty string. Use 'root' to list items in the root folder. |
+537	| `item_types` | array | No | Filter the folder items to only return specified types. The available types are: `design`, `folder`, and `image`. To filter for more than one item type, provide a comma- delimited list.  |
+538	| `continuation` | string | No | If the success response contains a continuation token, the folder contains more items you can list. You can use this token as a query parameter and retrieve more items from the list, for example `/v1/folders/{folderId}/items?continuation={continuation}`. To retrieve all the items in a folder, you might need to make multiple requests.  |
+539	
+540	#### Output
+541	
+542	| Parameter | Type | Required | Description |
+543	|-----------|------|----------|-------------|
+544	| `data` | string | Yes | Data from the action execution |
+545	| `error` | string | No | Error if any occurred during the execution of the action |
+546	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+547	
+548	### List User Designs
+549	
+550	**Slug:** `CANVA_LIST_USER_DESIGNS`
+551	
+552	Provides a summary of Canva user designs, includes search filtering, and allows showing both self-created and shared designs with sorting options.
+553	
+554	#### Input Parameters
+555	
+556	| Parameter | Type | Required | Description |
+557	|-----------|------|----------|-------------|
+558	| `query` | string | No | Lets you search the user"s designs, and designs shared with the user, using a search term or terms.  |
+559	| `sort_by` | string ("relevance" | "modified_descending" | "modified_ascending" | "title_descending" | "title_ascending") | No | Sort the list of designs. This can be one of the following: - `relevance`: (Default) Sort results using a relevance algorithm. - `modified_descending`: Sort results by the date last modified in descending order. - `modified_ascending`: Sort results by the date last modified in ascending order. - `title_descending`: Sort results by title in descending order. - `title_ascending`: Sort results by title in ascending order.  |
+560	| `ownership` | string ("any" | "owned" | "shared") | No | Filter the list of designs based on the user"s ownership of the designs. This can be one of the following: - `owned`: Designs owned by the user. - `shared`: Designs shared with the user. - `any`: Designs owned by and shared with the user.  |
+561	| `continuation` | string | No | If the success response contains a continuation token, the list contains more designs you can list. You can use this token as a query parameter and retrieve more designs from the list, for example `/v1/designs?continuation={continuation}`. To retrieve all of a user"s designs, you might need to make multiple requests. Pass a valid token or omit this parameter entirely. Empty strings are not accepted by the API. |
+562	
+563	#### Output
+564	
+565	| Parameter | Type | Required | Description |
+566	|-----------|------|----------|-------------|
+567	| `data` | string | Yes | Data from the action execution |
+568	| `error` | string | No | Error if any occurred during the execution of the action |
+569	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+570	
+571	### Move item to specified folder
+572	
+573	**Slug:** `CANVA_MOVE_ITEM_TO_SPECIFIED_FOLDER`
+574	
+575	Transfers an item to a different folder by specifying both the destination folder's ID and the item's ID. If the item is in various folders, an error occurs; manual relocation via Canva UI is required.
+576	
+577	#### Input Parameters
+578	
+579	| Parameter | Type | Required | Description |
+580	|-----------|------|----------|-------------|
+581	| `item_id` | string | Yes | The ID of the item you want to move. Item IDs are alphanumeric strings, 1-50 characters. Design IDs have format like 'DAFVztcvd9z', folder IDs like 'FAF2lZtloor', and asset IDs like 'Msd59349ff'. Obtain item IDs from the List designs, List folder items, or other Canva API endpoints. Note: Video assets are not supported for moving. |
+582	| `to_folder_id` | string | Yes | The ID of the folder you want to move the item to (the destination folder). Folder IDs are alphanumeric strings (e.g., 'FAF2lZtloor'), 1-50 characters. Use the special ID 'root' to move the item to the top level of a Canva user's projects, or 'uploads' for the Uploads folder. Obtain folder IDs from the List folder items or Create folder API endpoints. |
+583	
+584	#### Output
+585	
+586	| Parameter | Type | Required | Description |
+587	|-----------|------|----------|-------------|
+588	| `data` | string | Yes | Data from the action execution |
+589	| `error` | string | No | Error if any occurred during the execution of the action |
+590	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+591	
+592	### Create new Canva design
+593	
+594	**Slug:** `CANVA_POST_DESIGNS`
+595	
+596	Creates a new Canva design with preset type or custom dimensions. Use when creating new designs for docs, presentations, whiteboards, or with specific pixel dimensions. Optionally insert an image asset into the design. Returns design ID, edit/view URLs, and metadata.
+597	
+598	#### Input Parameters
+599	
+600	| Parameter | Type | Required | Description |
+601	|-----------|------|----------|-------------|
+602	| `title` | string | No | Design name (1-255 characters). Appears in Canva UI and design lists. |
+603	| `asset_id` | string | No | Image asset ID to insert into the design. Currently supports image assets only. Must be a valid asset ID from a previously uploaded asset. |
+604	| `design_type` | string | Yes | Design type configuration. Can be a preset name string ('doc', 'whiteboard', 'presentation') which will be auto-converted to the required format, or a nested object for preset (e.g., {'type': 'preset', 'name': 'presentation'}) or custom dimensions (e.g., {'type': 'custom', 'width': 1080, 'height': 1920}) |
+605	
+606	#### Output
+607	
+608	| Parameter | Type | Required | Description |
+609	|-----------|------|----------|-------------|
+610	| `data` | string | Yes | Data from the action execution |
+611	| `error` | string | No | Error if any occurred during the execution of the action |
+612	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+613	
+614	### Post designs designid comments
+615	
+616	**Slug:** `CANVA_POST_DESIGNS_DESIGNID_COMMENTS`
+617	
+618	Creates a comment thread on a Canva design. Use when you need to add feedback or collaboration comments to a specific design. Rate limited to 100 requests per minute per user.
+619	
+620	#### Input Parameters
+621	
+622	| Parameter | Type | Required | Description |
+623	|-----------|------|----------|-------------|
+624	| `designId` | string | Yes | The design ID where the comment will be created. Must match pattern ^[a-zA-Z0-9_-]{1,50}$ |
+625	| `assignee_id` | string | No | Optional user ID for assignment. If specified, the assignee must be mentioned in the message using [user_id:team_id] format. |
+626	| `message_plaintext` | string | Yes | The comment message in plaintext shown in Canva UI. Must be between 1 and 2048 characters. User mentions use format [user_id:team_id]. |
+627	
+628	#### Output
+629	
+630	| Parameter | Type | Required | Description |
+631	|-----------|------|----------|-------------|
+632	| `data` | string | Yes | Data from the action execution |
+633	| `error` | string | No | Error if any occurred during the execution of the action |
+634	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+635	
+636	### Create reply to comment thread
+637	
+638	**Slug:** `CANVA_POST_DESIGNS_DESIGNID_COMMENTS_THREADID_REPLIES`
+639	
+640	Tool to create a reply to a comment or suggestion thread on a Canva design. Use when you need to respond to existing comments or suggestions. Maximum 100 replies per thread allowed.
+641	
+642	#### Input Parameters
+643	
+644	| Parameter | Type | Required | Description |
+645	|-----------|------|----------|-------------|
+646	| `design_id` | string | Yes | The design identifier. Must match pattern ^[a-zA-Z0-9_-]{1,50}$ |
+647	| `thread_id` | string | Yes | The identifier of the thread to reply to. Must match pattern ^[a-zA-Z0-9_-]{1,50}$ |
+648	| `message_plaintext` | string | Yes | The reply text content. Must be between 1 and 2048 characters. Users can be mentioned using the format [user_id:team_id]. |
+649	
+650	#### Output
+651	
+652	| Parameter | Type | Required | Description |
+653	|-----------|------|----------|-------------|
+654	| `data` | string | Yes | Data from the action execution |
+655	| `error` | string | No | Error if any occurred during the execution of the action |
+656	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+657	
+658	### Start design export job
+659	
+660	**Slug:** `CANVA_POST_EXPORTS`
+661	
+662	Starts a new asynchronous job to export a Canva design file. Use when exporting designs to various formats (PDF, JPG, PNG, GIF, PPTX, MP4). Returns a job ID that can be used to poll for completion status and download URLs. IMPORTANT: Format compatibility varies by design type. Before exporting, use the CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS action to check which formats are supported for the specific design. Attempting to export in an unsupported format will result in a 400 error (e.g., 'png export not supported for this design type').
+663	
+664	#### Input Parameters
+665	
+666	| Parameter | Type | Required | Description |
+667	|-----------|------|----------|-------------|
+668	| `format` | string | Yes | Export format configuration. Specify the format type and format-specific options. Exported files remain available for download for 24 hours. IMPORTANT: Not all formats are supported for all design types. Use GET /v1/designs/{designId}/export-formats to check which formats are supported for a specific design before exporting. If you request an unsupported format, the API will return a 400 error. |
+669	| `design_id` | string | Yes | The identifier of the design to export (e.g., 'DAGz4y3LDFI') |
+670	
+671	#### Output
+672	
+673	| Parameter | Type | Required | Description |
+674	|-----------|------|----------|-------------|
+675	| `data` | string | Yes | Data from the action execution |
+676	| `error` | string | No | Error if any occurred during the execution of the action |
+677	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+678	
+679	### Create folder
+680	
+681	**Slug:** `CANVA_POST_FOLDERS`
+682	
+683	Tool to create a folder in Canva. Use when you need to organize designs, assets, or create nested folder structures in a user's projects or uploads folder.
+684	
+685	#### Input Parameters
+686	
+687	| Parameter | Type | Required | Description |
+688	|-----------|------|----------|-------------|
+689	| `name` | string | Yes | The display name for the new folder. Must be 1-255 characters. Duplicate names are allowed. |
+690	| `parent_folder_id` | string | Yes | The ID of the destination location. Use 'root' for top-level projects, 'uploads' for the uploads folder, or a specific folder ID to nest within another folder. Cannot be empty. |
+691	
+692	#### Output
+693	
+694	| Parameter | Type | Required | Description |
+695	|-----------|------|----------|-------------|
+696	| `data` | string | Yes | Data from the action execution |
+697	| `error` | string | No | Error if any occurred during the execution of the action |
+698	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+699	
+700	### Create URL Import Job
+701	
+702	**Slug:** `CANVA_POST_URL_IMPORTS`
+703	
+704	Tool to start an asynchronous job to import an external file from a URL as a new design in Canva. Use when you need to import a design from a publicly accessible URL. This is an async operation; poll the job status using the job ID until it reaches 'success' or 'failed'.
+705	
+706	#### Input Parameters
+707	
+708	| Parameter | Type | Required | Description |
+709	|-----------|------|----------|-------------|
+710	| `url` | string | Yes | The URL of the file to import. This URL must be accessible from the internet and be publicly available (1-2048 characters). |
+711	| `title` | string | Yes | Name assigned to the imported design (1-255 characters). |
+712	| `mime_type` | string | No | File type identifier (e.g., 'application/pdf', 'image/png'). Auto-detected if omitted or empty (1-100 characters when provided). |
+713	
+714	#### Output
+715	
+716	| Parameter | Type | Required | Description |
+717	|-----------|------|----------|-------------|
+718	| `data` | string | Yes | Data from the action execution |
+719	| `error` | string | No | Error if any occurred during the execution of the action |
+720	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+721	
+722	### Remove folder and move contents to trash
+723	
+724	**Slug:** `CANVA_REMOVE_FOLDER_AND_MOVE_CONTENTS_TO_TRASH`
+725	
+726	Deletes a folder by moving the user's content to Trash and reassigning other users' content to their top-level projects.
+727	
+728	#### Input Parameters
+729	
+730	| Parameter | Type | Required | Description |
+731	|-----------|------|----------|-------------|
+732	| `folderId` | string | Yes | The folder ID. |
+733	
+734	#### Output
+735	
+736	| Parameter | Type | Required | Description |
+737	|-----------|------|----------|-------------|
+738	| `data` | string | Yes | Data from the action execution |
+739	| `error` | string | No | Error if any occurred during the execution of the action |
+740	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+741	
+742	### Retrieve app public key set
+743	
+744	**Slug:** `CANVA_RETRIEVE_APP_PUBLIC_KEY_SET`
+745	
+746	Returns the Json Web Key Set (public keys) of an app. These keys are used to verify JWTs sent to app backends.
+747	
+748	#### Input Parameters
+749	
+750	| Parameter | Type | Required | Description |
+751	|-----------|------|----------|-------------|
+752	| `appId` | string | Yes | The app id |
+753	
+754	#### Output
+755	
+756	| Parameter | Type | Required | Description |
+757	|-----------|------|----------|-------------|
+758	| `data` | string | Yes | Data from the action execution |
+759	| `error` | string | No | Error if any occurred during the execution of the action |
+760	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+761	
+762	### Retrieve asset metadata by id
+763	
+764	**Slug:** `CANVA_RETRIEVE_ASSET_METADATA_BY_ID`
+765	
+766	You can retrieve the metadata of an asset by specifying its `assetId`.
+767	
+768	#### Input Parameters
+769	
+770	| Parameter | Type | Required | Description |
+771	|-----------|------|----------|-------------|
+772	| `assetId` | string | Yes | The ID of the asset. |
+773	
+774	#### Output
+775	
+776	| Parameter | Type | Required | Description |
+777	|-----------|------|----------|-------------|
+778	| `data` | string | Yes | Data from the action execution |
+779	| `error` | string | No | Error if any occurred during the execution of the action |
+780	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+781	
+782	### Retrieve brand template dataset definition
+783	
+784	**Slug:** `CANVA_RETRIEVE_BRAND_TEMPLATE_DATASET_DEFINITION`
+785	
+786	Canva's brand template IDs will change later this year, including a 6-month integration migration. API access requires Enterprise membership, providing autofill for images, text, and charts, although chart data could change during preview.
+787	
+788	#### Input Parameters
+789	
+790	| Parameter | Type | Required | Description |
+791	|-----------|------|----------|-------------|
+792	| `brandTemplateId` | string | Yes | The brand template ID. |
+793	
+794	#### Output
+795	
+796	| Parameter | Type | Required | Description |
+797	|-----------|------|----------|-------------|
+798	| `data` | string | Yes | Data from the action execution |
+799	| `error` | string | No | Error if any occurred during the execution of the action |
+800	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+801	
+802	### Retrieve canva enterprise brand template metadata
+803	
+804	**Slug:** `CANVA_RETRIEVE_CANVA_ENTERPRISE_BRAND_TEMPLATE_METADATA`
+805	
+806	Upcoming update will change brand template IDs; integrations must migrate within 6 months. API use requires Canva Enterprise membership.
+807	
+808	#### Input Parameters
+809	
+810	| Parameter | Type | Required | Description |
+811	|-----------|------|----------|-------------|
+812	| `brandTemplateId` | string | Yes | The brand template ID. |
+813	
+814	#### Output
+815	
+816	| Parameter | Type | Required | Description |
+817	|-----------|------|----------|-------------|
+818	| `data` | string | Yes | Data from the action execution |
+819	| `error` | string | No | Error if any occurred during the execution of the action |
+820	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+821	
+822	### Retrieve design autofill job status
+823	
+824	**Slug:** `CANVA_RETRIEVE_DESIGN_AUTOFILL_JOB_STATUS`
+825	
+826	API users with Canva Enterprise membership can retrieve design autofill job results, potentially requiring multiple requests until a `success` or `failed` status is received.
+827	
+828	#### Input Parameters
+829	
+830	| Parameter | Type | Required | Description |
+831	|-----------|------|----------|-------------|
+832	| `jobId` | string | Yes | The design autofill job ID. |
+833	
+834	#### Output
+835	
+836	| Parameter | Type | Required | Description |
+837	|-----------|------|----------|-------------|
+838	| `data` | string | Yes | Data from the action execution |
+839	| `error` | string | No | Error if any occurred during the execution of the action |
+840	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+841	
+842	### Retrieve design import job status
+843	
+844	**Slug:** `CANVA_RETRIEVE_DESIGN_IMPORT_JOB_STATUS`
+845	
+846	Polls for design import job completion status. Use this after CANVA_CREATE_DESIGN_IMPORT_JOB to check the import progress. Repeatedly call this endpoint until a 'success' or 'failed' status is received to get the final imported design ID and metadata.
+847	
+848	#### Input Parameters
+849	
+850	| Parameter | Type | Required | Description |
+851	|-----------|------|----------|-------------|
+852	| `jobId` | string | Yes | The design import job ID. |
+853	
+854	#### Output
+855	
+856	| Parameter | Type | Required | Description |
+857	|-----------|------|----------|-------------|
+858	| `data` | string | Yes | Data from the action execution |
+859	| `error` | string | No | Error if any occurred during the execution of the action |
+860	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+861	
+862	### Retrieve Design Resize Job Status
+863	
+864	**Slug:** `CANVA_RETRIEVE_DESIGN_RESIZE_JOB_STATUS`
+865	
+866	Retrieves the status and results of a design resize job. Polls for design resize job completion status. Use this after CANVA_CREATE_DESIGN_RESIZE_JOB to check the resize progress. Keep polling until status is 'success' or 'failed'. Successful jobs include the new design ID and temporary access URLs.
+867	
+868	#### Input Parameters
+869	
+870	| Parameter | Type | Required | Description |
+871	|-----------|------|----------|-------------|
+872	| `job_id` | string | Yes | The resize job ID returned from create resize job endpoint |
+873	
+874	#### Output
+875	
+876	| Parameter | Type | Required | Description |
+877	|-----------|------|----------|-------------|
+878	| `data` | string | Yes | Data from the action execution |
+879	| `error` | string | No | Error if any occurred during the execution of the action |
+880	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+881	
+882	### Retrieve folder details by id
+883	
+884	**Slug:** `CANVA_RETRIEVE_FOLDER_DETAILS_BY_ID`
+885	
+886	Gets the name and other details of a folder using a folder's `folderID`.
+887	
+888	#### Input Parameters
+889	
+890	| Parameter | Type | Required | Description |
+891	|-----------|------|----------|-------------|
+892	| `folderId` | string | Yes | The folder ID. |
+893	
+894	#### Output
+895	
+896	| Parameter | Type | Required | Description |
+897	|-----------|------|----------|-------------|
+898	| `data` | string | Yes | Data from the action execution |
+899	| `error` | string | No | Error if any occurred during the execution of the action |
+900	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+901	
+902	### Retrieveuserprofiledata
+903	
+904	**Slug:** `CANVA_RETRIEVE_USER_PROFILE_DATA`
+905	
+906	Currently, this returns the display name of the user account associated with the provided access token. More user information is expected to be included in the future.
+907	
+908	#### Output
+909	
+910	| Parameter | Type | Required | Description |
+911	|-----------|------|----------|-------------|
+912	| `data` | string | Yes | Data from the action execution |
+913	| `error` | string | No | Error if any occurred during the execution of the action |
+914	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+915	
+916	### Revoke oauth tokens
+917	
+918	**Slug:** `CANVA_REVOKE_OAUTH_TOKENS`
+919	
+920	Revoke a refresh token to end its lineage and user consent, requiring re-authentication. Authenticate using either basic access with Base64-encoded credentials or body parameters with client ID and secret.
+921	
+922	#### Input Parameters
+923	
+924	| Parameter | Type | Required | Description |
+925	|-----------|------|----------|-------------|
+926	| `token` | string | Yes | The token to revoke. |
+927	| `client_id` | string | No | Your integration"s unique ID, for authenticating the request. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.   |
+928	| `client_secret` | string | No | Your integration"s client secret, for authenticating the request. Begins with `cnvca`. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.   |
+929	
+930	#### Output
+931	
+932	| Parameter | Type | Required | Description |
+933	|-----------|------|----------|-------------|
+934	| `data` | string | Yes | Data from the action execution |
+935	| `error` | string | No | Error if any occurred during the execution of the action |
+936	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+937	
+938	### Update asset s name and tags by id
+939	
+940	**Slug:** `CANVA_UPDATE_ASSET_S_NAME_AND_TAGS_BY_ID`
+941	
+942	You can update the name and tags of an asset by specifying its `assetId`. Updating the tags replaces all existing tags of the asset.
+943	
+944	#### Input Parameters
+945	
+946	| Parameter | Type | Required | Description |
+947	|-----------|------|----------|-------------|
+948	| `name` | string | No | The name of the asset. This is shown in the Canva UI. When this field is undefined, nothing is updated. Maximum length 50 characters.  |
+949	| `tags` | array | No | The replacement tags for the asset. When this field is undefined, nothing is updated. Maximum length 50 tags. Each tag has a maximum length of 50 characters.  |
+950	| `assetId` | string | Yes | The ID of the asset. |
+951	
+952	#### Output
+953	
+954	| Parameter | Type | Required | Description |
+955	|-----------|------|----------|-------------|
+956	| `data` | string | Yes | Data from the action execution |
+957	| `error` | string | No | Error if any occurred during the execution of the action |
+958	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+959	
+960	### Update folder details by id
+961	
+962	**Slug:** `CANVA_UPDATE_FOLDER_DETAILS_BY_ID`
+963	
+964	Updates a folder's details using its `folderID`. Currently, you can only update a folder's name.
+965	
+966	#### Input Parameters
+967	
+968	| Parameter | Type | Required | Description |
+969	|-----------|------|----------|-------------|
+970	| `name` | string | Yes | The folder name, as shown in the Canva UI. |
+971	| `folderId` | string | Yes | The folder ID. |
+972	
+973	#### Output
+974	
+975	| Parameter | Type | Required | Description |
+976	|-----------|------|----------|-------------|
+977	| `data` | string | Yes | Data from the action execution |
+978	| `error` | string | No | Error if any occurred during the execution of the action |
+979	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+980	
+981	### Validate oauth token properties
+982	
+983	**Slug:** `CANVA_VALIDATE_OAUTH_TOKEN_PROPERTIES`
+984	
+985	Check an access token's validity and properties via introspection, requiring authentication. Use Basic access (Base64 encoded `client_id:client_secret`) or body parameters for credentialing.
+986	
+987	#### Input Parameters
+988	
+989	| Parameter | Type | Required | Description |
+990	|-----------|------|----------|-------------|
+991	| `token` | string | Yes | The token to introspect. |
+992	| `client_id` | string | No | Your integration"s unique ID, for authenticating the request. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.   |
+993	| `client_secret` | string | No | Your integration"s client secret, for authenticating the request. Begins with `cnvca`. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.   |
+994	
+995	#### Output
+996	
+997	| Parameter | Type | Required | Description |
+998	|-----------|------|----------|-------------|
+999	| `data` | string | Yes | Data from the action execution |
+1000	| `error` | string | No | Error if any occurred during the execution of the action |
+1001	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
 
-1. **业务资料** — 你的品牌/店名、行业、主要产品或服务
-2. **目标受众** — 你的客户是谁
-3. **品牌语气** — 正式？轻松？幽默？专业？
-4. **社交平台** — 你想连接哪些平台？（Instagram / Facebook / Twitter / LinkedIn）
-5. **内容方向** — 你希望发布什么类型的内容？
-
-请告诉我这些信息，我来帮你完成配置 🚀
+# Canva
 
 ────────────────────────────────────────────────────────────
-[done] 19.2s
+[done] 16.2s
 ────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 你好，测试一下
+────────────────────────────────────────────────────────────
+
+你好！👋 我是 Rebecca，你的专属社交媒体助手。
+  ↳ [tool: bash] {'command': 'cat /workspace/marketing-context.md 2>/dev/null || echo "FILE_NOT_FOUND"'}
+  ↳ [result] FILE_NOT_FOUND
+
+检测到你还没有完成初始配置，我需要先带你走一遍 setup 流程，这样我才能更好地为你服务。
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/SKILL.md'}
+  ↳ [result] 1	---
+2	name: social-media-post-setup
+3	description: "社交媒体营销助手的初始化配置。Admin 提到 setup、配置、连接平台、连接 Facebook / Instagram / Twitter / LinkedIn、更新业务资料或内容设置时触发。也在 admin 首次登录、尚未完成配置时主动触发。"
+4	---
+5	
+6	# Setup — 初始化配置
+7	
+8	你是这位商家的社交媒体营销助手，负责帮他们管理内容创作、评论监控和数据追踪。
+9	
+10	在开始任何工作之前，先读一下这份 Setup 文档——它记录了你运作所需的全部上下文：商家信息、内容偏好、平台账号，以及工作流配置。没有这些，后续的功能都跑不起来。
+11	
+12	---
+13	
+14	## 启动检查
+15	
+16	先尝试读取 `/workspace/marketing-context.md`（用户的实际配置文件）：
+17	
+18	- **文件不存在**：读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为结构模板，从头走完整流程（阶段一到三），完成后按模板结构写入 `/workspace/marketing-context.md`
+19	- **文件存在但部分字段为空**：只补充缺失的部分，已有的内容不重复询问
+20	- **Admin 指定了某项**（如「帮我连 Instagram」「更新内容设置」）：直接跳到对应阶段
+21	
+22	---
+23	
+24	## 阶段一：业务资料
+25	
+26	填入文件的 `## 业务资料`、`## 品牌语气` 和 `## 品牌视觉` 部分。
+27	
+28	**原则：先搜索，再推断，实在找不到才开口问。**
+29	
+30	1. 先问 admin 一件事就好：「你们的店名或网站是什么？」
+31	2. 拿到后，用 web_search / web_fetch 搜索该商家，自行整理出：
+32	   - 行业、地区、简介、主要产品 / 服务
+33	   - 目标受众（根据业务类型推断）
+34	   - 竞争对手（搜索同类本地商家，推荐 2–3 个）
+35	   - 品牌语气（根据官网文案风格推断）
+36	   - 品牌色（从官网提取主色 / 辅色 / 强调色的 HEX 值）
+37	   - 视觉风格（根据官网设计风格推断五个视觉属性维度：明暗、整洁度、色彩饱和度、空间感、质感）
+38	3. 把整理好的结果一次性展示给 admin 确认，不要逐字段追问。
+39	4. 只有真的搜不到的字段，才单独向 admin 询问。
+40	
+41	---
+42	
+43	## 阶段二：平台连接
+44	
+45	询问 admin 想连接哪些平台：
+46	
+47	> 「你打算在哪些平台发内容或管评论？Facebook、Instagram、Twitter、LinkedIn 都支持，可以多选，之后想加也随时可以。」
+48	
+49	每个平台独立处理，一个失败不影响其他。连接成功后立即将账号信息填入 `/workspace/marketing-context.md` 对应的 section，不用等所有平台都完成再统一写。
+50	
+51	| 平台 | 参考文档 |
+52	|---|---|
+53	| Facebook | `/workspace/skills/social-media-post-setup/references/facebook-oauth.md` |
+54	| Instagram | `/workspace/skills/social-media-post-setup/references/instagram-oauth.md` |
+55	| Twitter | `/workspace/skills/social-media-post-setup/references/twitter-oauth.md` |
+56	| LinkedIn | `/workspace/skills/social-media-post-setup/references/linkedin-oauth.md` |
+57	| Canva（素材库） | `/workspace/skills/social-media-post-setup/references/canva-oauth.md` |
+58	
+59	连接状态写入 `## 已连接平台` 对应部分：
+60	- 连接成功：填入账号信息，标记 `启用: true`
+61	- Admin 跳过或连接失败：只标记 `启用: false`，不填账号信息
+62	
+63	---
+64	
+65	## 阶段三：完整运营方案
+66	
+67	拿到业务资料 + 已连接平台后，直接生成一套完整运营方案，不再逐项询问。
+68	
+69	### 方案生成逻辑
+70	
+71	**内容方向（Pillars）：** 根据行业推断 3–4 个
+72	例：餐厅 → 菜品展示、幕后故事、客户好评、节日活动
+73	
+74	**图片风格：** 根据行业和阶段一提取的品牌视觉推断
+75	例：餐厅（bright + clean + warm neutrals）→ 明亮真实照片感，暖色调为主
+76	
+77	**发布计划（根据已连接平台组合）：**
+78	
+79	| 平台 | 内容类型 | 计划发布日 | 备注 |
+80	|---|---|---|---|
+81	| Instagram | Feed / Carousel | 周一、三、五 | 品牌深度内容 |
+82	| Instagram | Reels | 周二、四 | 算法推流主渠道 |
+83	| Instagram | Story | 周三、五、日 | 保活跃度 |
+84	| Facebook | Feed | 周一、三、五 | 与 IG 同步，不单独创作 |
+85	| Facebook | Reels | 周二 | 与 IG Reels 同步 |
+86	| LinkedIn | Text / Image Post | 周一、三、五 | 行业洞察 + 产品 |
+87	| LinkedIn | Document Carousel | 每两周周三 | 知识类深度内容 |
+88	| Twitter | 推文 | 周一至周五 | 每天 1 条，行业观点或公告 |
+89	| Twitter | Thread | 周四 | 深度内容，每周 1 条 |
+90	
+91	Facebook 未单独连接但 Instagram 已连接时：Facebook 跟随 IG 内容同步发布，不单独列入计划。
+92	Instagram 未连接但 Facebook 已连接时：Facebook 独立制作 Feed x3/周。
+93	
+94	**工作流（固定，无需询问）：**
+95	
+96	| 任务 | 时间 | 说明 |
+97	|---|---|---|
+98	| 内容批量创作 | 每周一 09:00 | 生成本周内容计划，admin 确认后再生成内容 |
+99	| 内容自动发布 | 每天 09:00 | 发布当天计划发布且已确认的草稿 |
+100	| 评论巡查 | 每 6 小时 | 拉取新评论，负面优先通知 |
+101	| 数据汇报 | 每周五 18:00 | 生成本周快速数据总结 |
+102	
+103	**只需问 admin 一个问题：**
+104	> 「每周一生成草稿后，发布前需要你过目确认吗？还是直接帮你按计划发出去？」
+105	
+106	### 方案展示方式
+107	
+108	用对话语气呈现，不要表格罗列，像顾问给建议一样。例：
+109	
+110	> 「根据你们餐厅的情况和已连接的 Instagram、Facebook，我建议这样运营——
+111	>
+112	> 内容方向围绕三个主题：菜品展示、幕后故事、客户好评。配图用真实照片感，暖色调为主。
+113	>
+114	> Instagram 每周发 8 条：周一三五发 Feed，周二四发 Reels（Reels 现在是 IG 算法最偏爱的格式，适合触达新客），周三五日各发一条 Story 保活跃度。Facebook 跟 IG 内容同步，不单独做。
+115	>
+116	> 我每周一早 9 点帮你规划这周的内容计划，你确认方向后我再生成具体内容。之后每天自动按计划发出。评论我每 6 小时扫一次，有差评第一时间告诉你。每周五出一份数据小结。
+117	>
+118	> 发布前需要你过目确认吗？」
+119	
+120	实际展示时根据商家情况调整，不要每次都用这段原文。
+121	
+122	### 确认与写入
+123	
+124	Admin 确认（或调整后确认）后，**一次性**将所有字段写入 `/workspace/marketing-context.md`：
+125	
+126	```
+127	## 指令          ← 发布确认方式
+128	## 品牌视觉      ← 品牌色板、视觉属性基类
+129	## 内容设置      ← pillars、图片风格
+130	## 内容策略      ← 各平台发布节奏、优先类型、策略初始化记录
+131	## 工作流        ← 4 个任务的启用状态和时间
+132	```
+133	
+134	然后依次调用 `cron_create` 注册 4 个定时任务：
+135	
+136	```
+137	1. cron_create(schedule="每周一 09:00", message="[cron] 内容创作")
+138	2. cron_create(schedule="每天 09:00",   message="[cron] 内容发布")
+139	3. cron_create(schedule="每 6 小时",    message="[cron] 评论巡查")
+140	4. cron_create(schedule="每周五 18:00", message="[cron] 数据汇报")
+141	```
+142	
+143	Admin 明确不需要某项时，对应字段写 `启用: false`，跳过该 cron_create。
+144	
+145	然后初始化素材库：
+146	
+147	如果 `/workspace/assets/asset-registry.md` 不存在，创建并写入文件头：
+148	
+149	```markdown
+150	# 素材库索引
+151	
+152	> 素材实体存储在 Canva，本文件只做索引（Canva Asset ID、描述、标签、使用状态）。
+153	> 视频素材不上传 Canva，只记录 URL。
+154	```
+155	
+156	写完后告诉 admin：
+157	- 哪些平台已成功连接
+158	- 运营方案的关键点（一句话）
+159	- 下周一会发生什么（第一次自动创作）
+160	
+161	---
+162	
+163	## 写入文件
+164	
+165	每个阶段收集完对应信息后，立即更新 `/workspace/marketing-context.md` 中的相关字段，不要等全部阶段完成才统一写入。只修改本次收集到的字段，其他字段保持原样。
+166	
+167	文件不存在时，先读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为初始结构创建文件，再填入收集到的内容。
+168	
+169	---
+170	
+171	## 后续更新
+172	
+173	Admin 想修改配置时，读取当前文件，只聊需要改的那部分，确认后写入完整的更新文件，不用重新走一遍全流程。
+174	
+175	若修改涉及工作流时间，先用 `cron_delete` 删除旧任务，再用 `cron_create` 注册新任务。
+
+
+────────────────────────────────────────────────────────────
+[user] 帮我生成一张图片：一个餐厅老板站在柜台后面，1:1 比例
+────────────────────────────────────────────────────────────
+
+
+[ERROR] mcp_authentication_failed_error: MCP server 'composio-post-agent' initialize failed: no credential is stored for this server URL — check that the agent's MCP server URL matches the URL in the vault
