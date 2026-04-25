@@ -13,7 +13,6 @@ SSE event format:
     data: {"type": "error",      "message": "..."}
 """
 
-import asyncio
 import json
 import logging
 from typing import AsyncGenerator
@@ -80,14 +79,25 @@ async def chat(
                                 "mime_type": event.get("mime_type"),
                             }),
                         )
+                elif event["type"] == "preview":
+                    payload = {k: v for k, v in event.items() if k != "type"}
+                    async with session_scope() as s:
+                        await sessions_q.append_event(
+                            s,
+                            body.session_id,
+                            "ai_preview",
+                            json.dumps(payload),
+                        )
+                elif event["type"] == "error":
+                    async with session_scope() as s:
+                        await sessions_q.append_event(s, body.session_id, "error", event.get("message", ""))
                 elif event["type"] == "done":
                     reply = "".join(ai_tokens)
                     if reply:
                         async with session_scope() as s:
                             await sessions_q.append_event(s, body.session_id, "ai_message", reply)
                     if not db_session.provider_session_title:
-                        title = await asyncio.to_thread(
-                            management_sessions.get_provider_session_title,
+                        title = await management_sessions.get_provider_session_title(
                             db_session.id,
                         )
                         if title:

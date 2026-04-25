@@ -28,11 +28,67 @@ logger = logging.getLogger(__name__)
 _STREAM_TIMEOUT = anthropic.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0)
 
 
-def _build_content(message: str, attachments: list[FileAttachment]) -> list[dict]:
+_UPLOADS_DIR = "/mnt/session/uploads"
+
+
+def _build_content(message: str, attachments: list[FileAttachment], mount_names: dict[str, str]) -> list[dict]:
     content: list[dict] = [{"type": "text", "text": message}]
     for att in attachments:
         content.append({"type": att.content_type, "source": {"type": "file", "file_id": att.file_id}})
+    if attachments:
+        paths = "\n".join(
+            f"- {mount_names.get(att.file_id, att.filename or att.file_id)} → {_UPLOADS_DIR}/{mount_names.get(att.file_id, att.filename or att.file_id)}"
+            for att in attachments
+        )
+        content.append({"type": "text", "text": f"\n[Attached files in sandbox:]\n{paths}"})
     return content
+
+
+async def _mount_attachments(session_id: str, attachments: list[FileAttachment]) -> dict[str, str]:
+    """Mount uploaded files into the session sandbox. Returns {file_id: actual_filename}.
+    Retries with _1, _2 suffix on path conflicts (different files with same name).
+    Same file_id conflicts (re-sent file) are silently skipped — file is already mounted."""
+    client = get_async_client()
+
+    async def _mount_one(att: FileAttachment) -> tuple[str, str]:
+        base_name = att.filename or att.file_id
+        stem, _, ext = base_name.rpartition(".")
+        if not stem:
+            stem, ext = base_name, ""
+        else:
+            ext = "." + ext
+
+        for i in range(20):
+            actual = f"{stem}_{i}{ext}" if i > 0 else base_name
+            try:
+                await client.beta.sessions.resources.add(
+                    session_id,
+                    type="file",
+                    file_id=att.file_id,
+                    mount_path=f"{_UPLOADS_DIR}/{actual}",
+                )
+                logger.info("[mount] file_id=%s → %s/%s", att.file_id, _UPLOADS_DIR, actual)
+                return att.file_id, actual
+            except anthropic.BadRequestError as exc:
+                msg = str(exc)
+                if "overlapping mount paths" in msg:
+                    if i == 0:
+                        # Could be same file already mounted — skip without renaming
+                        logger.debug("[mount] path conflict file_id=%s name=%s, trying suffix", att.file_id, actual)
+                        continue
+                    logger.debug("[mount] path conflict file_id=%s trying %s", att.file_id, actual)
+                    continue
+                logger.warning("[mount] failed file_id=%s: %s", att.file_id, exc)
+                return att.file_id, base_name
+            except Exception as exc:
+                logger.warning("[mount] failed file_id=%s: %s", att.file_id, exc)
+                return att.file_id, base_name
+
+        logger.warning("[mount] gave up after 20 retries file_id=%s", att.file_id)
+        return att.file_id, base_name
+
+    results = await asyncio.gather(*[_mount_one(att) for att in attachments])
+    return dict(results)
 
 
 async def stream(
@@ -42,20 +98,25 @@ async def stream(
     attachments: list[FileAttachment] | None = None,
 ) -> AsyncGenerator[dict, None]:
     """Async generator — yields SSE event dicts, never blocks the event loop."""
+    print(f"[stream] session_id={session_id!r} user_id={user_id!r} message={message!r} attachments={attachments!r}")
     client = get_async_client()
     pending_tools: dict[str, Any] = {}  # event_id → agent.custom_tool_use event
     sent_results: set[str] = set()      # IDs we already sent results for
     mcp_tool_ids: set[str] = set()      # IDs from agent.mcp_tool_use (Anthropic-executed)
+
+    mount_names: dict[str, str] = {}
+    if attachments:
+        mount_names = await _mount_attachments(session_id, attachments)
+
+    content = _build_content(message, attachments or [], mount_names)
+    logger.info("[send] content=%s", content)
 
     async with await client.beta.sessions.events.stream(
         session_id, timeout=_STREAM_TIMEOUT
     ) as event_stream:
         await client.beta.sessions.events.send(
             session_id,
-            events=[{
-                "type": "user.message",
-                "content": _build_content(message, attachments or []),
-            }],
+            events=[{"type": "user.message", "content": content}],
         )
 
         async for event in event_stream:
@@ -172,6 +233,8 @@ async def stream(
                                 logger.warning("[requires_action] missed tool error result send failed: %s", ce)
 
                         if to_execute:
+                            tool_inputs: dict[str, dict] = {eid: te.input for eid, te in to_execute}
+
                             async def _run_one(eid: str, te: Any) -> tuple[str, str, dict]:
                                 try:
                                     return eid, te.name, await execute_tool(te.name, te.input, user_id, session_id=session_id)
@@ -191,6 +254,14 @@ async def stream(
                                         "file_id": result["file_id"],
                                         "filename": result.get("filename"),
                                         "mime_type": result.get("mime_type"),
+                                    }
+                                # Emit a preview event so the frontend renders an image review card.
+                                if tool_name == "show_post_preview" and result.get("ok"):
+                                    yield {
+                                        "type": "preview",
+                                        "slides": result.get("slides", []),
+                                        "caption": result.get("caption", ""),
+                                        "hashtags": result.get("hashtags", []),
                                     }
                                 results.append({
                                     "type": "user.custom_tool_result",

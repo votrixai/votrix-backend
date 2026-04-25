@@ -20,7 +20,7 @@ import json
 import zipfile
 from pathlib import Path
 
-from app.client import get_client
+from app.client import get_async_client
 
 SKILLS_DIR = Path(__file__).parents[2] / "skills"
 _REGISTRY_PATH = Path(__file__).parents[2] / ".skills_registry.json"
@@ -63,24 +63,24 @@ def _write_registry(registry: dict) -> None:
     _REGISTRY_PATH.write_text(json.dumps(registry, indent=2))
 
 
-def _upload_new(zip_bytes: bytes, display_title: str) -> str:
+async def _upload_new(zip_bytes: bytes, display_title: str) -> str:
     """Create new skill via SDK, returns skill_id."""
-    result = get_client().beta.skills.create(
+    result = await get_async_client().beta.skills.create(
         display_title=display_title,
         files=[("skill.zip", zip_bytes, "application/zip")],
     )
     return result.id
 
 
-def _upload_version(skill_id: str, zip_bytes: bytes) -> None:
+async def _upload_version(skill_id: str, zip_bytes: bytes) -> None:
     """Upload new version of existing skill via SDK."""
-    get_client().beta.skills.versions.create(
+    await get_async_client().beta.skills.versions.create(
         skill_id,
         files=[("skill.zip", zip_bytes, "application/zip")],
     )
 
 
-def get_or_upload(skill_name: str, force: bool = False) -> str:
+async def get_or_upload(skill_name: str, force: bool = False) -> str:
     """
     Return cached skill_id, uploading or versioning as needed.
 
@@ -97,7 +97,7 @@ def get_or_upload(skill_name: str, force: bool = False) -> str:
 
     if not entry.get("skill_id"):
         display_title = skill_name.replace("-", " ").title()
-        skill_id = _upload_new(zip_bytes, display_title)
+        skill_id = await _upload_new(zip_bytes, display_title)
         registry[skill_name] = {"skill_id": skill_id, "content_hash": chash}
         _write_registry(registry)
         print(f"  [skill:{skill_name}] uploaded → {skill_id}")
@@ -108,14 +108,14 @@ def get_or_upload(skill_name: str, force: bool = False) -> str:
     if entry.get("content_hash") == chash and not force:
         return skill_id
 
-    _upload_version(skill_id, zip_bytes)
+    await _upload_version(skill_id, zip_bytes)
     registry[skill_name] = {"skill_id": skill_id, "content_hash": chash}
     _write_registry(registry)
     print(f"  [skill:{skill_name}] new version uploaded → {skill_id}")
     return skill_id
 
 
-def _sync_registry_from_api(skill_names: list[str]) -> None:
+async def _sync_registry_from_api(skill_names: list[str]) -> None:
     """
     For any skill in skill_names that has no local skill_id, query the API by
     display_title and restore the skill_id.  This prevents BadRequestError when
@@ -126,11 +126,10 @@ def _sync_registry_from_api(skill_names: list[str]) -> None:
     if not missing:
         return
 
-    # Build title → skill_name map for the missing ones
     title_to_slug = {s.replace("-", " ").title(): s for s in missing}
 
     try:
-        page = get_client().beta.skills.list()
+        page = await get_async_client().beta.skills.list()
         for remote_skill in page.data:
             slug = title_to_slug.get(remote_skill.display_title)
             if slug:
@@ -142,7 +141,10 @@ def _sync_registry_from_api(skill_names: list[str]) -> None:
         print(f"  [skills] API sync warning: {exc}")
 
 
-def get_or_upload_all(skill_names: list[str], force: bool = False) -> dict[str, str]:
+async def get_or_upload_all(skill_names: list[str], force: bool = False) -> dict[str, str]:
     """Upload/version all listed skills; returns {skill_name: skill_id}."""
-    _sync_registry_from_api(skill_names)
-    return {skill_name: get_or_upload(skill_name, force=force) for skill_name in skill_names}
+    await _sync_registry_from_api(skill_names)
+    results = {}
+    for skill_name in skill_names:
+        results[skill_name] = await get_or_upload(skill_name, force=force)
+    return results

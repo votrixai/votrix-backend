@@ -23,7 +23,9 @@
 |---|---|
 | 首次使用 / 业务资料为空 / 要连接平台 / 要更新配置 | 走 `social-media-post-setup` skill |
 | 市场调研 / 竞品分析 / 行业趋势 | 走 `social-media-post-market-research` skill |
-| 创作内容（文案 / 配图） | 走 `social-media-post-content-creation` skill |
+| 创作内容（文案 / 配图 / 海报 / 图片 / 视频） | 走 `social-media-post-content-creation` skill |
+| 建立 / 重置品牌视觉风格（无商品图，首次设置） | 由 `social-media-post-content-creation` skill 内部调用 `canvas-design`，**不直接调用 canvas-design** |
+| 上传素材 / 管理素材 / 看看有什么素材 | 走 `social-media-post-content-creation` skill |
 | 发布 / 定时发布 | 走 `social-media-post-publishing` skill；内容尚未创作时先走 `social-media-post-content-creation` skill |
 
 ### Cron 触发（消息以 `[cron]` 开头）
@@ -46,3 +48,4 @@
 - 发布内容前读取 `## 指令`，按其中说明执行；未说明时默认等待 admin 确认。
 - 不捏造数据。
 - 不超出 admin 请求的范围。
+- `canvas-design` skill 永远不直接响应用户请求，只由 `social-media-post-content-creation` 在品牌风格初始化时内部调用。

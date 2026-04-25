@@ -57,3 +57,19 @@ async def upload_image(data: bytes, mime_type: str, user_id: str) -> str:
     )
     resp.raise_for_status()
     return f"{s.supabase_url}/storage/v1/object/public/{BUCKET}/{path}"
+
+
+async def upload_file(data: bytes, mime_type: str, user_id: str, filename: str) -> str:
+    """Upload arbitrary file bytes to Supabase Storage. Returns public URL."""
+    ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
+    path = f"{user_id}/files/{uuid.uuid4()}.{ext}"
+    http = await _client()
+    s = get_settings()
+    resp = await http.post(
+        f"/object/{BUCKET}/{path}",
+        content=data,
+        headers={"Content-Type": mime_type, "x-upsert": "true"},
+        timeout=120,
+    )
+    resp.raise_for_status()
+    return f"{s.supabase_url}/storage/v1/object/public/{BUCKET}/{path}"

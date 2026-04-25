@@ -5,6 +5,7 @@ Usage:
     python scripts/test_post_agent.py
     python scripts/test_post_agent.py --force    # re-upload skills
     python scripts/test_post_agent.py --message "..." # single message and exit
+    python scripts/test_post_agent.py --force --attach /path/to/file.png  # attach file to first message
 
 How it works:
     - Watches test_input.txt for new lines (append to chat)
@@ -20,25 +21,46 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import mimetypes
 import sys
 import time
 from pathlib import Path
 
 from dotenv import load_dotenv
 
-from app.management import environments, provisioning, skills
+from app.client import get_async_client
+from app.management.agent_files import upload_config_files
+from app.management import provisioning, skills
 from app.management.environments import create_session
+from app.models.chat import FileAttachment
 from app.runtime.sessions import stream as runtime_stream
 
 load_dotenv()
 
 AGENT_SLUG   = "post-agent"
 USER_ID      = "votrix-ai-test6"
-DISPLAY_NAME = "Votrix AI Test 6"
 
 INPUT_FILE  = Path(__file__).parent / "test_input.txt"
 OUTPUT_FILE = Path(__file__).parent / "test_output.txt"
 _CACHE_FILE = Path(__file__).parent / ".post_agent_cache.json"
+
+_BETA = ["files-api-2025-04-14", "managed-agents-2026-04-01"]
+
+
+async def upload_attachment(filepath: str) -> FileAttachment:
+    """Upload a local file to Anthropic Files API and return a FileAttachment."""
+    p = Path(filepath)
+    if not p.exists():
+        print(f"[error] file not found: {filepath}", file=sys.stderr)
+        sys.exit(1)
+    data = p.read_bytes()
+    name = p.name
+    mime = mimetypes.guess_type(name)[0] or "application/octet-stream"
+    client = get_async_client()
+    result = await client.beta.files.upload(file=(name, data, mime), betas=_BETA)
+    content_type = "image" if mime.startswith("image/") else "document"
+    print(f"  [upload] {name} ({len(data)} bytes, {mime}) → {result.id}")
+    return FileAttachment(file_id=result.id, content_type=content_type, filename=name)
 
 
 def _save_cache(agent_id: str, env_id: str, session_id: str | None = None) -> None:
@@ -57,7 +79,7 @@ def _load_cache() -> tuple[str, str, str | None]:
 
 # ─── Provision ────────────────────────────────────────────────────────────────
 
-def run_provision(force: bool = False) -> tuple[str, str]:
+async def run_provision(force: bool = False) -> tuple[str, str]:
     """Upload skills + create per-user agent. Returns (agent_id, env_id)."""
     config = json.loads(
         (Path(__file__).parents[1] / "agents" / AGENT_SLUG / "config.json").read_text()
@@ -66,23 +88,32 @@ def run_provision(force: bool = False) -> tuple[str, str]:
 
     print(f"\n{'─'*60}\n[skills] uploading for {AGENT_SLUG}\n{'─'*60}")
 
-    skill_ids = skills.get_or_upload_all(config.get("skills", []), force=force)
+    skill_ids = await skills.get_or_upload_all(config.get("skills", []), force=force)
     for slug, sid in skill_ids.items():
         print(f"  {slug} → {sid}")
 
     print(f"\n{'─'*60}\n[provision] creating agent for user: {USER_ID}\n{'─'*60}")
-    agent_id = provisioning.create_user_agent(AGENT_SLUG, USER_ID, DISPLAY_NAME, force=force)
+    agent_id = await provisioning.create_user_agent(AGENT_SLUG, USER_ID, force=force)
     print(f"  agent_id → {agent_id}")
 
-    # Clear stale session so watch loop starts a fresh conversation
     _save_cache(agent_id, env_id, session_id=None)
 
     return agent_id, env_id
 
 
+async def create_session_from_agent_config(agent_id: str, env_id: str) -> str:
+    """Create a session and mount files declared in agents/<slug>/config.json."""
+    config = json.loads(
+        (Path(__file__).parents[1] / "agents" / AGENT_SLUG / "config.json").read_text()
+    )
+    resources = await upload_config_files(AGENT_SLUG, config.get("files", []))
+    return await create_session(agent_id, env_id, resources=resources)
+
+
 # ─── Single chat turn ─────────────────────────────────────────────────────────
 
-def chat_turn(message: str, session_id: str, out_file: Path) -> bool:
+async def chat_turn(message: str, session_id: str, out_file: Path,
+                    attachments: list[FileAttachment] | None = None) -> bool:
     """Send one message. Returns True on success, False on rate-limit (caller should retry)."""
     sep = "─" * 60
 
@@ -91,58 +122,49 @@ def chat_turn(message: str, session_id: str, out_file: Path) -> bool:
         with out_file.open("a", encoding="utf-8") as f:
             f.write(text + end)
 
-    emit(f"\n{sep}\n[user] {message}\n{sep}\n")
+    att_info = f" (+{len(attachments)} attachment(s))" if attachments else ""
+    emit(f"\n{sep}\n[user] {message}{att_info}\n{sep}\n")
 
-    async def _run() -> bool:
-        t_start = time.perf_counter()
-        rate_limited = False
-        async for event in runtime_stream(session_id, message, USER_ID):
-            match event["type"]:
-                case "token":
-                    print(event["content"], end="", flush=True)
-                    with out_file.open("a", encoding="utf-8") as f:
-                        f.write(event["content"])
-                case "thinking":
-                    print(".", end="", flush=True)
-                case "tool_start":
-                    emit(f"\n  ↳ [tool: {event['name']}] {event.get('input', '')}")
-                case "tool_end":
-                    output = event.get("output", "")
-                    emit(f"  ↳ [result] {output}")
-                case "done":
-                    elapsed = time.perf_counter() - t_start
-                    emit(f"\n\n{sep}\n[done] {elapsed:.1f}s\n{sep}")
-                case "error":
-                    if "繁忙" in event["message"] or "overloaded" in event["message"].lower():
-                        rate_limited = True
-                    else:
-                        emit(f"\n[ERROR] {event['message']}")
-                        sys.exit(1)
-        return not rate_limited
-
-    return asyncio.run(_run())
-
-
-def chat_turn_with_retry(message: str, agent_id: str, env_id: str, out_file: Path,
-                         max_retries: int = 5, retry_wait: int = 15) -> None:
-    for attempt in range(1, max_retries + 1):
-        session_id = create_session(agent_id, env_id)
-        ok = chat_turn(message, session_id, out_file)
-        if ok:
-            return
-        print(f"\n[rate-limit] attempt {attempt}/{max_retries}, waiting {retry_wait}s...", flush=True)
-        time.sleep(retry_wait)
-    print("[rate-limit] gave up after max retries", file=sys.stderr)
-    sys.exit(1)
+    t_start = time.perf_counter()
+    rate_limited = False
+    async for event in runtime_stream(session_id, message, USER_ID, attachments=attachments):
+        match event["type"]:
+            case "token":
+                print(event["content"], end="", flush=True)
+                with out_file.open("a", encoding="utf-8") as f:
+                    f.write(event["content"])
+            case "thinking":
+                print(".", end="", flush=True)
+            case "tool_start":
+                emit(f"\n  ↳ [tool: {event['name']}] {event.get('input', '')}")
+            case "tool_end":
+                output = event.get("output", "")
+                emit(f"  ↳ [result] {output}")
+            case "done":
+                elapsed = time.perf_counter() - t_start
+                emit(f"\n\n{sep}\n[done] {elapsed:.1f}s\n{sep}")
+            case "error":
+                if "繁忙" in event["message"] or "overloaded" in event["message"].lower():
+                    rate_limited = True
+                else:
+                    emit(f"\n[ERROR] {event['message']}")
+                    sys.exit(1)
+    return not rate_limited
 
 
 # ─── File-watching loop ────────────────────────────────────────────────────────
 
-def watch_loop(agent_id: str, env_id: str, session_id: str | None = None) -> None:
+async def watch_loop(agent_id: str, env_id: str, session_id: str | None = None,
+                     attach_path: str | None = None) -> None:
     """Poll test_input.txt; send each new line as a chat message."""
-    INPUT_FILE.write_text("")  # clear on startup to avoid re-processing old messages
+    INPUT_FILE.write_text("")
     OUTPUT_FILE.touch(exist_ok=True)
     seen_lines = 0
+
+    pending_attachment: list[FileAttachment] | None = None
+    if attach_path:
+        att = await upload_attachment(attach_path)
+        pending_attachment = [att]
 
     def emit_header(text: str) -> None:
         print(text, flush=True)
@@ -152,11 +174,13 @@ def watch_loop(agent_id: str, env_id: str, session_id: str | None = None) -> Non
     if session_id:
         print(f"[resume] reusing session {session_id}", flush=True)
     else:
-        session_id = create_session(agent_id, env_id)
+        session_id = await create_session_from_agent_config(agent_id, env_id)
         _save_cache(agent_id, env_id, session_id)
     emit_header(f"\n[ready] Watching {INPUT_FILE}")
     emit_header(f"[ready] Output → {OUTPUT_FILE}")
     emit_header(f"[ready] Session {session_id}")
+    if pending_attachment:
+        emit_header(f"[ready] Attachment: {attach_path} (mounted on first message)")
     emit_header(f"[ready] Write a message to test_input.txt to chat. Ctrl-C to quit.\n")
 
     try:
@@ -168,19 +192,18 @@ def watch_loop(agent_id: str, env_id: str, session_id: str | None = None) -> Non
             seen_lines = len(lines)
 
             for msg in new_lines:
-                ok = chat_turn(msg, session_id, OUTPUT_FILE)
+                ok = await chat_turn(msg, session_id, OUTPUT_FILE, attachments=pending_attachment)
+                pending_attachment = None
                 if not ok:
-                    # Overloaded — new session and retry
                     wait = 20
                     print(f"\n[overloaded] waiting {wait}s then retrying...", flush=True)
-                    time.sleep(wait)
-                    session_id = create_session(agent_id, env_id)
-                    chat_turn(msg, session_id, OUTPUT_FILE)
-                # Clear input file after each message to prevent re-processing on restart
+                    await asyncio.sleep(wait)
+                    session_id = await create_session_from_agent_config(agent_id, env_id)
+                    await chat_turn(msg, session_id, OUTPUT_FILE)
                 INPUT_FILE.write_text("")
                 seen_lines = 0
 
-            time.sleep(1)
+            await asyncio.sleep(1)
 
     except KeyboardInterrupt:
         print("\n[quit]")
@@ -188,14 +211,14 @@ def watch_loop(agent_id: str, env_id: str, session_id: str | None = None) -> Non
 
 # ─── Entry point ──────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
+async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--force",   action="store_true", help="Re-upload skills")
     parser.add_argument("--skip-provision", action="store_true", help="Skip provision, reuse last agent")
     parser.add_argument("--message", default=None, help="Send one message and exit")
+    parser.add_argument("--attach",  default=None, help="File path to upload and attach to first message")
     args = parser.parse_args()
 
-    # Provision
     cached_session_id = None
     if args.skip_provision:
         agent_id, env_id, cached_session_id = _load_cache()
@@ -205,16 +228,19 @@ if __name__ == "__main__":
                 print(f"[skip provision] session_id={cached_session_id}")
         else:
             print("[skip provision] no cache found, provisioning...")
-            agent_id, env_id = run_provision(force=False)
+            agent_id, env_id = await run_provision(force=False)
     else:
-        agent_id, env_id = run_provision(force=args.force)
+        agent_id, env_id = await run_provision(force=args.force)
         _save_cache(agent_id, env_id)
 
     if args.message:
-        # Single-shot: always new session
-        session_id = create_session(agent_id, env_id)
+        session_id = await create_session_from_agent_config(agent_id, env_id)
         print(f"  session_id → {session_id}")
-        chat_turn(args.message, session_id, OUTPUT_FILE)
+        atts = [await upload_attachment(args.attach)] if args.attach else None
+        await chat_turn(args.message, session_id, OUTPUT_FILE, attachments=atts)
     else:
-        # Watch mode: reuse cached session if available
-        watch_loop(agent_id, env_id, session_id=cached_session_id)
+        await watch_loop(agent_id, env_id, session_id=cached_session_id, attach_path=args.attach)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

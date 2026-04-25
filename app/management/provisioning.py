@@ -23,7 +23,7 @@ from pathlib import Path
 import httpx
 
 from app.management import skills
-from app.client import get_client
+from app.client import get_async_client
 from app.config import get_settings
 from app.integrations import composio
 from app.tools import TOOL_DEFINITIONS
@@ -84,20 +84,20 @@ def _build_tools(mcp_server_names: list[str], custom_tools: list[dict]) -> list[
     return tools
 
 
-def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str) -> None:
+async def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str) -> None:
     """For API_KEY integrations, auto-create connected_account at provision time.
     Key is read from env as {SLUG_UPPER}_API_KEY (e.g. APOLLO_API_KEY).
     Idempotent: checks by auth_config_id + entity_id via SDK.
     """
     settings = get_settings()
 
-    # Fetch all active connections for this entity via REST (SDK filtering is unreliable)
-    r = httpx.get(
-        "https://backend.composio.dev/api/v3/connected_accounts",
-        headers={"x-api-key": settings.composio_api_key},
-        params={"user_ids": entity_id, "statuses": "ACTIVE"},
-        timeout=15,
-    )
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            "https://backend.composio.dev/api/v3/connected_accounts",
+            headers={"x-api-key": settings.composio_api_key},
+            params={"user_ids": entity_id, "statuses": "ACTIVE"},
+            timeout=15,
+        )
     r.raise_for_status()
     active_slugs = {
         (item.get("toolkit") or {}).get("slug", "")
@@ -107,7 +107,7 @@ def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str)
 
     for i in integrations:
         slug = i["slug"]
-        ac = composio._get_auth_config(slug)
+        ac = await composio.get_auth_config(slug)
         if ac is None:
             raise RuntimeError(
                 f"No auth_config found in Composio for integration '{slug}'. "
@@ -130,15 +130,16 @@ def _auto_connect_api_key_integrations(integrations: list[dict], entity_id: str)
             )
 
         logger.info("provisioning: auto-connecting API_KEY integration '%s' for %s", slug, entity_id)
-        r = httpx.post(
-            "https://backend.composio.dev/api/v3/connected_accounts",
-            headers={"x-api-key": settings.composio_api_key, "Content-Type": "application/json"},
-            json={
-                "auth_config": {"id": ac["id"]},
-                "connection": {"user_id": entity_id, "data": {"api_key": api_key_val}},
-            },
-            timeout=15,
-        )
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                "https://backend.composio.dev/api/v3/connected_accounts",
+                headers={"x-api-key": settings.composio_api_key, "Content-Type": "application/json"},
+                json={
+                    "auth_config": {"id": ac["id"]},
+                    "connection": {"user_id": entity_id, "data": {"api_key": api_key_val}},
+                },
+                timeout=15,
+            )
         if not r.is_success:
             raise RuntimeError(f"Failed to connect '{slug}': {r.status_code} {r.text}")
         logger.info("provisioning: '%s' connected successfully", slug)
@@ -148,7 +149,7 @@ def _skill_entries(skill_ids: dict[str, str]) -> list[dict]:
     return [{"type": "custom", "skill_id": sid, "version": "latest"} for sid in skill_ids.values()]
 
 
-def create_user_agent(
+async def create_user_agent(
     agent_id: str,
     user_id: str,
     composio_user_id: str | None = None,
@@ -161,30 +162,34 @@ def create_user_agent(
     config = _read_config(agent_id)
     composio_id = composio_user_id or user_id
 
-    skill_ids = skills.get_or_upload_all(config.get("skills", []), force=force)
+    skill_ids = await skills.get_or_upload_all(config.get("skills", []), force=force)
     custom_tools = [TOOL_DEFINITIONS[t] for t in config.get("tools", []) if t in TOOL_DEFINITIONS]
 
     integrations = config.get("integrations", [])
+    direct_mcp_servers = config.get("mcp_servers", [])
 
-    # Auto-connect API_KEY integrations (e.g. Apollo) — no user action needed
-    _auto_connect_api_key_integrations(integrations, composio_id)
+    mcp_servers: list[dict] = []
 
-    # Get or create Composio MCP server for this agent's integrations
-    mcp_server_id = composio.get_or_create_mcp_server(agent_id, integrations, force=force)
+    # Direct MCP servers (no Composio)
+    for srv in direct_mcp_servers:
+        mcp_servers.append({"type": "url", "name": srv["name"], "url": srv["url"]})
 
-    mcp_servers = []
-    if mcp_server_id:
-        mcp_servers = [{
-            "type": "url",
-            "name": f"composio-{agent_id}",
-            "url": composio.mcp_url(mcp_server_id, composio_id),
-        }]
+    # Composio MCP server (only when integrations are configured)
+    if integrations:
+        await _auto_connect_api_key_integrations(integrations, composio_id)
+        mcp_server_id = await composio.get_or_create_mcp_server(agent_id, integrations, force=force)
+        if mcp_server_id:
+            mcp_servers.append({
+                "type": "url",
+                "name": f"composio-{agent_id}",
+                "url": composio.mcp_url(mcp_server_id, composio_id),
+            })
 
     system = _build_user_system(agent_id)
     tools = _build_tools([s["name"] for s in mcp_servers], custom_tools)
 
-    client = get_client()
-    agent = client.beta.agents.create(
+    client = get_async_client()
+    agent = await client.beta.agents.create(
         name=config["name"],
         model=config.get("model", "claude-sonnet-4-6"),
         system=system,
