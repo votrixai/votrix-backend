@@ -12,7 +12,12 @@ SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 
 REGION="${1:-$REGION}"
 PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format="value(projectNumber)")
-CB_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
+DEFAULT_BUILD_SA=$(gcloud builds get-default-service-account 2>/dev/null || true)
+if [ -n "$DEFAULT_BUILD_SA" ]; then
+  BUILD_SA="$DEFAULT_BUILD_SA"
+else
+  BUILD_SA="${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com"
+fi
 
 echo "Enabling required APIs..."
 gcloud services enable \
@@ -31,11 +36,15 @@ COMPUTE_SA="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
 
 echo "Granting Cloud Build permissions..."
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${CB_SA}" \
+  --member="serviceAccount:${BUILD_SA}" \
+  --role="roles/cloudbuild.builds.builder" --quiet
+
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:${BUILD_SA}" \
   --role="roles/run.admin" --quiet
 
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:${CB_SA}" \
+  --member="serviceAccount:${BUILD_SA}" \
   --role="roles/iam.serviceAccountUser" --quiet
 
 echo "Granting Cloud Run runtime access to secrets..."
