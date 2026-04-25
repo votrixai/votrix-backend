@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     # Gemini — for image generation
     gemini_api_key: str = ""
 
+    app_env: str = "local"
+    sentry_dsn: str = ""
+    log_level: str = "INFO"
+
     # Debug mode — enables verbose frontend event logging
     debug: bool = False
 
