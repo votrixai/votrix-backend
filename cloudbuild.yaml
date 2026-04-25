@@ -18,16 +18,17 @@ steps:
 
   # Deploy to Cloud Run
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
-    entrypoint: gcloud
+    entrypoint: bash
     args:
-      - run
-      - deploy
-      - ${_SERVICE_NAME}
-      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE_NAME}:${SHORT_SHA}
-      - --region=${_REGION}
+      - -c
+      - |
+        IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE_NAME}:${SHORT_SHA}"
+        sed "s|IMAGE_URL|${IMAGE}|" "${_SERVICE_CONFIG}" | \
+          gcloud run services replace --region="${_REGION}" /dev/stdin
 
 substitutions:
   _SERVICE_NAME: votrix-backend
+  _SERVICE_CONFIG: service.production.yaml
   _REPO: votrix
   _REGION: us-central1
 

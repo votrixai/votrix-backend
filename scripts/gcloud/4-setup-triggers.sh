@@ -24,7 +24,7 @@ gcloud builds triggers create github \
   --branch-pattern="^main$" \
   --build-config=cloudbuild.yaml \
   --name=deploy-production \
-  --substitutions=_SERVICE_NAME="${PRODUCTION_SERVICE}",_REPO="${REPOSITORY}",_REGION="${REGION}"
+  --substitutions=_SERVICE_NAME="${PRODUCTION_SERVICE}",_SERVICE_CONFIG="service.production.yaml",_REPO="${REPOSITORY}",_REGION="${REGION}"
 
 echo "Creating staging trigger (beta branch)..."
 gcloud builds triggers create github \
@@ -33,6 +33,6 @@ gcloud builds triggers create github \
   --branch-pattern="^beta$" \
   --build-config=cloudbuild.yaml \
   --name=deploy-staging \
-  --substitutions=_SERVICE_NAME="${STAGING_SERVICE}",_REPO="${REPOSITORY}",_REGION="${REGION}"
+  --substitutions=_SERVICE_NAME="${STAGING_SERVICE}",_SERVICE_CONFIG="service.staging.yaml",_REPO="${REPOSITORY}",_REGION="${REGION}"
 
 echo "Done. Triggers created."

@@ -27,10 +27,9 @@ This enables all required APIs (`run`, `secretmanager`, `cloudbuild`, `artifactr
 
 ### 1. Create secrets
 
-Create a `.env.production` file (do NOT commit this):
+Create `.env.production` and `.env.staging` files (do NOT commit these):
 
 ```
-APP_ENV=production
 DATABASE_URL=postgresql+asyncpg://user:pass@host:5432/dbname
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_SERVICE_KEY=eyJ...
@@ -40,10 +39,6 @@ APOLLO_API_KEY=...
 TAVILY_API_KEY=...
 FIRECRAWL_API_KEY=...
 SENTRY_DSN=...
-LOG_LEVEL=INFO
-DEBUG=false
-FORCE_REPROVISION=false
-GCS_BUCKET_NAME=votrixtestbucket
 ```
 
 Then run:
@@ -80,6 +75,8 @@ Then run:
 This creates two Cloud Build triggers:
 - Push to `main` → deploys `votrix-backend` (production)
 - Push to `beta` → deploys `votrix-backend-staging` (staging)
+
+The triggers apply the same `service.production.yaml` / `service.staging.yaml` manifests as the manual deploy scripts, so CI/CD and manual deploys stay in sync.
 
 ### 4. Allow public access
 
