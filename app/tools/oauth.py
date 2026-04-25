@@ -8,14 +8,13 @@ Behavior mirrors COMPOSIO_MANAGE_CONNECTIONS:
 
 from __future__ import annotations
 
-import logging
-
 import httpx
+import structlog
 
 from app.config import get_settings
 from app.integrations.composio import get_auth_config
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _API_BASE = "https://backend.composio.dev/api/v3"
 

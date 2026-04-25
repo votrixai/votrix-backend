@@ -6,9 +6,9 @@ Returns a public URL. Generation is async (polling) and takes 1-5 minutes.
 from __future__ import annotations
 
 import asyncio
-import logging
 
 import httpx
+import structlog
 
 from google import genai
 from google.genai import types as genai_types
@@ -16,7 +16,7 @@ from google.genai import types as genai_types
 from app.config import get_settings
 from app.storage import upload_video
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _MODEL = "veo-3.1-lite-generate-preview"
 _POLL_INTERVAL_S = 10

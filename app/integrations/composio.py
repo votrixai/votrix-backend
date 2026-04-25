@@ -10,14 +10,14 @@ MCP server lifecycle:
 
 from __future__ import annotations
 
-import logging
 from urllib.parse import quote
 
 import httpx
+import structlog
 
 from app.config import get_settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _MCP_BASE = "https://backend.composio.dev/v3/mcp"
 _API_BASE = "https://backend.composio.dev/api/v3"
