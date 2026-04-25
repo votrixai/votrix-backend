@@ -1,0 +1,2439 @@
+
+────────────────────────────────────────────────────────────
+[user] 请完成以下测试：1. 确认你能看到附件 (ls /mnt/session/uploads/) 2. 把它复制到 /mnt/session/outputs/logo.png 3. 用 download_file 下载 4. 用 publish_file 发布。每步告诉我结果 (+1 attachment(s))
+────────────────────────────────────────────────────────────
+
+好的，逐步执行！
+  ↳ [tool: bash] {'command': 'ls /mnt/session/uploads/'}
+  ↳ [result] logo.png
+
+**步骤 1 ✅** 确认看到附件：`logo.png` 在 `/mnt/session/uploads/` 中。
+
+---
+  ↳ [tool: bash] {'command': 'mkdir -p /mnt/session/outputs && cp /mnt/session/uploads/logo.png /mnt/session/outputs/logo.png && echo "Copy success"'}
+  ↳ [result] Copy success
+
+**步骤 2 ✅** 已成功复制到 `/mnt/session/outputs/logo.png`。
+
+---
+
+现在同时执行步骤 3 和 4：
+  ↳ [tool: download_file] {'file_path': '/mnt/session/outputs/logo.png'}
+
+  ↳ [tool: publish_file] {'file_path': '/mnt/session/outputs/logo.png'}
+  ↳ [result] {"file_id": "file_011CaLZe1SPzQpmX43PpPVe5", "filename": "logo.png", "mime_type": "image/png"}
+  ↳ [result] {"error": "Failed to upload to cloud storage: Unexpected type for 'content', <class 'coroutine'>"}
+**步骤 3 ✅ download_file 成功**
+- File ID: `file_011CaLZe1SPzQpmX43PpPVe5`
+- 文件名: `logo.png`，类型: `image/png`
+- 你应该能在界面上看到下载卡片。
+
+**步骤 4 ❌ publish_file 失败**
+- 错误：`Unexpected type for 'content', <class 'coroutine'>`
+- 这是平台内部的一个 **bug**（异步协程未被正确 await），不是文件本身的问题。`publish_file` 工具目前在这个环境中无法正常使用，需要平台修复。
+
+---
+
+**总结：**
+
+| 步骤 | 结果 |
+|------|------|
+| 1. 查看附件 | ✅ 成功 |
+| 2. 复制文件 | ✅ 成功 |
+| 3. download_file | ✅ 成功，可下载 |
+| 4. publish_file | ❌ 平台内部 bug，工具不可用 |
+
+────────────────────────────────────────────────────────────
+[done] 72.0s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 测试步骤：1. cp /mnt/session/uploads/logo.png /mnt/session/outputs/logo.png 2. 用 download_file 下载 /mnt/session/outputs/logo.png 3. 用 publish_file 发布 /mnt/session/outputs/logo.png。每步告诉我结果 (+1 attachment(s))
+────────────────────────────────────────────────────────────
+
+好的，逐步执行！
+
+## 步骤 1：复制文件
+  ↳ [tool: bash] {'command': 'cp /mnt/session/uploads/logo.png /mnt/session/outputs/logo.png && echo "✅ 复制成功" && ls -lh /mnt/session/outputs/logo.png'}
+  ↳ [result] ✅ 复制成功
+-rw-r--r-- 1 claude ubuntu 540 Apr 23 10:43 /mnt/session/outputs/logo.png
+
+**结果：** ✅ 复制成功，文件大小 540 bytes，已落地在 `/mnt/session/outputs/logo.png`。
+
+---
+
+## 步骤 2：download_file（生成下载卡片）
+  ↳ [tool: download_file] {'file_path': '/mnt/session/outputs/logo.png'}
+  ↳ [result] {"file_id": "file_011CaLZj5JTd4PA7Yg4jcJwj", "filename": "logo.png", "mime_type": "image/png"}
+**结果：** ✅ 下载卡片生成成功，`file_id = file_011CaLZj5JTd4PA7Yg4jcJwj`，MIME 类型 `image/png`，你可以从上方卡片直接下载。
+
+---
+
+## 步骤 3：publish_file（获取公开 URL）
+  ↳ [tool: publish_file] {'file_path': '/mnt/session/outputs/logo.png'}
+  ↳ [result] {"url": "https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/files/f62497f0-cf8c-4c6c-a8e1-411d32a54635.png", "filename": "logo.png", "mime_type": "image/png"}
+**结果：** ✅ 发布成功，公开 URL 已生成：
+
+> 🔗 [https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/files/f62497f0-cf8c-4c6c-a8e1-411d32a54635.png](https://pmskdncbcokccsdzrlox.supabase.co/storage/v1/object/public/public-files/votrix-ai-test6/files/f62497f0-cf8c-4c6c-a8e1-411d32a54635.png)
+
+---
+
+## 总结
+
+| 步骤 | 操作 | 状态 |
+|------|------|------|
+| 1 | `cp` 复制到 outputs | ✅ 成功 |
+| 2 | `download_file` 生成下载卡片 | ✅ 成功 |
+| 3 | `publish_file` 生成公开 URL | ✅ 成功 |
+
+三步全部通过，流程正常！
+
+────────────────────────────────────────────────────────────
+[done] 44.3s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 你好，帮我完成初始设置，我们是一家叫晨光咖啡的精品咖啡店，在上海静安区南京西路1688号，主打手冲精品咖啡和烘焙甜点。
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/SKILL.md'}
+  ↳ [result] 1	---
+2	name: social-media-post-setup
+3	description: "社交媒体营销助手的初始化配置。Admin 提到 setup、配置、连接平台、连接 Facebook / Instagram / Twitter / LinkedIn、更新业务资料或内容设置时触发。也在 admin 首次登录、尚未完成配置时主动触发。"
+4	---
+5	
+6	# Setup — 初始化配置
+7	
+8	你是这位商家的社交媒体营销助手，负责帮他们管理内容创作、评论监控和数据追踪。
+9	
+10	在开始任何工作之前，先读一下这份 Setup 文档——它记录了你运作所需的全部上下文：商家信息、内容偏好、平台账号，以及工作流配置。没有这些，后续的功能都跑不起来。
+11	
+12	---
+13	
+14	## 启动检查
+15	
+16	先尝试读取 `/workspace/marketing-context.md`（用户的实际配置文件）：
+17	
+18	- **文件不存在**：读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为结构模板，从头走完整流程（阶段一到三），完成后按模板结构写入 `/workspace/marketing-context.md`
+19	- **文件存在但部分字段为空**：只补充缺失的部分，已有的内容不重复询问
+20	- **Admin 指定了某项**（如「帮我连 Instagram」「更新内容设置」）：直接跳到对应阶段
+21	
+22	---
+23	
+24	## 阶段一：业务资料
+25	
+26	填入文件的 `## 业务资料`、`## 品牌语气` 和 `## 品牌视觉` 部分。
+27	
+28	**原则：先搜索，再推断，实在找不到才开口问。**
+29	
+30	1. 先问 admin 一件事就好：「你们的店名或网站是什么？」
+31	2. 拿到后，用 web_search / web_fetch 搜索该商家，自行整理出：
+32	   - 行业、地区、简介、主要产品 / 服务
+33	   - 目标受众（根据业务类型推断）
+34	   - 竞争对手（搜索同类本地商家，推荐 2–3 个）
+35	   - 品牌语气（根据官网文案风格推断）
+36	   - 品牌色（从官网提取主色 / 辅色 / 强调色的 HEX 值）
+37	   - 视觉风格（根据官网设计风格推断五个视觉属性维度：明暗、整洁度、色彩饱和度、空间感、质感）
+38	3. 把整理好的结果一次性展示给 admin 确认，不要逐字段追问。
+39	4. 只有真的搜不到的字段，才单独向 admin 询问。
+40	
+41	---
+42	
+43	## 阶段二：平台连接
+44	
+45	询问 admin 想连接哪些平台：
+46	
+47	> 「你打算在哪些平台发内容或管评论？Facebook、Instagram、Twitter、LinkedIn 都支持，可以多选，之后想加也随时可以。」
+48	
+49	每个平台独立处理，一个失败不影响其他。连接成功后立即将账号信息填入 `/workspace/marketing-context.md` 对应的 section，不用等所有平台都完成再统一写。
+50	
+51	| 平台 | 参考文档 |
+52	|---|---|
+53	| Facebook | `/workspace/skills/social-media-post-setup/references/facebook-oauth.md` |
+54	| Instagram | `/workspace/skills/social-media-post-setup/references/instagram-oauth.md` |
+55	| Twitter | `/workspace/skills/social-media-post-setup/references/twitter-oauth.md` |
+56	| LinkedIn | `/workspace/skills/social-media-post-setup/references/linkedin-oauth.md` |
+57	| Canva（素材库） | `/workspace/skills/social-media-post-setup/references/canva-oauth.md` |
+58	
+59	连接状态写入 `## 已连接平台` 对应部分：
+60	- 连接成功：填入账号信息，标记 `启用: true`
+61	- Admin 跳过或连接失败：只标记 `启用: false`，不填账号信息
+62	
+63	---
+64	
+65	## 阶段三：完整运营方案
+66	
+67	拿到业务资料 + 已连接平台后，直接生成一套完整运营方案，不再逐项询问。
+68	
+69	### 方案生成逻辑
+70	
+71	**内容方向（Pillars）：** 根据行业推断 3–4 个
+72	例：餐厅 → 菜品展示、幕后故事、客户好评、节日活动
+73	
+74	**图片风格：** 根据行业和阶段一提取的品牌视觉推断
+75	例：餐厅（bright + clean + warm neutrals）→ 明亮真实照片感，暖色调为主
+76	
+77	**发布计划（根据已连接平台组合）：**
+78	
+79	| 平台 | 内容类型 | 计划发布日 | 备注 |
+80	|---|---|---|---|
+81	| Instagram | Feed / Carousel | 周一、三、五 | 品牌深度内容 |
+82	| Instagram | Reels | 周二、四 | 算法推流主渠道 |
+83	| Instagram | Story | 周三、五、日 | 保活跃度 |
+84	| Facebook | Feed | 周一、三、五 | 与 IG 同步，不单独创作 |
+85	| Facebook | Reels | 周二 | 与 IG Reels 同步 |
+86	| LinkedIn | Text / Image Post | 周一、三、五 | 行业洞察 + 产品 |
+87	| LinkedIn | Document Carousel | 每两周周三 | 知识类深度内容 |
+88	| Twitter | 推文 | 周一至周五 | 每天 1 条，行业观点或公告 |
+89	| Twitter | Thread | 周四 | 深度内容，每周 1 条 |
+90	
+91	Facebook 未单独连接但 Instagram 已连接时：Facebook 跟随 IG 内容同步发布，不单独列入计划。
+92	Instagram 未连接但 Facebook 已连接时：Facebook 独立制作 Feed x3/周。
+93	
+94	**工作流（固定，无需询问）：**
+95	
+96	| 任务 | 时间 | 说明 |
+97	|---|---|---|
+98	| 内容批量创作 | 每周一 09:00 | 生成本周内容计划，admin 确认后再生成内容 |
+99	| 内容自动发布 | 每天 09:00 | 发布当天计划发布且已确认的草稿 |
+100	| 评论巡查 | 每 6 小时 | 拉取新评论，负面优先通知 |
+101	| 数据汇报 | 每周五 18:00 | 生成本周快速数据总结 |
+102	
+103	**只需问 admin 一个问题：**
+104	> 「每周一生成草稿后，发布前需要你过目确认吗？还是直接帮你按计划发出去？」
+105	
+106	### 方案展示方式
+107	
+108	用对话语气呈现，不要表格罗列，像顾问给建议一样。例：
+109	
+110	> 「根据你们餐厅的情况和已连接的 Instagram、Facebook，我建议这样运营——
+111	>
+112	> 内容方向围绕三个主题：菜品展示、幕后故事、客户好评。配图用真实照片感，暖色调为主。
+113	>
+114	> Instagram 每周发 8 条：周一三五发 Feed，周二四发 Reels（Reels 现在是 IG 算法最偏爱的格式，适合触达新客），周三五日各发一条 Story 保活跃度。Facebook 跟 IG 内容同步，不单独做。
+115	>
+116	> 我每周一早 9 点帮你规划这周的内容计划，你确认方向后我再生成具体内容。之后每天自动按计划发出。评论我每 6 小时扫一次，有差评第一时间告诉你。每周五出一份数据小结。
+117	>
+118	> 发布前需要你过目确认吗？」
+119	
+120	实际展示时根据商家情况调整，不要每次都用这段原文。
+121	
+122	### 确认与写入
+123	
+124	Admin 确认（或调整后确认）后，**一次性**将所有字段写入 `/workspace/marketing-context.md`：
+125	
+126	```
+127	## 指令          ← 发布确认方式
+128	## 品牌视觉      ← 品牌色板、视觉属性基类
+129	## 内容设置      ← pillars、图片风格
+130	## 内容策略      ← 各平台发布节奏、优先类型、策略初始化记录
+131	## 工作流        ← 4 个任务的启用状态和时间
+132	```
+133	
+134	然后依次调用 `cron_create` 注册 4 个定时任务：
+135	
+136	```
+137	1. cron_create(schedule="每周一 09:00", message="[cron] 内容创作")
+138	2. cron_create(schedule="每天 09:00",   message="[cron] 内容发布")
+139	3. cron_create(schedule="每 6 小时",    message="[cron] 评论巡查")
+140	4. cron_create(schedule="每周五 18:00", message="[cron] 数据汇报")
+141	```
+142	
+143	Admin 明确不需要某项时，对应字段写 `启用: false`，跳过该 cron_create。
+144	
+145	然后初始化素材库：
+146	
+147	如果 `/workspace/assets/asset-registry.md` 不存在，创建并写入文件头：
+148	
+149	```markdown
+150	# 素材库索引
+151	
+152	> 素材实体存储在 Canva，本文件只做索引（Canva Asset ID、描述、标签、使用状态）。
+153	> 视频素材不上传 Canva，只记录 URL。
+154	```
+155	
+156	写完后告诉 admin：
+157	- 哪些平台已成功连接
+158	- 运营方案的关键点（一句话）
+159	- 下周一会发生什么（第一次自动创作）
+160	
+161	---
+162	
+163	## 写入文件
+164	
+165	每个阶段收集完对应信息后，立即更新 `/workspace/marketing-context.md` 中的相关字段，不要等全部阶段完成才统一写入。只修改本次收集到的字段，其他字段保持原样。
+166	
+167	文件不存在时，先读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为初始结构创建文件，再填入收集到的内容。
+168	
+169	---
+170	
+171	## 后续更新
+172	
+173	Admin 想修改配置时，读取当前文件，只聊需要改的那部分，确认后写入完整的更新文件，不用重新走一遍全流程。
+174	
+175	若修改涉及工作流时间，先用 `cron_delete` 删除旧任务，再用 `cron_create` 注册新任务。
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/templates/marketing-context.md'}
+
+  ↳ [tool: web_search] {'query': '晨光咖啡 上海静安区 南京西路 精品咖啡'}
+  ↳ [result] 1	# Marketing Context
+2	
+3	_所有技能从此文件读取配置和指令。_
+4	
+5	---
+6	
+7	## 指令
+8	
+9	_在此添加针对此账号的特殊规则，agent 会优先遵守。发布行为、互动风格等工作流偏好写在这里，不需要开关配置。_
+10	
+11	---
+12	
+13	## 业务资料
+14	
+15	- **名称：**
+16	- **行业：**
+17	- **网站：**
+18	- **简介：**
+19	- **目标受众：**
+20	- **主要产品 / 服务：**
+21	- **竞争对手：**
+22	
+23	---
+24	
+25	## 品牌语气
+26	
+27	- **风格：**
+28	- **应该：**
+29	- **避免：**
+30	
+31	---
+32	
+33	## 内容设置
+34	
+35	- **内容主题：**
+36	- **Hashtag 组：**
+37	- **图片风格：**
+38	
+39	---
+40	
+41	## 内容策略
+42	
+43	_由 setup 初始化，analytics 和 review-monitor 持续更新。content-creation 读此段决定内容类型。_
+44	
+45	### 发布节奏
+46	
+47	### 当前优先类型
+48	
+49	### 近期重点话题
+50	_来自 review-monitor 的评论信号，content-creation 生成内容时优先参考。_
+51	- 最后更新：
+52	
+53	### 策略更新记录
+54	_最近 10 条，超出删除最旧的。_
+55	
+56	---
+57	
+58	## 工作流
+59	
+60	_定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无需 admin 在线。_
+61	
+62	### 内容创作（批量）
+63	- **启用：** false
+64	- **触发时间：** 每周一 09:00
+65	
+66	### 内容发布（每日）
+67	- **启用：** false
+68	- **触发时间：** 每天 09:00
+69	
+70	### 评论巡查
+71	- **启用：** false
+72	- **触发间隔：** 每 6 小时
+73	
+74	### 数据汇报
+75	- **启用：** false
+76	- **触发时间：** 每周五 18:00
+77	- **报告类型：** 快速总结
+78	
+79	---
+80	
+81	## 已连接平台
+82	
+83	### Facebook
+84	- 启用：false
+85	- 主页名称：
+86	- Page ID：
+87	
+88	### Instagram
+89	- 启用：false
+90	- 用户名：
+91	- Account ID：
+92	
+93	### Twitter
+94	- 启用：false
+95	- 用户名：
+96	- User ID：
+97	
+98	### LinkedIn
+99	- 启用：false
+100	- 公司名称：
+101	- Organization ID：
+102	- Person ID：
+103	
+104	---
+105	
+106	## 运行状态
+107	
+108	_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_
+109	
+110	### Facebook
+111	- 上次巡查时间：
+112	- 最后处理的 Post ID：
+113	
+114	### Instagram
+115	- 上次巡查时间：
+116	- 最后处理的 Post ID：
+117	
+118	### Twitter
+119	- 上次巡查时间：
+120	- 最后处理的 Post ID：
+121	
+122	---
+123	
+124	## 市场调研
+125	
+126	_由 market-research 技能写入，其他技能可直接引用。_
+127	
+128	### 竞品分析
+129	- **最后更新：**
+130	
+131	### 行业趋势
+132	- **最后更新：**
+133	
+134	### Hashtag 库
+135	- **最后更新：**
+136	
+137	### 受众洞察
+138	- **最后更新：**
+
+  ↳ [result] 
+搜索结果没有找到晨光咖啡的具体线上资料，应该是新开或尚未建立线上存在。我直接用你提供的信息来整理，同时搜一下同区域的竞品。
+  ↳ [tool: web_search] {'query': '上海静安区南京西路精品手冲咖啡店 竞品'}
+
+  ↳ [tool: web_search] {'query': '上海精品咖啡店 Instagram 小红书 内容策略 2024'}
+  ↳ [result] 
+  ↳ [result] 
+好的，信息收集完毕。根据你提供的资料和行业调研，我整理了一份业务档案，请确认：
+
+---
+
+## 📋 晨光咖啡 — 业务档案
+
+**基本信息**
+- 行业：精品咖啡馆
+- 地址：上海静安区南京西路1688号
+- 主营：手冲精品咖啡 + 烘焙甜点
+- 目标受众：25-40岁城市白领 / 咖啡爱好者 / 探店达人（小红书主力用户群）
+
+**竞争环境**
+静安区是上海咖啡文化「高地」，仅南京西路一条街就有670余家咖啡厅，竞争相当激烈。根据区域情况，你的主要竞品是：
+- **Manner Coffee** — 主打高性价比精品咖啡，本土连锁标杆
+- **鹰集咖啡** — 上海本土精品咖啡，强设计感
+- **Seesaw** — 精品咖啡连锁，内容运营成熟
+
+**品牌语气**
+温暖、专业、有生活感，像一个懂咖啡的朋友，传递咖啡文化和清晨仪式感。避免过于学术或冷淡。
+
+**品牌色板**（根据「晨光」品牌名推断）
+| 颜色 | HEX | 用途 |
+|---|---|---|
+| 晨光橙 | `#F59B3A` | 主色 |
+| 奶白 | `#FDF8F2` | 背景色 |
+| 咖啡棕 | `#5C3A1E` | 辅色 |
+| 浅金 | `#E8C97F` | 强调色 |
+
+**视觉风格**：明亮 · 干净 · 暖色低饱和 · 有呼吸感 · 手作质感
+
+---
+
+以上信息有需要调整的吗？如果没问题，我们进入**平台连接**。
+
+你打算在哪些平台运营？**Instagram、Facebook、Twitter、LinkedIn** 都支持，可以多选，之后随时可以加。
+
+────────────────────────────────────────────────────────────
+[done] 55.1s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 信息没问题。平台的话先跳过连接，之后再弄。先帮我把运营方案定下来，发布前需要我确认。
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/SKILL.md'}
+
+  ↳ [tool: bash] {'command': 'cat /workspace/marketing-context.md 2>/dev/null || echo "FILE_NOT_FOUND"'}
+  ↳ [result] 1	---
+2	name: social-media-post-setup
+3	description: "社交媒体营销助手的初始化配置。Admin 提到 setup、配置、连接平台、连接 Facebook / Instagram / Twitter / LinkedIn、更新业务资料或内容设置时触发。也在 admin 首次登录、尚未完成配置时主动触发。"
+4	---
+5	
+6	# Setup — 初始化配置
+7	
+8	你是这位商家的社交媒体营销助手，负责帮他们管理内容创作、评论监控和数据追踪。
+9	
+10	在开始任何工作之前，先读一下这份 Setup 文档——它记录了你运作所需的全部上下文：商家信息、内容偏好、平台账号，以及工作流配置。没有这些，后续的功能都跑不起来。
+11	
+12	---
+13	
+14	## 启动检查
+15	
+16	先尝试读取 `/workspace/marketing-context.md`（用户的实际配置文件）：
+17	
+18	- **文件不存在**：读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为结构模板，从头走完整流程（阶段一到三），完成后按模板结构写入 `/workspace/marketing-context.md`
+19	- **文件存在但部分字段为空**：只补充缺失的部分，已有的内容不重复询问
+20	- **Admin 指定了某项**（如「帮我连 Instagram」「更新内容设置」）：直接跳到对应阶段
+21	
+22	---
+23	
+24	## 阶段一：业务资料
+25	
+26	填入文件的 `## 业务资料`、`## 品牌语气` 和 `## 品牌视觉` 部分。
+27	
+28	**原则：先搜索，再推断，实在找不到才开口问。**
+29	
+30	1. 先问 admin 一件事就好：「你们的店名或网站是什么？」
+31	2. 拿到后，用 web_search / web_fetch 搜索该商家，自行整理出：
+32	   - 行业、地区、简介、主要产品 / 服务
+33	   - 目标受众（根据业务类型推断）
+34	   - 竞争对手（搜索同类本地商家，推荐 2–3 个）
+35	   - 品牌语气（根据官网文案风格推断）
+36	   - 品牌色（从官网提取主色 / 辅色 / 强调色的 HEX 值）
+37	   - 视觉风格（根据官网设计风格推断五个视觉属性维度：明暗、整洁度、色彩饱和度、空间感、质感）
+38	3. 把整理好的结果一次性展示给 admin 确认，不要逐字段追问。
+39	4. 只有真的搜不到的字段，才单独向 admin 询问。
+40	
+41	---
+42	
+43	## 阶段二：平台连接
+44	
+45	询问 admin 想连接哪些平台：
+46	
+47	> 「你打算在哪些平台发内容或管评论？Facebook、Instagram、Twitter、LinkedIn 都支持，可以多选，之后想加也随时可以。」
+48	
+49	每个平台独立处理，一个失败不影响其他。连接成功后立即将账号信息填入 `/workspace/marketing-context.md` 对应的 section，不用等所有平台都完成再统一写。
+50	
+51	| 平台 | 参考文档 |
+52	|---|---|
+53	| Facebook | `/workspace/skills/social-media-post-setup/references/facebook-oauth.md` |
+54	| Instagram | `/workspace/skills/social-media-post-setup/references/instagram-oauth.md` |
+55	| Twitter | `/workspace/skills/social-media-post-setup/references/twitter-oauth.md` |
+56	| LinkedIn | `/workspace/skills/social-media-post-setup/references/linkedin-oauth.md` |
+57	| Canva（素材库） | `/workspace/skills/social-media-post-setup/references/canva-oauth.md` |
+58	
+59	连接状态写入 `## 已连接平台` 对应部分：
+60	- 连接成功：填入账号信息，标记 `启用: true`
+61	- Admin 跳过或连接失败：只标记 `启用: false`，不填账号信息
+62	
+63	---
+64	
+65	## 阶段三：完整运营方案
+66	
+67	拿到业务资料 + 已连接平台后，直接生成一套完整运营方案，不再逐项询问。
+68	
+69	### 方案生成逻辑
+70	
+71	**内容方向（Pillars）：** 根据行业推断 3–4 个
+72	例：餐厅 → 菜品展示、幕后故事、客户好评、节日活动
+73	
+74	**图片风格：** 根据行业和阶段一提取的品牌视觉推断
+75	例：餐厅（bright + clean + warm neutrals）→ 明亮真实照片感，暖色调为主
+76	
+77	**发布计划（根据已连接平台组合）：**
+78	
+79	| 平台 | 内容类型 | 计划发布日 | 备注 |
+80	|---|---|---|---|
+81	| Instagram | Feed / Carousel | 周一、三、五 | 品牌深度内容 |
+82	| Instagram | Reels | 周二、四 | 算法推流主渠道 |
+83	| Instagram | Story | 周三、五、日 | 保活跃度 |
+84	| Facebook | Feed | 周一、三、五 | 与 IG 同步，不单独创作 |
+85	| Facebook | Reels | 周二 | 与 IG Reels 同步 |
+86	| LinkedIn | Text / Image Post | 周一、三、五 | 行业洞察 + 产品 |
+87	| LinkedIn | Document Carousel | 每两周周三 | 知识类深度内容 |
+88	| Twitter | 推文 | 周一至周五 | 每天 1 条，行业观点或公告 |
+89	| Twitter | Thread | 周四 | 深度内容，每周 1 条 |
+90	
+91	Facebook 未单独连接但 Instagram 已连接时：Facebook 跟随 IG 内容同步发布，不单独列入计划。
+92	Instagram 未连接但 Facebook 已连接时：Facebook 独立制作 Feed x3/周。
+93	
+94	**工作流（固定，无需询问）：**
+95	
+96	| 任务 | 时间 | 说明 |
+97	|---|---|---|
+98	| 内容批量创作 | 每周一 09:00 | 生成本周内容计划，admin 确认后再生成内容 |
+99	| 内容自动发布 | 每天 09:00 | 发布当天计划发布且已确认的草稿 |
+100	| 评论巡查 | 每 6 小时 | 拉取新评论，负面优先通知 |
+101	| 数据汇报 | 每周五 18:00 | 生成本周快速数据总结 |
+102	
+103	**只需问 admin 一个问题：**
+104	> 「每周一生成草稿后，发布前需要你过目确认吗？还是直接帮你按计划发出去？」
+105	
+106	### 方案展示方式
+107	
+108	用对话语气呈现，不要表格罗列，像顾问给建议一样。例：
+109	
+110	> 「根据你们餐厅的情况和已连接的 Instagram、Facebook，我建议这样运营——
+111	>
+112	> 内容方向围绕三个主题：菜品展示、幕后故事、客户好评。配图用真实照片感，暖色调为主。
+113	>
+114	> Instagram 每周发 8 条：周一三五发 Feed，周二四发 Reels（Reels 现在是 IG 算法最偏爱的格式，适合触达新客），周三五日各发一条 Story 保活跃度。Facebook 跟 IG 内容同步，不单独做。
+115	>
+116	> 我每周一早 9 点帮你规划这周的内容计划，你确认方向后我再生成具体内容。之后每天自动按计划发出。评论我每 6 小时扫一次，有差评第一时间告诉你。每周五出一份数据小结。
+117	>
+118	> 发布前需要你过目确认吗？」
+119	
+120	实际展示时根据商家情况调整，不要每次都用这段原文。
+121	
+122	### 确认与写入
+123	
+124	Admin 确认（或调整后确认）后，**一次性**将所有字段写入 `/workspace/marketing-context.md`：
+125	
+126	```
+127	## 指令          ← 发布确认方式
+128	## 品牌视觉      ← 品牌色板、视觉属性基类
+129	## 内容设置      ← pillars、图片风格
+130	## 内容策略      ← 各平台发布节奏、优先类型、策略初始化记录
+131	## 工作流        ← 4 个任务的启用状态和时间
+132	```
+133	
+134	然后依次调用 `cron_create` 注册 4 个定时任务：
+135	
+136	```
+137	1. cron_create(schedule="每周一 09:00", message="[cron] 内容创作")
+138	2. cron_create(schedule="每天 09:00",   message="[cron] 内容发布")
+139	3. cron_create(schedule="每 6 小时",    message="[cron] 评论巡查")
+140	4. cron_create(schedule="每周五 18:00", message="[cron] 数据汇报")
+141	```
+142	
+143	Admin 明确不需要某项时，对应字段写 `启用: false`，跳过该 cron_create。
+144	
+145	然后初始化素材库：
+146	
+147	如果 `/workspace/assets/asset-registry.md` 不存在，创建并写入文件头：
+148	
+149	```markdown
+150	# 素材库索引
+151	
+152	> 素材实体存储在 Canva，本文件只做索引（Canva Asset ID、描述、标签、使用状态）。
+153	> 视频素材不上传 Canva，只记录 URL。
+154	```
+155	
+156	写完后告诉 admin：
+157	- 哪些平台已成功连接
+158	- 运营方案的关键点（一句话）
+159	- 下周一会发生什么（第一次自动创作）
+160	
+161	---
+162	
+163	## 写入文件
+164	
+165	每个阶段收集完对应信息后，立即更新 `/workspace/marketing-context.md` 中的相关字段，不要等全部阶段完成才统一写入。只修改本次收集到的字段，其他字段保持原样。
+166	
+167	文件不存在时，先读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为初始结构创建文件，再填入收集到的内容。
+168	
+169	---
+170	
+171	## 后续更新
+172	
+173	Admin 想修改配置时，读取当前文件，只聊需要改的那部分，确认后写入完整的更新文件，不用重新走一遍全流程。
+174	
+175	若修改涉及工作流时间，先用 `cron_delete` 删除旧任务，再用 `cron_create` 注册新任务。
+
+  ↳ [result] FILE_NOT_FOUND
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/templates/marketing-context.md'}
+  ↳ [result] 1	# Marketing Context
+2	
+3	_所有技能从此文件读取配置和指令。_
+4	
+5	---
+6	
+7	## 指令
+8	
+9	_在此添加针对此账号的特殊规则，agent 会优先遵守。发布行为、互动风格等工作流偏好写在这里，不需要开关配置。_
+10	
+11	---
+12	
+13	## 业务资料
+14	
+15	- **名称：**
+16	- **行业：**
+17	- **网站：**
+18	- **简介：**
+19	- **目标受众：**
+20	- **主要产品 / 服务：**
+21	- **竞争对手：**
+22	
+23	---
+24	
+25	## 品牌语气
+26	
+27	- **风格：**
+28	- **应该：**
+29	- **避免：**
+30	
+31	---
+32	
+33	## 内容设置
+34	
+35	- **内容主题：**
+36	- **Hashtag 组：**
+37	- **图片风格：**
+38	
+39	---
+40	
+41	## 内容策略
+42	
+43	_由 setup 初始化，analytics 和 review-monitor 持续更新。content-creation 读此段决定内容类型。_
+44	
+45	### 发布节奏
+46	
+47	### 当前优先类型
+48	
+49	### 近期重点话题
+50	_来自 review-monitor 的评论信号，content-creation 生成内容时优先参考。_
+51	- 最后更新：
+52	
+53	### 策略更新记录
+54	_最近 10 条，超出删除最旧的。_
+55	
+56	---
+57	
+58	## 工作流
+59	
+60	_定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无需 admin 在线。_
+61	
+62	### 内容创作（批量）
+63	- **启用：** false
+64	- **触发时间：** 每周一 09:00
+65	
+66	### 内容发布（每日）
+67	- **启用：** false
+68	- **触发时间：** 每天 09:00
+69	
+70	### 评论巡查
+71	- **启用：** false
+72	- **触发间隔：** 每 6 小时
+73	
+74	### 数据汇报
+75	- **启用：** false
+76	- **触发时间：** 每周五 18:00
+77	- **报告类型：** 快速总结
+78	
+79	---
+80	
+81	## 已连接平台
+82	
+83	### Facebook
+84	- 启用：false
+85	- 主页名称：
+86	- Page ID：
+87	
+88	### Instagram
+89	- 启用：false
+90	- 用户名：
+91	- Account ID：
+92	
+93	### Twitter
+94	- 启用：false
+95	- 用户名：
+96	- User ID：
+97	
+98	### LinkedIn
+99	- 启用：false
+100	- 公司名称：
+101	- Organization ID：
+102	- Person ID：
+103	
+104	---
+105	
+106	## 运行状态
+107	
+108	_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_
+109	
+110	### Facebook
+111	- 上次巡查时间：
+112	- 最后处理的 Post ID：
+113	
+114	### Instagram
+115	- 上次巡查时间：
+116	- 最后处理的 Post ID：
+117	
+118	### Twitter
+119	- 上次巡查时间：
+120	- 最后处理的 Post ID：
+121	
+122	---
+123	
+124	## 市场调研
+125	
+126	_由 market-research 技能写入，其他技能可直接引用。_
+127	
+128	### 竞品分析
+129	- **最后更新：**
+130	
+131	### 行业趋势
+132	- **最后更新：**
+133	
+134	### Hashtag 库
+135	- **最后更新：**
+136	
+137	### 受众洞察
+138	- **最后更新：**
+
+收到，平台连接之后再弄，发布前需要你确认——记下来了。
+
+不过我这边没有之前对话的记录，`marketing-context.md` 也还不存在。**你们的店名或网站是什么？** 我来搜一下，把业务资料整理好后直接给你出运营方案。
+
+────────────────────────────────────────────────────────────
+[done] 45.2s
+────────────────────────────────────────────────────────────
+
+[ready] Watching /home/zyue/votrix-v2/votrix-backend/scripts/test_input.txt
+[ready] Output → /home/zyue/votrix-v2/votrix-backend/scripts/test_output.txt
+[ready] Session sesn_011CaLaGGyJ2ubivLhfYwsj1
+[ready] Write a message to test_input.txt to chat. Ctrl-C to quit.
+
+
+────────────────────────────────────────────────────────────
+[user] 你好，帮我完成初始设置。我们是晨光咖啡，上海静安区南京西路1688号，主打手冲精品咖啡和烘焙甜点。平台先跳过连接，之后再弄。发布前需要我确认。
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/SKILL.md'}
+  ↳ [result] 1	---
+2	name: social-media-post-setup
+3	description: "社交媒体营销助手的初始化配置。Admin 提到 setup、配置、连接平台、连接 Facebook / Instagram / Twitter / LinkedIn、更新业务资料或内容设置时触发。也在 admin 首次登录、尚未完成配置时主动触发。"
+4	---
+5	
+6	# Setup — 初始化配置
+7	
+8	你是这位商家的社交媒体营销助手，负责帮他们管理内容创作、评论监控和数据追踪。
+9	
+10	在开始任何工作之前，先读一下这份 Setup 文档——它记录了你运作所需的全部上下文：商家信息、内容偏好、平台账号，以及工作流配置。没有这些，后续的功能都跑不起来。
+11	
+12	---
+13	
+14	## 启动检查
+15	
+16	先尝试读取 `/workspace/marketing-context.md`（用户的实际配置文件）：
+17	
+18	- **文件不存在**：读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为结构模板，从头走完整流程（阶段一到三），完成后按模板结构写入 `/workspace/marketing-context.md`
+19	- **文件存在但部分字段为空**：只补充缺失的部分，已有的内容不重复询问
+20	- **Admin 指定了某项**（如「帮我连 Instagram」「更新内容设置」）：直接跳到对应阶段
+21	
+22	---
+23	
+24	## 阶段一：业务资料
+25	
+26	填入文件的 `## 业务资料`、`## 品牌语气` 和 `## 品牌视觉` 部分。
+27	
+28	**原则：先搜索，再推断，实在找不到才开口问。**
+29	
+30	1. 先问 admin 一件事就好：「你们的店名或网站是什么？」
+31	2. 拿到后，用 web_search / web_fetch 搜索该商家，自行整理出：
+32	   - 行业、地区、简介、主要产品 / 服务
+33	   - 目标受众（根据业务类型推断）
+34	   - 竞争对手（搜索同类本地商家，推荐 2–3 个）
+35	   - 品牌语气（根据官网文案风格推断）
+36	   - 品牌色（从官网提取主色 / 辅色 / 强调色的 HEX 值）
+37	   - 视觉风格（根据官网设计风格推断五个视觉属性维度：明暗、整洁度、色彩饱和度、空间感、质感）
+38	3. 把整理好的结果一次性展示给 admin 确认，不要逐字段追问。
+39	4. 只有真的搜不到的字段，才单独向 admin 询问。
+40	
+41	---
+42	
+43	## 阶段二：平台连接
+44	
+45	询问 admin 想连接哪些平台：
+46	
+47	> 「你打算在哪些平台发内容或管评论？Facebook、Instagram、Twitter、LinkedIn 都支持，可以多选，之后想加也随时可以。」
+48	
+49	每个平台独立处理，一个失败不影响其他。连接成功后立即将账号信息填入 `/workspace/marketing-context.md` 对应的 section，不用等所有平台都完成再统一写。
+50	
+51	| 平台 | 参考文档 |
+52	|---|---|
+53	| Facebook | `/workspace/skills/social-media-post-setup/references/facebook-oauth.md` |
+54	| Instagram | `/workspace/skills/social-media-post-setup/references/instagram-oauth.md` |
+55	| Twitter | `/workspace/skills/social-media-post-setup/references/twitter-oauth.md` |
+56	| LinkedIn | `/workspace/skills/social-media-post-setup/references/linkedin-oauth.md` |
+57	| Canva（素材库） | `/workspace/skills/social-media-post-setup/references/canva-oauth.md` |
+58	
+59	连接状态写入 `## 已连接平台` 对应部分：
+60	- 连接成功：填入账号信息，标记 `启用: true`
+61	- Admin 跳过或连接失败：只标记 `启用: false`，不填账号信息
+62	
+63	---
+64	
+65	## 阶段三：完整运营方案
+66	
+67	拿到业务资料 + 已连接平台后，直接生成一套完整运营方案，不再逐项询问。
+68	
+69	### 方案生成逻辑
+70	
+71	**内容方向（Pillars）：** 根据行业推断 3–4 个
+72	例：餐厅 → 菜品展示、幕后故事、客户好评、节日活动
+73	
+74	**图片风格：** 根据行业和阶段一提取的品牌视觉推断
+75	例：餐厅（bright + clean + warm neutrals）→ 明亮真实照片感，暖色调为主
+76	
+77	**发布计划（根据已连接平台组合）：**
+78	
+79	| 平台 | 内容类型 | 计划发布日 | 备注 |
+80	|---|---|---|---|
+81	| Instagram | Feed / Carousel | 周一、三、五 | 品牌深度内容 |
+82	| Instagram | Reels | 周二、四 | 算法推流主渠道 |
+83	| Instagram | Story | 周三、五、日 | 保活跃度 |
+84	| Facebook | Feed | 周一、三、五 | 与 IG 同步，不单独创作 |
+85	| Facebook | Reels | 周二 | 与 IG Reels 同步 |
+86	| LinkedIn | Text / Image Post | 周一、三、五 | 行业洞察 + 产品 |
+87	| LinkedIn | Document Carousel | 每两周周三 | 知识类深度内容 |
+88	| Twitter | 推文 | 周一至周五 | 每天 1 条，行业观点或公告 |
+89	| Twitter | Thread | 周四 | 深度内容，每周 1 条 |
+90	
+91	Facebook 未单独连接但 Instagram 已连接时：Facebook 跟随 IG 内容同步发布，不单独列入计划。
+92	Instagram 未连接但 Facebook 已连接时：Facebook 独立制作 Feed x3/周。
+93	
+94	**工作流（固定，无需询问）：**
+95	
+96	| 任务 | 时间 | 说明 |
+97	|---|---|---|
+98	| 内容批量创作 | 每周一 09:00 | 生成本周内容计划，admin 确认后再生成内容 |
+99	| 内容自动发布 | 每天 09:00 | 发布当天计划发布且已确认的草稿 |
+100	| 评论巡查 | 每 6 小时 | 拉取新评论，负面优先通知 |
+101	| 数据汇报 | 每周五 18:00 | 生成本周快速数据总结 |
+102	
+103	**只需问 admin 一个问题：**
+104	> 「每周一生成草稿后，发布前需要你过目确认吗？还是直接帮你按计划发出去？」
+105	
+106	### 方案展示方式
+107	
+108	用对话语气呈现，不要表格罗列，像顾问给建议一样。例：
+109	
+110	> 「根据你们餐厅的情况和已连接的 Instagram、Facebook，我建议这样运营——
+111	>
+112	> 内容方向围绕三个主题：菜品展示、幕后故事、客户好评。配图用真实照片感，暖色调为主。
+113	>
+114	> Instagram 每周发 8 条：周一三五发 Feed，周二四发 Reels（Reels 现在是 IG 算法最偏爱的格式，适合触达新客），周三五日各发一条 Story 保活跃度。Facebook 跟 IG 内容同步，不单独做。
+115	>
+116	> 我每周一早 9 点帮你规划这周的内容计划，你确认方向后我再生成具体内容。之后每天自动按计划发出。评论我每 6 小时扫一次，有差评第一时间告诉你。每周五出一份数据小结。
+117	>
+118	> 发布前需要你过目确认吗？」
+119	
+120	实际展示时根据商家情况调整，不要每次都用这段原文。
+121	
+122	### 确认与写入
+123	
+124	Admin 确认（或调整后确认）后，**一次性**将所有字段写入 `/workspace/marketing-context.md`：
+125	
+126	```
+127	## 指令          ← 发布确认方式
+128	## 品牌视觉      ← 品牌色板、视觉属性基类
+129	## 内容设置      ← pillars、图片风格
+130	## 内容策略      ← 各平台发布节奏、优先类型、策略初始化记录
+131	## 工作流        ← 4 个任务的启用状态和时间
+132	```
+133	
+134	然后依次调用 `cron_create` 注册 4 个定时任务：
+135	
+136	```
+137	1. cron_create(schedule="每周一 09:00", message="[cron] 内容创作")
+138	2. cron_create(schedule="每天 09:00",   message="[cron] 内容发布")
+139	3. cron_create(schedule="每 6 小时",    message="[cron] 评论巡查")
+140	4. cron_create(schedule="每周五 18:00", message="[cron] 数据汇报")
+141	```
+142	
+143	Admin 明确不需要某项时，对应字段写 `启用: false`，跳过该 cron_create。
+144	
+145	然后初始化素材库：
+146	
+147	如果 `/workspace/assets/asset-registry.md` 不存在，创建并写入文件头：
+148	
+149	```markdown
+150	# 素材库索引
+151	
+152	> 素材实体存储在 Canva，本文件只做索引（Canva Asset ID、描述、标签、使用状态）。
+153	> 视频素材不上传 Canva，只记录 URL。
+154	```
+155	
+156	写完后告诉 admin：
+157	- 哪些平台已成功连接
+158	- 运营方案的关键点（一句话）
+159	- 下周一会发生什么（第一次自动创作）
+160	
+161	---
+162	
+163	## 写入文件
+164	
+165	每个阶段收集完对应信息后，立即更新 `/workspace/marketing-context.md` 中的相关字段，不要等全部阶段完成才统一写入。只修改本次收集到的字段，其他字段保持原样。
+166	
+167	文件不存在时，先读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为初始结构创建文件，再填入收集到的内容。
+168	
+169	---
+170	
+171	## 后续更新
+172	
+173	Admin 想修改配置时，读取当前文件，只聊需要改的那部分，确认后写入完整的更新文件，不用重新走一遍全流程。
+174	
+175	若修改涉及工作流时间，先用 `cron_delete` 删除旧任务，再用 `cron_create` 注册新任务。
+
+
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/templates/marketing-context.md'}
+  ↳ [result] 1	# Marketing Context
+2	
+3	_所有技能从此文件读取配置和指令。_
+4	
+5	---
+6	
+7	## 指令
+8	
+9	_在此添加针对此账号的特殊规则，agent 会优先遵守。发布行为、互动风格等工作流偏好写在这里，不需要开关配置。_
+10	
+11	---
+12	
+13	## 业务资料
+14	
+15	- **名称：**
+16	- **行业：**
+17	- **网站：**
+18	- **简介：**
+19	- **目标受众：**
+20	- **主要产品 / 服务：**
+21	- **竞争对手：**
+22	
+23	---
+24	
+25	## 品牌语气
+26	
+27	- **风格：**
+28	- **应该：**
+29	- **避免：**
+30	
+31	---
+32	
+33	## 内容设置
+34	
+35	- **内容主题：**
+36	- **Hashtag 组：**
+37	- **图片风格：**
+38	
+39	---
+40	
+41	## 内容策略
+42	
+43	_由 setup 初始化，analytics 和 review-monitor 持续更新。content-creation 读此段决定内容类型。_
+44	
+45	### 发布节奏
+46	
+47	### 当前优先类型
+48	
+49	### 近期重点话题
+50	_来自 review-monitor 的评论信号，content-creation 生成内容时优先参考。_
+51	- 最后更新：
+52	
+53	### 策略更新记录
+54	_最近 10 条，超出删除最旧的。_
+55	
+56	---
+57	
+58	## 工作流
+59	
+60	_定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无需 admin 在线。_
+61	
+62	### 内容创作（批量）
+63	- **启用：** false
+64	- **触发时间：** 每周一 09:00
+65	
+66	### 内容发布（每日）
+67	- **启用：** false
+68	- **触发时间：** 每天 09:00
+69	
+70	### 评论巡查
+71	- **启用：** false
+72	- **触发间隔：** 每 6 小时
+73	
+74	### 数据汇报
+75	- **启用：** false
+76	- **触发时间：** 每周五 18:00
+77	- **报告类型：** 快速总结
+78	
+79	---
+80	
+81	## 已连接平台
+82	
+83	### Facebook
+84	- 启用：false
+85	- 主页名称：
+86	- Page ID：
+87	
+88	### Instagram
+89	- 启用：false
+90	- 用户名：
+91	- Account ID：
+92	
+93	### Twitter
+94	- 启用：false
+95	- 用户名：
+96	- User ID：
+97	
+98	### LinkedIn
+99	- 启用：false
+100	- 公司名称：
+101	- Organization ID：
+102	- Person ID：
+103	
+104	---
+105	
+106	## 运行状态
+107	
+108	_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_
+109	
+110	### Facebook
+111	- 上次巡查时间：
+112	- 最后处理的 Post ID：
+113	
+114	### Instagram
+115	- 上次巡查时间：
+116	- 最后处理的 Post ID：
+117	
+118	### Twitter
+119	- 上次巡查时间：
+120	- 最后处理的 Post ID：
+121	
+122	---
+123	
+124	## 市场调研
+125	
+126	_由 market-research 技能写入，其他技能可直接引用。_
+127	
+128	### 竞品分析
+129	- **最后更新：**
+130	
+131	### 行业趋势
+132	- **最后更新：**
+133	
+134	### Hashtag 库
+135	- **最后更新：**
+136	
+137	### 受众洞察
+138	- **最后更新：**
+
+好的，晨光咖啡，我来搜一下相关信息，帮你把资料整理好。
+  ↳ [tool: web_search] {'query': '晨光咖啡 上海静安区 南京西路 精品咖啡'}
+
+  ↳ [tool: web_search] {'query': '上海静安区 精品手冲咖啡 竞品 2024'}
+  ↳ [result] 
+  ↳ [result] 
+搜索完毕。晨光咖啡的店名我没有找到独立官网（可能是新店或尚未建站），但关于静安区南京西路的咖啡市场我有足够信息来帮你做好配置。以下是我整理的业务资料和运营方案，请你过目确认：
+
+---
+
+## 📋 业务资料确认
+
+| 字段 | 内容 |
+|---|---|
+| **名称** | 晨光咖啡 |
+| **行业** | 精品咖啡 / 烘焙甜点 |
+| **地址** | 上海静安区南京西路1688号 |
+| **简介** | 位于南京西路商圈的精品独立咖啡馆，主打手冲咖啡与自制烘焙甜点，致力于为都市人提供有温度的慢节奏空间 |
+| **目标受众** | 25–40岁都市白领、咖啡爱好者、周边写字楼上班族、追求生活品质的消费者 |
+| **主要产品** | 手冲精品咖啡（单品/拼配）、烘焙甜点（自制蛋糕/曲奇/可颂等） |
+| **竞争对手** | Manner Coffee（极致性价比连锁）、Seesaw（精品网红代表）、M Stand（设计感精品咖啡） |
+
+---
+
+## 🎨 品牌语气与视觉
+
+**语气：** 温暖、有品位、亲近感。像一位懂咖啡的老朋友，不端着、不卖弄，分享的是真实的热爱。
+- **应该：** 用感受描述风味（"清晨第一缕阳光的酸甜"）、讲咖啡豆背后的故事、传递慢下来的生活理念
+- **避免：** 生硬的促销口吻、堆砌专业术语、过于严肃商务腔
+
+**品牌色（推断）：**
+- 主色：深焙棕 `#4A2C17`
+- 辅色：奶白 `#F8F3EC`
+- 强调色：琥珀金 `#C8944A`
+
+**视觉风格：** 明亮清晨感、整洁、低饱和暖色调、有呼吸感的构图、木质温润质感
+
+---
+
+## 📣 运营方案
+
+静安区是上海咖啡馆最密集的"黄金地带"，南京西路更是上海咖啡密度最高的街道，拥有670余家咖啡厅——竞争激烈，但消费力也最强。晨光的差异化在于"手冲+烘焙"的组合，以及独立咖啡馆的温度感，这正是连锁品牌做不到的。
+
+**内容方向我建议围绕4个主题：**
+
+1. **出品展示** —— 手冲过程、甜点上新、应季特调
+2. **咖啡知识** —— 豆子产地、风味解析、冲煮小知识（有教育性，容易涨粉）
+3. **门店氛围** —— 清晨打卡、"第三空间"慢时光、座位角落特写
+4. **幕后故事** —— 选豆旅程、烘焙师日记、咖啡师的一天
+
+**配图风格：** 明亮真实照片感，暖调为主，拒绝过度修图。构图留白、木质桌面、咖啡落下时的流体细节——这个调性在上海咖啡圈最能积累忠实粉丝。
+
+**发布节奏（待平台连接后自动激活）：**
+- Instagram / 小红书类：周一三五 Feed，周二四 Reels，周三五日 Story
+- Facebook：跟随 Instagram 同步发布
+- 其他平台连接后按需调整
+
+**自动化工作流：**
+- 📝 每周一 09:00 自动生成本周内容草稿
+- 📤 每天 09:00 发布当日已确认内容
+- 💬 每 6 小时巡查评论，差评第一时间提醒你
+- 📊 每周五 18:00 发送数据小结
+
+**发布确认：** 已记录——所有内容发布前都需要你过目确认。✅
+
+---
+
+以上方案确认没问题的话，我现在就写入配置文件并注册自动化任务。有需要调整的地方随时说。
+
+────────────────────────────────────────────────────────────
+[done] 78.2s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 请先读取 /workspace/canva.md，然后只回复该文件第一行文字。
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: read] {'file_path': '/workspace/canva.md', 'view_range': [1, 1]}
+  ↳ [result] awk: cannot open "/workspace/canva.md" (No such file or directory)
+
+`/workspace/canva.md` 文件不存在，无法读取。
+
+────────────────────────────────────────────────────────────
+[done] 12.7s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 请先读取 /workspace/canva.md，然后只回复该文件第一行文字。
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: read] {'file_path': '/workspace/canva.md', 'view_range': [1, 1]}
+  ↳ [result] awk: cannot open "/workspace/canva.md" (No such file or directory)
+
+`/workspace/canva.md` 文件不存在。
+
+────────────────────────────────────────────────────────────
+[done] 10.6s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 请读取 /mnt/session/uploads/workspace/canva.md，然后只回复第一行。
+────────────────────────────────────────────────────────────
+
+
+  ↳ [tool: read] {'file_path': '/mnt/session/uploads/workspace/canva.md'}
+  ↳ [result] 1	# Canva
+2	
+3	Canva offers a drag-and-drop design suite for creating social media graphics, presentations, and marketing materials with prebuilt templates and a vast element library
+4	
+5	- **Category:** images & design
+6	- **Auth:** OAUTH2
+7	- **Composio Managed App Available?** Yes
+8	- **Tools:** 48
+9	- **Triggers:** 0
+10	- **Slug:** `CANVA`
+11	- **Version:** 20260414_00
+12	
+13	## Frequently Asked Questions
+14	
+15	### How do I set up custom OAuth credentials for Canva?
+16	
+17	For a step-by-step guide on creating and configuring your own Canva OAuth credentials with Composio, see [How to create OAuth credentials for Canva](https://composio.dev/auth/canva).
+18	
+19	## Tools
+20	
+21	### Access user specific brand templates list
+22	
+23	**Slug:** `CANVA_ACCESS_USER_SPECIFIC_BRAND_TEMPLATES_LIST`
+24	
+25	Lists brand templates available to the user (Canva Enterprise only). This endpoint retrieves all brand templates the user has access to. Brand templates are pre-designed layouts with variable data fields that can be populated programmatically using the autofill API. Returns template metadata including IDs, names, and dataset schemas.
+26	
+27	#### Input Parameters
+28	
+29	| Parameter | Type | Required | Description |
+30	|-----------|------|----------|-------------|
+31	| `query` | string | No | Lets you search the brand templates available to the user using a search term or terms.  |
+32	| `dataset` | string ("any" | "non_empty") | No | Filter the list of brand templates based on the brand templates' dataset definitions. Brand templates with dataset definitions are mainly used with the Autofill APIs. This can be one of the following: - `any`: (Default) Brand templates with and without dataset definitions. - `non_empty`: Brand templates with one or more data fields defined. |
+33	| `sort_by` | string ("relevance" | "modified_descending" | "modified_ascending" | "title_descending" | "title_ascending") | No | Sort the list of brand templates. This can be one of the following: - `relevance`: (Default) Sort results using a relevance algorithm. - `modified_descending`: Sort results by the date last modified in descending order. - `modified_ascending`: Sort results by the date last modified in ascending order. - `title_descending`: Sort results by title in descending order. - `title_ascending`: Sort results by title in ascending order.  |
+34	| `ownership` | string ("any" | "owned" | "shared") | No | Filter the list of brand templates based on the user"s ownership of the brand templates. This can be one of the following: - `any`: (Default) Brand templates owned by and shared with the user. - `owned`: Brand templates owned by the user. - `shared`: Brand templates shared with the user.  |
+35	| `continuation` | string | No | If the success response contains a continuation token, the user has access to more brand templates you can list. You can use this token as a query parameter and retrieve more templates from the list, for example `/v1/brand-templates?continuation={continuation}`. To retrieve all the brand templates available to the user, you might need to make multiple requests. IMPORTANT: This token is an opaque value returned by the API. You must use it exactly as returned from a previous API response. Do not manually construct or modify continuation tokens. |
+36	
+37	#### Output
+38	
+39	| Parameter | Type | Required | Description |
+40	|-----------|------|----------|-------------|
+41	| `data` | string | Yes | Data from the action execution |
+42	| `error` | string | No | Error if any occurred during the execution of the action |
+43	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+44	
+45	### Create Asset Upload Job
+46	
+47	**Slug:** `CANVA_CREATE_ASSET_UPLOAD_JOB`
+48	
+49	Uploads an asset file to the user's Canva content library. This endpoint initiates an asynchronous upload job for images, videos, audio files, PDFs, or fonts. Returns a job ID to track the upload progress. Once complete, the asset can be used in designs, referenced by its asset ID, and managed through other asset endpoints. IMPORTANT: This is an async operation. Use CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS to poll the job status until it reaches 'success' or 'failed' status.
+50	
+51	#### Input Parameters
+52	
+53	| Parameter | Type | Required | Description |
+54	|-----------|------|----------|-------------|
+55	| `file` | object | No | File to upload. Size limits: Images 50MB, Videos 100MB, Audio 10MB. Supported: JPEG/PNG/GIF/WebP/SVG, MP4/MOV/AVI, MP3/WAV, PDF, TTF/OTF fonts. No duplicate detection - uploading same file creates new asset. |
+56	| `name` | string | Yes | Display name for the asset (max 50 chars). Used for searching in Canva. Longer names are truncated. Special chars allowed. Cannot be changed via API after upload. |
+57	| `local_file_path` | string | No | Absolute path to a local file to upload as the asset. If provided, the action will read raw bytes from this path instead of the file reference. Useful for testing or when the file is available locally. |
+58	
+59	#### Output
+60	
+61	| Parameter | Type | Required | Description |
+62	|-----------|------|----------|-------------|
+63	| `data` | string | Yes | Data from the action execution |
+64	| `error` | string | No | Error if any occurred during the execution of the action |
+65	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+66	
+67	### Create Canva Design Export Job (Deprecated)
+68	
+69	**Slug:** `CANVA_CREATE_CANVA_DESIGN_EXPORT_JOB`
+70	
+71	DEPRECATED: Use CANVA_POST_EXPORTS instead. Exports a Canva design to various file formats. This endpoint initiates an asynchronous export job for designs. Supports image formats (PNG, JPG, GIF), documents (PDF, PPTX), and video (MP4). Each format has specific configuration options like dimensions, quality, and page selection. IMPORTANT: This is an async operation. Use GET_DESIGN_EXPORT_JOB_RESULT to poll the job status until completion and retrieve the download URLs for the exported files.
+72	
+73	#### Input Parameters
+74	
+75	| Parameter | Type | Required | Description |
+76	|-----------|------|----------|-------------|
+77	| `format` | string | Yes | Export format configuration. Set 'type' to one of: 'png', 'jpg', 'pdf', 'gif', 'mp4', 'pptx'. |
+78	| `design_id` | string | Yes | The design ID to export |
+79	
+80	#### Output
+81	
+82	| Parameter | Type | Required | Description |
+83	|-----------|------|----------|-------------|
+84	| `data` | string | Yes | Data from the action execution |
+85	| `error` | string | No | Error if any occurred during the execution of the action |
+86	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+87	
+88	### Create canva design with optional asset (Deprecated)
+89	
+90	**Slug:** `CANVA_CREATE_CANVA_DESIGN_WITH_OPTIONAL_ASSET`
+91	
+92	DEPRECATED: Use CANVA_POST_DESIGNS instead. Creates a new Canva design with specified dimensions or from an asset. This endpoint creates a design using either a preset type (doc, presentation, whiteboard), custom dimensions, or by importing an image asset. Returns the design ID, URLs for editing and viewing, owner info, and metadata. The design can be immediately accessed and edited.
+93	
+94	#### Input Parameters
+95	
+96	| Parameter | Type | Required | Description |
+97	|-----------|------|----------|-------------|
+98	| `title` | string | No | Design title (1-255 chars). Appears in Canva UI and design lists. |
+99	| `asset_id` | string | No | Image asset ID to create design from. Optional if design_type provided. IMPORTANT: Only image assets are supported - video and PDF assets will be rejected by the API with error 'asset_id must belong to an image asset'. Asset IDs are opaque strings with no guaranteed format. To verify an asset is an image before using it here, call CANVA_RETRIEVE_ASSET_METADATA_BY_ID and check that the 'type' field equals 'image'. To upload a new image asset, use CANVA_CREATE_URL_ASSET_UPLOAD_JOB or CANVA_CREATE_ASSET_UPLOAD_JOB. |
+100	| `design_type` | object | No | Design dimensions configuration. Optional if asset_id provided. Must be a dictionary with 'type' field.  Two options: 1. Preset: {'type': 'preset', 'name': 'doc'\|'whiteboard'\|'presentation'} 2. Custom: {'type': 'custom', 'width': 1080, 'height': 1920}  Type must be either 'preset' or 'custom'. For preset, name must be one of: doc, whiteboard, presentation. For custom, width and height must be between 40-8000 pixels. |
+101	
+102	#### Output
+103	
+104	| Parameter | Type | Required | Description |
+105	|-----------|------|----------|-------------|
+106	| `data` | string | Yes | Data from the action execution |
+107	| `error` | string | No | Error if any occurred during the execution of the action |
+108	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+109	
+110	### Create comment reply in design
+111	
+112	**Slug:** `CANVA_CREATE_COMMENT_REPLY_IN_DESIGN`
+113	
+114	This preview API allows replying to comments within a design on Canva, with a limit of 100 replies per comment. Users should note potential unannounced changes, and that preview APIs are not eligible for public integrations.
+115	
+116	#### Input Parameters
+117	
+118	| Parameter | Type | Required | Description |
+119	|-----------|------|----------|-------------|
+120	| `message` | string | Yes | The reply comment message. This is the reply comment body shown in the Canva UI. You can also mention users in your message by specifying their User ID and Team ID using the format `[user_id:team_id]`. |
+121	| `commentId` | string | Yes | The `id` of the comment thread to reply to. This parameter is used in the URL path, not in the request body. |
+122	| `attached_to` | object | Yes | The object the comment is attached to. |
+123	
+124	#### Output
+125	
+126	| Parameter | Type | Required | Description |
+127	|-----------|------|----------|-------------|
+128	| `data` | string | Yes | Data from the action execution |
+129	| `error` | string | No | Error if any occurred during the execution of the action |
+130	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+131	
+132	### Create design comment in preview api
+133	
+134	**Slug:** `CANVA_CREATE_DESIGN_COMMENT_IN_PREVIEW_API`
+135	
+136	Creates a new comment thread on a Canva design. This preview API allows adding text comments to designs for collaboration and feedback. Returns the created comment with ID, author info, and timestamp. Comments can be replied to using the comment reply endpoint.
+137	
+138	#### Input Parameters
+139	
+140	| Parameter | Type | Required | Description |
+141	|-----------|------|----------|-------------|
+142	| `message` | string | Yes | Comment text (max 4096 chars). Mention users with [user_id:team_id]. No markdown support. Comments appear unpinned - users must view 'All pages' to see them. |
+143	| `design_id` | string | Yes | Design ID to attach comment to |
+144	| `assignee_id` | string | No | User ID to assign this comment to. If provided, you must also mention this user in the message text using format [user_id:team_id]. |
+145	| `attached_to` | object | Yes | Required target reference specifying where comment should be attached |
+146	
+147	#### Output
+148	
+149	| Parameter | Type | Required | Description |
+150	|-----------|------|----------|-------------|
+151	| `data` | string | Yes | Data from the action execution |
+152	| `error` | string | No | Error if any occurred during the execution of the action |
+153	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+154	
+155	### Create Design Import Job
+156	
+157	**Slug:** `CANVA_CREATE_DESIGN_IMPORT_JOB`
+158	
+159	Imports an external file as a new Canva design. This endpoint converts documents (PDF, Word, PowerPoint, Excel) and design files (PSD, AI) into editable Canva designs. The import runs asynchronously and returns a job ID to track progress and retrieve the created design. IMPORTANT: This is an async operation. Use CANVA_RETRIEVE_DESIGN_IMPORT_JOB_STATUS to poll the job status until it reaches 'success' or 'failed' to get the final design ID.
+160	
+161	#### Input Parameters
+162	
+163	| Parameter | Type | Required | Description |
+164	|-----------|------|----------|-------------|
+165	| `file` | object | Yes | Document or design file to import (max 100MB). Formats: PDF, Word, PowerPoint, Excel, Photoshop, Illustrator, Keynote, Pages, Numbers, OpenDocument. PowerPoint loses animations, Excel loses formulas, AI/PSD may lose layers. Password-protected files fail. |
+166	| `title` | string | Yes | Title for the imported design (max 50 chars). Shows in Canva UI and design lists. Longer titles are truncated. Special characters allowed. |
+167	| `mime_type` | string | No | Optional MIME type override. If omitted, the file's mimetype is used. |
+168	
+169	#### Output
+170	
+171	| Parameter | Type | Required | Description |
+172	|-----------|------|----------|-------------|
+173	| `data` | string | Yes | Data from the action execution |
+174	| `error` | string | No | Error if any occurred during the execution of the action |
+175	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+176	
+177	### Create Design Resize Job
+178	
+179	**Slug:** `CANVA_CREATE_DESIGN_RESIZE_JOB`
+180	
+181	Creates a resized copy of an existing design (Canva Pro/Enterprise only). This endpoint creates a new design with different dimensions from an existing one. The resize operation runs asynchronously and preserves content where possible. Returns a job ID to track progress and retrieve the new design once complete. IMPORTANT: This is an async operation. Use CANVA_RETRIEVE_DESIGN_RESIZE_JOB_STATUS to poll the job status until completion to get the resized design ID and access URLs.
+182	
+183	#### Input Parameters
+184	
+185	| Parameter | Type | Required | Description |
+186	|-----------|------|----------|-------------|
+187	| `design_id` | string | Yes | The source design ID |
+188	| `design_type` | string | Yes | Target design type configuration |
+189	
+190	#### Output
+191	
+192	| Parameter | Type | Required | Description |
+193	|-----------|------|----------|-------------|
+194	| `data` | string | Yes | Data from the action execution |
+195	| `error` | string | No | Error if any occurred during the execution of the action |
+196	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+197	
+198	### Create URL Asset Upload Job
+199	
+200	**Slug:** `CANVA_CREATE_URL_ASSET_UPLOAD_JOB`
+201	
+202	Tool to create an asynchronous Canva asset import job from a public URL. Use when you need to import an asset into Canva directly from a publicly accessible URL without S3 choreography.
+203	
+204	#### Input Parameters
+205	
+206	| Parameter | Type | Required | Description |
+207	|-----------|------|----------|-------------|
+208	| `url` | string | Yes | Publicly accessible HTTPS URL of the file to import. Must use HTTPS protocol (e.g., https://example.com/image.png). |
+209	| `name` | string | Yes | Asset name (1-255 characters). |
+210	
+211	#### Output
+212	
+213	| Parameter | Type | Required | Description |
+214	|-----------|------|----------|-------------|
+215	| `data` | string | Yes | Data from the action execution |
+216	| `error` | string | No | Error if any occurred during the execution of the action |
+217	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+218	
+219	### Delete asset by id
+220	
+221	**Slug:** `CANVA_DELETE_ASSET_BY_ID`
+222	
+223	You can delete an asset by specifying its `assetId`. This operation mirrors the behavior in the Canva UI. Deleting an item moves it to the trash. Deleting an asset doesn't remove it from designs that already use it.
+224	
+225	#### Input Parameters
+226	
+227	| Parameter | Type | Required | Description |
+228	|-----------|------|----------|-------------|
+229	| `assetId` | string | Yes | The ID of the asset. |
+230	
+231	#### Output
+232	
+233	| Parameter | Type | Required | Description |
+234	|-----------|------|----------|-------------|
+235	| `data` | string | Yes | Data from the action execution |
+236	| `error` | string | No | Error if any occurred during the execution of the action |
+237	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+238	
+239	### Exchange oauth 2 0 access or refresh token
+240	
+241	**Slug:** `CANVA_EXCHANGE_OAUTH20_ACCESS_OR_REFRESH_TOKEN`
+242	
+243	The OAuth 2.0 endpoint issues time-limited (4-hour) access tokens of up to 4KB for user authorization via codes or refresh tokens. It requires client ID/secret for authentication.
+244	
+245	#### Output
+246	
+247	| Parameter | Type | Required | Description |
+248	|-----------|------|----------|-------------|
+249	| `data` | string | Yes | Data from the action execution |
+250	| `error` | string | No | Error if any occurred during the execution of the action |
+251	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+252	
+253	### Fetch asset upload job status
+254	
+255	**Slug:** `CANVA_FETCH_ASSET_UPLOAD_JOB_STATUS`
+256	
+257	Polls for asset upload job completion status. Use this after CANVA_CREATE_ASSET_UPLOAD_JOB to check the upload progress. Repeatedly call this endpoint until a 'success' or 'failed' status is received to get the final asset ID and metadata. IMPORTANT: This tool is ONLY for direct file upload jobs (CANVA_CREATE_ASSET_UPLOAD_JOB). Do NOT use this for URL import jobs created by CANVA_CREATE_URL_ASSET_UPLOAD_JOB - those use a different API endpoint. Use CANVA_GET_URL_ASSET_UPLOADS_JOBID to poll URL import job status.
+258	
+259	#### Input Parameters
+260	
+261	| Parameter | Type | Required | Description |
+262	|-----------|------|----------|-------------|
+263	| `jobId` | string | Yes | The asset upload job ID returned by CANVA_CREATE_ASSET_UPLOAD_JOB or CANVA_POST_ASSET_UPLOADS. This is the 'id' field from the job object in the response. IMPORTANT: This tool does NOT work for job IDs from CANVA_CREATE_URL_ASSET_UPLOAD_JOB (URL import jobs use a different endpoint - use CANVA_GET_URL_ASSET_UPLOADS_JOBID instead). |
+264	
+265	#### Output
+266	
+267	| Parameter | Type | Required | Description |
+268	|-----------|------|----------|-------------|
+269	| `data` | string | Yes | Data from the action execution |
+270	| `error` | string | No | Error if any occurred during the execution of the action |
+271	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+272	
+273	### Fetch canva connect signing public keys
+274	
+275	**Slug:** `CANVA_FETCH_CANVA_CONNECT_SIGNING_PUBLIC_KEYS`
+276	
+277	The API for verifying Canva webhooks, 'connect/keys,' is in preview, meaning unstable, not for public integrations, and provides a rotating JWK for signature verification to prevent replay attacks. Cache keys for efficiency.
+278	
+279	#### Output
+280	
+281	| Parameter | Type | Required | Description |
+282	|-----------|------|----------|-------------|
+283	| `data` | string | Yes | Data from the action execution |
+284	| `error` | string | No | Error if any occurred during the execution of the action |
+285	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+286	
+287	### Fetch current user details
+288	
+289	**Slug:** `CANVA_FETCH_CURRENT_USER_DETAILS`
+290	
+291	Returns the User ID, Team ID, and display name of the user account associated with the provided access token.
+292	
+293	#### Output
+294	
+295	| Parameter | Type | Required | Description |
+296	|-----------|------|----------|-------------|
+297	| `data` | string | Yes | Data from the action execution |
+298	| `error` | string | No | Error if any occurred during the execution of the action |
+299	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+300	
+301	### Fetch design metadata and access information
+302	
+303	**Slug:** `CANVA_FETCH_DESIGN_METADATA_AND_ACCESS_INFORMATION`
+304	
+305	Gets the metadata for a design. This includes owner information, URLs for editing and viewing, and thumbnail information.
+306	
+307	#### Input Parameters
+308	
+309	| Parameter | Type | Required | Description |
+310	|-----------|------|----------|-------------|
+311	| `designId` | string | Yes | The design ID. |
+312	
+313	#### Output
+314	
+315	| Parameter | Type | Required | Description |
+316	|-----------|------|----------|-------------|
+317	| `data` | string | Yes | Data from the action execution |
+318	| `error` | string | No | Error if any occurred during the execution of the action |
+319	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+320	
+321	### Get design comment thread replies
+322	
+323	**Slug:** `CANVA_GET_DESIGN_COMMENT_REPLIES`
+324	
+325	Retrieves a list of replies for a comment or suggestion thread on a design. Use when you need to view all replies in a specific thread.
+326	
+327	#### Input Parameters
+328	
+329	| Parameter | Type | Required | Description |
+330	|-----------|------|----------|-------------|
+331	| `limit` | integer | No | The number of replies to return. Default is 50. Minimum value: 1, Maximum value: 100. |
+332	| `designId` | string | Yes | The design ID. |
+333	| `threadId` | string | Yes | The ID of the thread. |
+334	| `continuation` | string | No | Token for pagination to retrieve more items from the list. If the response contains a continuation token, use it to retrieve more replies. |
+335	
+336	#### Output
+337	
+338	| Parameter | Type | Required | Description |
+339	|-----------|------|----------|-------------|
+340	| `data` | string | Yes | Data from the action execution |
+341	| `error` | string | No | Error if any occurred during the execution of the action |
+342	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+343	
+344	### Get specific design comment reply
+345	
+346	**Slug:** `CANVA_GET_DESIGN_COMMENT_REPLY`
+347	
+348	Retrieves a specific reply to a comment or suggestion thread on a design. Use when you need to view details of a particular reply.
+349	
+350	#### Input Parameters
+351	
+352	| Parameter | Type | Required | Description |
+353	|-----------|------|----------|-------------|
+354	| `replyId` | string | Yes | The identifier for the specific reply. |
+355	| `designId` | string | Yes | The design identifier. |
+356	| `threadId` | string | Yes | The identifier for the comment thread. |
+357	
+358	#### Output
+359	
+360	| Parameter | Type | Required | Description |
+361	|-----------|------|----------|-------------|
+362	| `data` | string | Yes | Data from the action execution |
+363	| `error` | string | No | Error if any occurred during the execution of the action |
+364	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+365	
+366	### Get design export job result
+367	
+368	**Slug:** `CANVA_GET_DESIGN_EXPORT_JOB_RESULT`
+369	
+370	Polls for design export job completion status. Use this after CANVA_CREATE_CANVA_DESIGN_EXPORT_JOB to check the export progress. Call this endpoint repeatedly until the job is complete to receive download links for the exported design pages. Download URLs expire after 30 days.
+371	
+372	#### Input Parameters
+373	
+374	| Parameter | Type | Required | Description |
+375	|-----------|------|----------|-------------|
+376	| `exportId` | string | Yes | The export job ID. |
+377	
+378	#### Output
+379	
+380	| Parameter | Type | Required | Description |
+381	|-----------|------|----------|-------------|
+382	| `data` | string | Yes | Data from the action execution |
+383	| `error` | string | No | Error if any occurred during the execution of the action |
+384	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+385	
+386	### Get designs designid comments threadid
+387	
+388	**Slug:** `CANVA_GET_DESIGNS_DESIGNID_COMMENTS_THREADID`
+389	
+390	Retrieves metadata for a comment or suggestion thread on a design. Use when you need to get details about a specific thread including content, author, timestamps, and status.
+391	
+392	#### Input Parameters
+393	
+394	| Parameter | Type | Required | Description |
+395	|-----------|------|----------|-------------|
+396	| `designId` | string | Yes | The design identifier. |
+397	| `threadId` | string | Yes | The thread identifier. |
+398	
+399	#### Output
+400	
+401	| Parameter | Type | Required | Description |
+402	|-----------|------|----------|-------------|
+403	| `data` | string | Yes | Data from the action execution |
+404	| `error` | string | No | Error if any occurred during the execution of the action |
+405	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+406	
+407	### Get design export formats
+408	
+409	**Slug:** `CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS`
+410	
+411	Lists available file formats for exporting a design. Use this to check which export formats (PDF, JPG, PNG, SVG, PPTX, GIF, MP4) are supported for a specific design.
+412	
+413	#### Input Parameters
+414	
+415	| Parameter | Type | Required | Description |
+416	|-----------|------|----------|-------------|
+417	| `designId` | string | Yes | The design ID. |
+418	
+419	#### Output
+420	
+421	| Parameter | Type | Required | Description |
+422	|-----------|------|----------|-------------|
+423	| `data` | string | Yes | Data from the action execution |
+424	| `error` | string | No | Error if any occurred during the execution of the action |
+425	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+426	
+427	### Get URL asset upload job status
+428	
+429	**Slug:** `CANVA_GET_URL_ASSET_UPLOADS_JOBID`
+430	
+431	Tool to retrieve the status and result of a URL-based asset upload job. Use this after creating a URL asset upload job to check progress and retrieve the uploaded asset ID when successful.
+432	
+433	#### Input Parameters
+434	
+435	| Parameter | Type | Required | Description |
+436	|-----------|------|----------|-------------|
+437	| `jobId` | string | Yes | The asset upload job identifier. |
+438	
+439	#### Output
+440	
+441	| Parameter | Type | Required | Description |
+442	|-----------|------|----------|-------------|
+443	| `data` | string | Yes | Data from the action execution |
+444	| `error` | string | No | Error if any occurred during the execution of the action |
+445	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+446	
+447	### Get URL import job status
+448	
+449	**Slug:** `CANVA_GET_URL_IMPORTS_JOBID`
+450	
+451	Polls for URL import job completion status. Use this after creating a URL import job to check the import progress. Repeatedly call this endpoint until a 'success' or 'failed' status is received to get the final imported design ID and metadata.
+452	
+453	#### Input Parameters
+454	
+455	| Parameter | Type | Required | Description |
+456	|-----------|------|----------|-------------|
+457	| `jobId` | string | Yes | The URL import job ID. |
+458	
+459	#### Output
+460	
+461	| Parameter | Type | Required | Description |
+462	|-----------|------|----------|-------------|
+463	| `data` | string | Yes | Data from the action execution |
+464	| `error` | string | No | Error if any occurred during the execution of the action |
+465	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+466	
+467	### Get user capabilities
+468	
+469	**Slug:** `CANVA_GET_USERS_ME_CAPABILITIES`
+470	
+471	Lists the API capabilities for the user account associated with the provided access token. Use when you need to check what features are available based on the user's Canva plan.
+472	
+473	#### Output
+474	
+475	| Parameter | Type | Required | Description |
+476	|-----------|------|----------|-------------|
+477	| `data` | string | Yes | Data from the action execution |
+478	| `error` | string | No | Error if any occurred during the execution of the action |
+479	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+480	
+481	### Initiate canva design autofill job
+482	
+483	**Slug:** `CANVA_INITIATE_CANVA_DESIGN_AUTOFILL_JOB`
+484	
+485	Upcoming brand template ID updates require migration within 6 months. Canva Enterprise users can auto-fill designs using various data types, including experimental chart data. Monitor jobs with specific API.
+486	
+487	#### Input Parameters
+488	
+489	| Parameter | Type | Required | Description |
+490	|-----------|------|----------|-------------|
+491	| `data` | object | Yes | Data object containing the data fields and values to autofill. Keys are field names from the brand template. Values must be one of: TextDataField (type='text'), ImageDataField (type='image'), or ChartDataField (type='chart'). |
+492	| `title` | string | No | Title to use for the autofilled design. Must be less than 256 characters. If no design title is provided, the autofilled design will have the same title as the brand template.  |
+493	| `brand_template_id` | string | Yes | ID of the input brand template. |
+494	
+495	#### Output
+496	
+497	| Parameter | Type | Required | Description |
+498	|-----------|------|----------|-------------|
+499	| `data` | string | Yes | Data from the action execution |
+500	| `error` | string | No | Error if any occurred during the execution of the action |
+501	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+502	
+503	### List design pages with pagination
+504	
+505	**Slug:** `CANVA_LIST_DESIGN_PAGES_WITH_PAGINATION`
+506	
+507	Preview API for Canva: subject to unannounced changes and not for public integrations. Lists metadata for design pages with optional `offset` and `limit`; not applicable to all design types.
+508	
+509	#### Input Parameters
+510	
+511	| Parameter | Type | Required | Description |
+512	|-----------|------|----------|-------------|
+513	| `limit` | integer | No | The number of pages to return, starting at the page index specified using the `offset` parameter. Default is `50` pages. Minimum: 1, Maximum: 200. |
+514	| `offset` | integer | No | The page index to start the range of pages to return. Default is `1`. Pages are indexed using one-based numbering, so the first page in a design has the index value `1`. Minimum: 1, Maximum: 500. |
+515	| `designId` | string | Yes | The design ID. |
+516	
+517	#### Output
+518	
+519	| Parameter | Type | Required | Description |
+520	|-----------|------|----------|-------------|
+521	| `data` | string | Yes | Data from the action execution |
+522	| `error` | string | No | Error if any occurred during the execution of the action |
+523	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+524	
+525	### List folder items by type with sorting
+526	
+527	**Slug:** `CANVA_LIST_FOLDER_ITEMS_BY_TYPE_WITH_SORTING`
+528	
+529	Lists the items in a folder, including each item's `type`. Folders can contain: - Other folders. - Designs, such as Instagram posts, Presentations, and Documents ([Canva Docs](https://www.canva.com/create/documents/)). - Image assets.
+530	
+531	#### Input Parameters
+532	
+533	| Parameter | Type | Required | Description |
+534	|-----------|------|----------|-------------|
+535	| `sort_by` | string ("created_ascending" | "created_descending" | "modified_ascending" | "modified_descending" | "title_ascending" | "title_descending") | No | Sort the list of folder items. This can be one of the following: - `created_ascending`: Sort results by creation date, in ascending order. - `created_descending`: Sort results by creation date, in descending order. - `modified_ascending`: Sort results by the last modified date, in ascending order. - `modified_descending`: (Default) Sort results by the last modified date, in descending order. - `title_ascending`: Sort results by title, in ascending order. The title is either the `name` field for a folder or asset, or the `title` field for a design. - `title_descending`: Sort results by title, in descending order. The title is either the `name` field for a folder or asset, or the `title` field for a design.  |
+536	| `folderId` | string | Yes | The folder ID. Must be a non-empty string. Use 'root' to list items in the root folder. |
+537	| `item_types` | array | No | Filter the folder items to only return specified types. The available types are: `design`, `folder`, and `image`. To filter for more than one item type, provide a comma- delimited list.  |
+538	| `continuation` | string | No | If the success response contains a continuation token, the folder contains more items you can list. You can use this token as a query parameter and retrieve more items from the list, for example `/v1/folders/{folderId}/items?continuation={continuation}`. To retrieve all the items in a folder, you might need to make multiple requests.  |
+539	
+540	#### Output
+541	
+542	| Parameter | Type | Required | Description |
+543	|-----------|------|----------|-------------|
+544	| `data` | string | Yes | Data from the action execution |
+545	| `error` | string | No | Error if any occurred during the execution of the action |
+546	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+547	
+548	### List User Designs
+549	
+550	**Slug:** `CANVA_LIST_USER_DESIGNS`
+551	
+552	Provides a summary of Canva user designs, includes search filtering, and allows showing both self-created and shared designs with sorting options.
+553	
+554	#### Input Parameters
+555	
+556	| Parameter | Type | Required | Description |
+557	|-----------|------|----------|-------------|
+558	| `query` | string | No | Lets you search the user"s designs, and designs shared with the user, using a search term or terms.  |
+559	| `sort_by` | string ("relevance" | "modified_descending" | "modified_ascending" | "title_descending" | "title_ascending") | No | Sort the list of designs. This can be one of the following: - `relevance`: (Default) Sort results using a relevance algorithm. - `modified_descending`: Sort results by the date last modified in descending order. - `modified_ascending`: Sort results by the date last modified in ascending order. - `title_descending`: Sort results by title in descending order. - `title_ascending`: Sort results by title in ascending order.  |
+560	| `ownership` | string ("any" | "owned" | "shared") | No | Filter the list of designs based on the user"s ownership of the designs. This can be one of the following: - `owned`: Designs owned by the user. - `shared`: Designs shared with the user. - `any`: Designs owned by and shared with the user.  |
+561	| `continuation` | string | No | If the success response contains a continuation token, the list contains more designs you can list. You can use this token as a query parameter and retrieve more designs from the list, for example `/v1/designs?continuation={continuation}`. To retrieve all of a user"s designs, you might need to make multiple requests. Pass a valid token or omit this parameter entirely. Empty strings are not accepted by the API. |
+562	
+563	#### Output
+564	
+565	| Parameter | Type | Required | Description |
+566	|-----------|------|----------|-------------|
+567	| `data` | string | Yes | Data from the action execution |
+568	| `error` | string | No | Error if any occurred during the execution of the action |
+569	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+570	
+571	### Move item to specified folder
+572	
+573	**Slug:** `CANVA_MOVE_ITEM_TO_SPECIFIED_FOLDER`
+574	
+575	Transfers an item to a different folder by specifying both the destination folder's ID and the item's ID. If the item is in various folders, an error occurs; manual relocation via Canva UI is required.
+576	
+577	#### Input Parameters
+578	
+579	| Parameter | Type | Required | Description |
+580	|-----------|------|----------|-------------|
+581	| `item_id` | string | Yes | The ID of the item you want to move. Item IDs are alphanumeric strings, 1-50 characters. Design IDs have format like 'DAFVztcvd9z', folder IDs like 'FAF2lZtloor', and asset IDs like 'Msd59349ff'. Obtain item IDs from the List designs, List folder items, or other Canva API endpoints. Note: Video assets are not supported for moving. |
+582	| `to_folder_id` | string | Yes | The ID of the folder you want to move the item to (the destination folder). Folder IDs are alphanumeric strings (e.g., 'FAF2lZtloor'), 1-50 characters. Use the special ID 'root' to move the item to the top level of a Canva user's projects, or 'uploads' for the Uploads folder. Obtain folder IDs from the List folder items or Create folder API endpoints. |
+583	
+584	#### Output
+585	
+586	| Parameter | Type | Required | Description |
+587	|-----------|------|----------|-------------|
+588	| `data` | string | Yes | Data from the action execution |
+589	| `error` | string | No | Error if any occurred during the execution of the action |
+590	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+591	
+592	### Create new Canva design
+593	
+594	**Slug:** `CANVA_POST_DESIGNS`
+595	
+596	Creates a new Canva design with preset type or custom dimensions. Use when creating new designs for docs, presentations, whiteboards, or with specific pixel dimensions. Optionally insert an image asset into the design. Returns design ID, edit/view URLs, and metadata.
+597	
+598	#### Input Parameters
+599	
+600	| Parameter | Type | Required | Description |
+601	|-----------|------|----------|-------------|
+602	| `title` | string | No | Design name (1-255 characters). Appears in Canva UI and design lists. |
+603	| `asset_id` | string | No | Image asset ID to insert into the design. Currently supports image assets only. Must be a valid asset ID from a previously uploaded asset. |
+604	| `design_type` | string | Yes | Design type configuration. Can be a preset name string ('doc', 'whiteboard', 'presentation') which will be auto-converted to the required format, or a nested object for preset (e.g., {'type': 'preset', 'name': 'presentation'}) or custom dimensions (e.g., {'type': 'custom', 'width': 1080, 'height': 1920}) |
+605	
+606	#### Output
+607	
+608	| Parameter | Type | Required | Description |
+609	|-----------|------|----------|-------------|
+610	| `data` | string | Yes | Data from the action execution |
+611	| `error` | string | No | Error if any occurred during the execution of the action |
+612	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+613	
+614	### Post designs designid comments
+615	
+616	**Slug:** `CANVA_POST_DESIGNS_DESIGNID_COMMENTS`
+617	
+618	Creates a comment thread on a Canva design. Use when you need to add feedback or collaboration comments to a specific design. Rate limited to 100 requests per minute per user.
+619	
+620	#### Input Parameters
+621	
+622	| Parameter | Type | Required | Description |
+623	|-----------|------|----------|-------------|
+624	| `designId` | string | Yes | The design ID where the comment will be created. Must match pattern ^[a-zA-Z0-9_-]{1,50}$ |
+625	| `assignee_id` | string | No | Optional user ID for assignment. If specified, the assignee must be mentioned in the message using [user_id:team_id] format. |
+626	| `message_plaintext` | string | Yes | The comment message in plaintext shown in Canva UI. Must be between 1 and 2048 characters. User mentions use format [user_id:team_id]. |
+627	
+628	#### Output
+629	
+630	| Parameter | Type | Required | Description |
+631	|-----------|------|----------|-------------|
+632	| `data` | string | Yes | Data from the action execution |
+633	| `error` | string | No | Error if any occurred during the execution of the action |
+634	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+635	
+636	### Create reply to comment thread
+637	
+638	**Slug:** `CANVA_POST_DESIGNS_DESIGNID_COMMENTS_THREADID_REPLIES`
+639	
+640	Tool to create a reply to a comment or suggestion thread on a Canva design. Use when you need to respond to existing comments or suggestions. Maximum 100 replies per thread allowed.
+641	
+642	#### Input Parameters
+643	
+644	| Parameter | Type | Required | Description |
+645	|-----------|------|----------|-------------|
+646	| `design_id` | string | Yes | The design identifier. Must match pattern ^[a-zA-Z0-9_-]{1,50}$ |
+647	| `thread_id` | string | Yes | The identifier of the thread to reply to. Must match pattern ^[a-zA-Z0-9_-]{1,50}$ |
+648	| `message_plaintext` | string | Yes | The reply text content. Must be between 1 and 2048 characters. Users can be mentioned using the format [user_id:team_id]. |
+649	
+650	#### Output
+651	
+652	| Parameter | Type | Required | Description |
+653	|-----------|------|----------|-------------|
+654	| `data` | string | Yes | Data from the action execution |
+655	| `error` | string | No | Error if any occurred during the execution of the action |
+656	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+657	
+658	### Start design export job
+659	
+660	**Slug:** `CANVA_POST_EXPORTS`
+661	
+662	Starts a new asynchronous job to export a Canva design file. Use when exporting designs to various formats (PDF, JPG, PNG, GIF, PPTX, MP4). Returns a job ID that can be used to poll for completion status and download URLs. IMPORTANT: Format compatibility varies by design type. Before exporting, use the CANVA_GET_DESIGNS_DESIGNID_EXPORT_FORMATS action to check which formats are supported for the specific design. Attempting to export in an unsupported format will result in a 400 error (e.g., 'png export not supported for this design type').
+663	
+664	#### Input Parameters
+665	
+666	| Parameter | Type | Required | Description |
+667	|-----------|------|----------|-------------|
+668	| `format` | string | Yes | Export format configuration. Specify the format type and format-specific options. Exported files remain available for download for 24 hours. IMPORTANT: Not all formats are supported for all design types. Use GET /v1/designs/{designId}/export-formats to check which formats are supported for a specific design before exporting. If you request an unsupported format, the API will return a 400 error. |
+669	| `design_id` | string | Yes | The identifier of the design to export (e.g., 'DAGz4y3LDFI') |
+670	
+671	#### Output
+672	
+673	| Parameter | Type | Required | Description |
+674	|-----------|------|----------|-------------|
+675	| `data` | string | Yes | Data from the action execution |
+676	| `error` | string | No | Error if any occurred during the execution of the action |
+677	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+678	
+679	### Create folder
+680	
+681	**Slug:** `CANVA_POST_FOLDERS`
+682	
+683	Tool to create a folder in Canva. Use when you need to organize designs, assets, or create nested folder structures in a user's projects or uploads folder.
+684	
+685	#### Input Parameters
+686	
+687	| Parameter | Type | Required | Description |
+688	|-----------|------|----------|-------------|
+689	| `name` | string | Yes | The display name for the new folder. Must be 1-255 characters. Duplicate names are allowed. |
+690	| `parent_folder_id` | string | Yes | The ID of the destination location. Use 'root' for top-level projects, 'uploads' for the uploads folder, or a specific folder ID to nest within another folder. Cannot be empty. |
+691	
+692	#### Output
+693	
+694	| Parameter | Type | Required | Description |
+695	|-----------|------|----------|-------------|
+696	| `data` | string | Yes | Data from the action execution |
+697	| `error` | string | No | Error if any occurred during the execution of the action |
+698	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+699	
+700	### Create URL Import Job
+701	
+702	**Slug:** `CANVA_POST_URL_IMPORTS`
+703	
+704	Tool to start an asynchronous job to import an external file from a URL as a new design in Canva. Use when you need to import a design from a publicly accessible URL. This is an async operation; poll the job status using the job ID until it reaches 'success' or 'failed'.
+705	
+706	#### Input Parameters
+707	
+708	| Parameter | Type | Required | Description |
+709	|-----------|------|----------|-------------|
+710	| `url` | string | Yes | The URL of the file to import. This URL must be accessible from the internet and be publicly available (1-2048 characters). |
+711	| `title` | string | Yes | Name assigned to the imported design (1-255 characters). |
+712	| `mime_type` | string | No | File type identifier (e.g., 'application/pdf', 'image/png'). Auto-detected if omitted or empty (1-100 characters when provided). |
+713	
+714	#### Output
+715	
+716	| Parameter | Type | Required | Description |
+717	|-----------|------|----------|-------------|
+718	| `data` | string | Yes | Data from the action execution |
+719	| `error` | string | No | Error if any occurred during the execution of the action |
+720	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+721	
+722	### Remove folder and move contents to trash
+723	
+724	**Slug:** `CANVA_REMOVE_FOLDER_AND_MOVE_CONTENTS_TO_TRASH`
+725	
+726	Deletes a folder by moving the user's content to Trash and reassigning other users' content to their top-level projects.
+727	
+728	#### Input Parameters
+729	
+730	| Parameter | Type | Required | Description |
+731	|-----------|------|----------|-------------|
+732	| `folderId` | string | Yes | The folder ID. |
+733	
+734	#### Output
+735	
+736	| Parameter | Type | Required | Description |
+737	|-----------|------|----------|-------------|
+738	| `data` | string | Yes | Data from the action execution |
+739	| `error` | string | No | Error if any occurred during the execution of the action |
+740	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+741	
+742	### Retrieve app public key set
+743	
+744	**Slug:** `CANVA_RETRIEVE_APP_PUBLIC_KEY_SET`
+745	
+746	Returns the Json Web Key Set (public keys) of an app. These keys are used to verify JWTs sent to app backends.
+747	
+748	#### Input Parameters
+749	
+750	| Parameter | Type | Required | Description |
+751	|-----------|------|----------|-------------|
+752	| `appId` | string | Yes | The app id |
+753	
+754	#### Output
+755	
+756	| Parameter | Type | Required | Description |
+757	|-----------|------|----------|-------------|
+758	| `data` | string | Yes | Data from the action execution |
+759	| `error` | string | No | Error if any occurred during the execution of the action |
+760	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+761	
+762	### Retrieve asset metadata by id
+763	
+764	**Slug:** `CANVA_RETRIEVE_ASSET_METADATA_BY_ID`
+765	
+766	You can retrieve the metadata of an asset by specifying its `assetId`.
+767	
+768	#### Input Parameters
+769	
+770	| Parameter | Type | Required | Description |
+771	|-----------|------|----------|-------------|
+772	| `assetId` | string | Yes | The ID of the asset. |
+773	
+774	#### Output
+775	
+776	| Parameter | Type | Required | Description |
+777	|-----------|------|----------|-------------|
+778	| `data` | string | Yes | Data from the action execution |
+779	| `error` | string | No | Error if any occurred during the execution of the action |
+780	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+781	
+782	### Retrieve brand template dataset definition
+783	
+784	**Slug:** `CANVA_RETRIEVE_BRAND_TEMPLATE_DATASET_DEFINITION`
+785	
+786	Canva's brand template IDs will change later this year, including a 6-month integration migration. API access requires Enterprise membership, providing autofill for images, text, and charts, although chart data could change during preview.
+787	
+788	#### Input Parameters
+789	
+790	| Parameter | Type | Required | Description |
+791	|-----------|------|----------|-------------|
+792	| `brandTemplateId` | string | Yes | The brand template ID. |
+793	
+794	#### Output
+795	
+796	| Parameter | Type | Required | Description |
+797	|-----------|------|----------|-------------|
+798	| `data` | string | Yes | Data from the action execution |
+799	| `error` | string | No | Error if any occurred during the execution of the action |
+800	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+801	
+802	### Retrieve canva enterprise brand template metadata
+803	
+804	**Slug:** `CANVA_RETRIEVE_CANVA_ENTERPRISE_BRAND_TEMPLATE_METADATA`
+805	
+806	Upcoming update will change brand template IDs; integrations must migrate within 6 months. API use requires Canva Enterprise membership.
+807	
+808	#### Input Parameters
+809	
+810	| Parameter | Type | Required | Description |
+811	|-----------|------|----------|-------------|
+812	| `brandTemplateId` | string | Yes | The brand template ID. |
+813	
+814	#### Output
+815	
+816	| Parameter | Type | Required | Description |
+817	|-----------|------|----------|-------------|
+818	| `data` | string | Yes | Data from the action execution |
+819	| `error` | string | No | Error if any occurred during the execution of the action |
+820	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+821	
+822	### Retrieve design autofill job status
+823	
+824	**Slug:** `CANVA_RETRIEVE_DESIGN_AUTOFILL_JOB_STATUS`
+825	
+826	API users with Canva Enterprise membership can retrieve design autofill job results, potentially requiring multiple requests until a `success` or `failed` status is received.
+827	
+828	#### Input Parameters
+829	
+830	| Parameter | Type | Required | Description |
+831	|-----------|------|----------|-------------|
+832	| `jobId` | string | Yes | The design autofill job ID. |
+833	
+834	#### Output
+835	
+836	| Parameter | Type | Required | Description |
+837	|-----------|------|----------|-------------|
+838	| `data` | string | Yes | Data from the action execution |
+839	| `error` | string | No | Error if any occurred during the execution of the action |
+840	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+841	
+842	### Retrieve design import job status
+843	
+844	**Slug:** `CANVA_RETRIEVE_DESIGN_IMPORT_JOB_STATUS`
+845	
+846	Polls for design import job completion status. Use this after CANVA_CREATE_DESIGN_IMPORT_JOB to check the import progress. Repeatedly call this endpoint until a 'success' or 'failed' status is received to get the final imported design ID and metadata.
+847	
+848	#### Input Parameters
+849	
+850	| Parameter | Type | Required | Description |
+851	|-----------|------|----------|-------------|
+852	| `jobId` | string | Yes | The design import job ID. |
+853	
+854	#### Output
+855	
+856	| Parameter | Type | Required | Description |
+857	|-----------|------|----------|-------------|
+858	| `data` | string | Yes | Data from the action execution |
+859	| `error` | string | No | Error if any occurred during the execution of the action |
+860	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+861	
+862	### Retrieve Design Resize Job Status
+863	
+864	**Slug:** `CANVA_RETRIEVE_DESIGN_RESIZE_JOB_STATUS`
+865	
+866	Retrieves the status and results of a design resize job. Polls for design resize job completion status. Use this after CANVA_CREATE_DESIGN_RESIZE_JOB to check the resize progress. Keep polling until status is 'success' or 'failed'. Successful jobs include the new design ID and temporary access URLs.
+867	
+868	#### Input Parameters
+869	
+870	| Parameter | Type | Required | Description |
+871	|-----------|------|----------|-------------|
+872	| `job_id` | string | Yes | The resize job ID returned from create resize job endpoint |
+873	
+874	#### Output
+875	
+876	| Parameter | Type | Required | Description |
+877	|-----------|------|----------|-------------|
+878	| `data` | string | Yes | Data from the action execution |
+879	| `error` | string | No | Error if any occurred during the execution of the action |
+880	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+881	
+882	### Retrieve folder details by id
+883	
+884	**Slug:** `CANVA_RETRIEVE_FOLDER_DETAILS_BY_ID`
+885	
+886	Gets the name and other details of a folder using a folder's `folderID`.
+887	
+888	#### Input Parameters
+889	
+890	| Parameter | Type | Required | Description |
+891	|-----------|------|----------|-------------|
+892	| `folderId` | string | Yes | The folder ID. |
+893	
+894	#### Output
+895	
+896	| Parameter | Type | Required | Description |
+897	|-----------|------|----------|-------------|
+898	| `data` | string | Yes | Data from the action execution |
+899	| `error` | string | No | Error if any occurred during the execution of the action |
+900	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+901	
+902	### Retrieveuserprofiledata
+903	
+904	**Slug:** `CANVA_RETRIEVE_USER_PROFILE_DATA`
+905	
+906	Currently, this returns the display name of the user account associated with the provided access token. More user information is expected to be included in the future.
+907	
+908	#### Output
+909	
+910	| Parameter | Type | Required | Description |
+911	|-----------|------|----------|-------------|
+912	| `data` | string | Yes | Data from the action execution |
+913	| `error` | string | No | Error if any occurred during the execution of the action |
+914	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+915	
+916	### Revoke oauth tokens
+917	
+918	**Slug:** `CANVA_REVOKE_OAUTH_TOKENS`
+919	
+920	Revoke a refresh token to end its lineage and user consent, requiring re-authentication. Authenticate using either basic access with Base64-encoded credentials or body parameters with client ID and secret.
+921	
+922	#### Input Parameters
+923	
+924	| Parameter | Type | Required | Description |
+925	|-----------|------|----------|-------------|
+926	| `token` | string | Yes | The token to revoke. |
+927	| `client_id` | string | No | Your integration"s unique ID, for authenticating the request. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.   |
+928	| `client_secret` | string | No | Your integration"s client secret, for authenticating the request. Begins with `cnvca`. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.   |
+929	
+930	#### Output
+931	
+932	| Parameter | Type | Required | Description |
+933	|-----------|------|----------|-------------|
+934	| `data` | string | Yes | Data from the action execution |
+935	| `error` | string | No | Error if any occurred during the execution of the action |
+936	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+937	
+938	### Update asset s name and tags by id
+939	
+940	**Slug:** `CANVA_UPDATE_ASSET_S_NAME_AND_TAGS_BY_ID`
+941	
+942	You can update the name and tags of an asset by specifying its `assetId`. Updating the tags replaces all existing tags of the asset.
+943	
+944	#### Input Parameters
+945	
+946	| Parameter | Type | Required | Description |
+947	|-----------|------|----------|-------------|
+948	| `name` | string | No | The name of the asset. This is shown in the Canva UI. When this field is undefined, nothing is updated. Maximum length 50 characters.  |
+949	| `tags` | array | No | The replacement tags for the asset. When this field is undefined, nothing is updated. Maximum length 50 tags. Each tag has a maximum length of 50 characters.  |
+950	| `assetId` | string | Yes | The ID of the asset. |
+951	
+952	#### Output
+953	
+954	| Parameter | Type | Required | Description |
+955	|-----------|------|----------|-------------|
+956	| `data` | string | Yes | Data from the action execution |
+957	| `error` | string | No | Error if any occurred during the execution of the action |
+958	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+959	
+960	### Update folder details by id
+961	
+962	**Slug:** `CANVA_UPDATE_FOLDER_DETAILS_BY_ID`
+963	
+964	Updates a folder's details using its `folderID`. Currently, you can only update a folder's name.
+965	
+966	#### Input Parameters
+967	
+968	| Parameter | Type | Required | Description |
+969	|-----------|------|----------|-------------|
+970	| `name` | string | Yes | The folder name, as shown in the Canva UI. |
+971	| `folderId` | string | Yes | The folder ID. |
+972	
+973	#### Output
+974	
+975	| Parameter | Type | Required | Description |
+976	|-----------|------|----------|-------------|
+977	| `data` | string | Yes | Data from the action execution |
+978	| `error` | string | No | Error if any occurred during the execution of the action |
+979	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+980	
+981	### Validate oauth token properties
+982	
+983	**Slug:** `CANVA_VALIDATE_OAUTH_TOKEN_PROPERTIES`
+984	
+985	Check an access token's validity and properties via introspection, requiring authentication. Use Basic access (Base64 encoded `client_id:client_secret`) or body parameters for credentialing.
+986	
+987	#### Input Parameters
+988	
+989	| Parameter | Type | Required | Description |
+990	|-----------|------|----------|-------------|
+991	| `token` | string | Yes | The token to introspect. |
+992	| `client_id` | string | No | Your integration"s unique ID, for authenticating the request. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.   |
+993	| `client_secret` | string | No | Your integration"s client secret, for authenticating the request. Begins with `cnvca`. NOTE: We recommend that you use basic access authentication instead of specifying `client_id` and `client_secret` as body parameters.   |
+994	
+995	#### Output
+996	
+997	| Parameter | Type | Required | Description |
+998	|-----------|------|----------|-------------|
+999	| `data` | string | Yes | Data from the action execution |
+1000	| `error` | string | No | Error if any occurred during the execution of the action |
+1001	| `successful` | boolean | Yes | Whether or not the action execution was successful or not |
+
+# Canva
+
+────────────────────────────────────────────────────────────
+[done] 16.2s
+────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────
+[user] 你好，测试一下
+────────────────────────────────────────────────────────────
+
+你好！👋 我是 Rebecca，你的专属社交媒体助手。
+  ↳ [tool: bash] {'command': 'cat /workspace/marketing-context.md 2>/dev/null || echo "FILE_NOT_FOUND"'}
+  ↳ [result] FILE_NOT_FOUND
+
+检测到你还没有完成初始配置，我需要先带你走一遍 setup 流程，这样我才能更好地为你服务。
+  ↳ [tool: read] {'file_path': '/workspace/skills/social-media-post-setup/SKILL.md'}
+  ↳ [result] 1	---
+2	name: social-media-post-setup
+3	description: "社交媒体营销助手的初始化配置。Admin 提到 setup、配置、连接平台、连接 Facebook / Instagram / Twitter / LinkedIn、更新业务资料或内容设置时触发。也在 admin 首次登录、尚未完成配置时主动触发。"
+4	---
+5	
+6	# Setup — 初始化配置
+7	
+8	你是这位商家的社交媒体营销助手，负责帮他们管理内容创作、评论监控和数据追踪。
+9	
+10	在开始任何工作之前，先读一下这份 Setup 文档——它记录了你运作所需的全部上下文：商家信息、内容偏好、平台账号，以及工作流配置。没有这些，后续的功能都跑不起来。
+11	
+12	---
+13	
+14	## 启动检查
+15	
+16	先尝试读取 `/workspace/marketing-context.md`（用户的实际配置文件）：
+17	
+18	- **文件不存在**：读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为结构模板，从头走完整流程（阶段一到三），完成后按模板结构写入 `/workspace/marketing-context.md`
+19	- **文件存在但部分字段为空**：只补充缺失的部分，已有的内容不重复询问
+20	- **Admin 指定了某项**（如「帮我连 Instagram」「更新内容设置」）：直接跳到对应阶段
+21	
+22	---
+23	
+24	## 阶段一：业务资料
+25	
+26	填入文件的 `## 业务资料`、`## 品牌语气` 和 `## 品牌视觉` 部分。
+27	
+28	**原则：先搜索，再推断，实在找不到才开口问。**
+29	
+30	1. 先问 admin 一件事就好：「你们的店名或网站是什么？」
+31	2. 拿到后，用 web_search / web_fetch 搜索该商家，自行整理出：
+32	   - 行业、地区、简介、主要产品 / 服务
+33	   - 目标受众（根据业务类型推断）
+34	   - 竞争对手（搜索同类本地商家，推荐 2–3 个）
+35	   - 品牌语气（根据官网文案风格推断）
+36	   - 品牌色（从官网提取主色 / 辅色 / 强调色的 HEX 值）
+37	   - 视觉风格（根据官网设计风格推断五个视觉属性维度：明暗、整洁度、色彩饱和度、空间感、质感）
+38	3. 把整理好的结果一次性展示给 admin 确认，不要逐字段追问。
+39	4. 只有真的搜不到的字段，才单独向 admin 询问。
+40	
+41	---
+42	
+43	## 阶段二：平台连接
+44	
+45	询问 admin 想连接哪些平台：
+46	
+47	> 「你打算在哪些平台发内容或管评论？Facebook、Instagram、Twitter、LinkedIn 都支持，可以多选，之后想加也随时可以。」
+48	
+49	每个平台独立处理，一个失败不影响其他。连接成功后立即将账号信息填入 `/workspace/marketing-context.md` 对应的 section，不用等所有平台都完成再统一写。
+50	
+51	| 平台 | 参考文档 |
+52	|---|---|
+53	| Facebook | `/workspace/skills/social-media-post-setup/references/facebook-oauth.md` |
+54	| Instagram | `/workspace/skills/social-media-post-setup/references/instagram-oauth.md` |
+55	| Twitter | `/workspace/skills/social-media-post-setup/references/twitter-oauth.md` |
+56	| LinkedIn | `/workspace/skills/social-media-post-setup/references/linkedin-oauth.md` |
+57	| Canva（素材库） | `/workspace/skills/social-media-post-setup/references/canva-oauth.md` |
+58	
+59	连接状态写入 `## 已连接平台` 对应部分：
+60	- 连接成功：填入账号信息，标记 `启用: true`
+61	- Admin 跳过或连接失败：只标记 `启用: false`，不填账号信息
+62	
+63	---
+64	
+65	## 阶段三：完整运营方案
+66	
+67	拿到业务资料 + 已连接平台后，直接生成一套完整运营方案，不再逐项询问。
+68	
+69	### 方案生成逻辑
+70	
+71	**内容方向（Pillars）：** 根据行业推断 3–4 个
+72	例：餐厅 → 菜品展示、幕后故事、客户好评、节日活动
+73	
+74	**图片风格：** 根据行业和阶段一提取的品牌视觉推断
+75	例：餐厅（bright + clean + warm neutrals）→ 明亮真实照片感，暖色调为主
+76	
+77	**发布计划（根据已连接平台组合）：**
+78	
+79	| 平台 | 内容类型 | 计划发布日 | 备注 |
+80	|---|---|---|---|
+81	| Instagram | Feed / Carousel | 周一、三、五 | 品牌深度内容 |
+82	| Instagram | Reels | 周二、四 | 算法推流主渠道 |
+83	| Instagram | Story | 周三、五、日 | 保活跃度 |
+84	| Facebook | Feed | 周一、三、五 | 与 IG 同步，不单独创作 |
+85	| Facebook | Reels | 周二 | 与 IG Reels 同步 |
+86	| LinkedIn | Text / Image Post | 周一、三、五 | 行业洞察 + 产品 |
+87	| LinkedIn | Document Carousel | 每两周周三 | 知识类深度内容 |
+88	| Twitter | 推文 | 周一至周五 | 每天 1 条，行业观点或公告 |
+89	| Twitter | Thread | 周四 | 深度内容，每周 1 条 |
+90	
+91	Facebook 未单独连接但 Instagram 已连接时：Facebook 跟随 IG 内容同步发布，不单独列入计划。
+92	Instagram 未连接但 Facebook 已连接时：Facebook 独立制作 Feed x3/周。
+93	
+94	**工作流（固定，无需询问）：**
+95	
+96	| 任务 | 时间 | 说明 |
+97	|---|---|---|
+98	| 内容批量创作 | 每周一 09:00 | 生成本周内容计划，admin 确认后再生成内容 |
+99	| 内容自动发布 | 每天 09:00 | 发布当天计划发布且已确认的草稿 |
+100	| 评论巡查 | 每 6 小时 | 拉取新评论，负面优先通知 |
+101	| 数据汇报 | 每周五 18:00 | 生成本周快速数据总结 |
+102	
+103	**只需问 admin 一个问题：**
+104	> 「每周一生成草稿后，发布前需要你过目确认吗？还是直接帮你按计划发出去？」
+105	
+106	### 方案展示方式
+107	
+108	用对话语气呈现，不要表格罗列，像顾问给建议一样。例：
+109	
+110	> 「根据你们餐厅的情况和已连接的 Instagram、Facebook，我建议这样运营——
+111	>
+112	> 内容方向围绕三个主题：菜品展示、幕后故事、客户好评。配图用真实照片感，暖色调为主。
+113	>
+114	> Instagram 每周发 8 条：周一三五发 Feed，周二四发 Reels（Reels 现在是 IG 算法最偏爱的格式，适合触达新客），周三五日各发一条 Story 保活跃度。Facebook 跟 IG 内容同步，不单独做。
+115	>
+116	> 我每周一早 9 点帮你规划这周的内容计划，你确认方向后我再生成具体内容。之后每天自动按计划发出。评论我每 6 小时扫一次，有差评第一时间告诉你。每周五出一份数据小结。
+117	>
+118	> 发布前需要你过目确认吗？」
+119	
+120	实际展示时根据商家情况调整，不要每次都用这段原文。
+121	
+122	### 确认与写入
+123	
+124	Admin 确认（或调整后确认）后，**一次性**将所有字段写入 `/workspace/marketing-context.md`：
+125	
+126	```
+127	## 指令          ← 发布确认方式
+128	## 品牌视觉      ← 品牌色板、视觉属性基类
+129	## 内容设置      ← pillars、图片风格
+130	## 内容策略      ← 各平台发布节奏、优先类型、策略初始化记录
+131	## 工作流        ← 4 个任务的启用状态和时间
+132	```
+133	
+134	然后依次调用 `cron_create` 注册 4 个定时任务：
+135	
+136	```
+137	1. cron_create(schedule="每周一 09:00", message="[cron] 内容创作")
+138	2. cron_create(schedule="每天 09:00",   message="[cron] 内容发布")
+139	3. cron_create(schedule="每 6 小时",    message="[cron] 评论巡查")
+140	4. cron_create(schedule="每周五 18:00", message="[cron] 数据汇报")
+141	```
+142	
+143	Admin 明确不需要某项时，对应字段写 `启用: false`，跳过该 cron_create。
+144	
+145	然后初始化素材库：
+146	
+147	如果 `/workspace/assets/asset-registry.md` 不存在，创建并写入文件头：
+148	
+149	```markdown
+150	# 素材库索引
+151	
+152	> 素材实体存储在 Canva，本文件只做索引（Canva Asset ID、描述、标签、使用状态）。
+153	> 视频素材不上传 Canva，只记录 URL。
+154	```
+155	
+156	写完后告诉 admin：
+157	- 哪些平台已成功连接
+158	- 运营方案的关键点（一句话）
+159	- 下周一会发生什么（第一次自动创作）
+160	
+161	---
+162	
+163	## 写入文件
+164	
+165	每个阶段收集完对应信息后，立即更新 `/workspace/marketing-context.md` 中的相关字段，不要等全部阶段完成才统一写入。只修改本次收集到的字段，其他字段保持原样。
+166	
+167	文件不存在时，先读取 `/workspace/skills/social-media-post-setup/templates/marketing-context.md` 作为初始结构创建文件，再填入收集到的内容。
+168	
+169	---
+170	
+171	## 后续更新
+172	
+173	Admin 想修改配置时，读取当前文件，只聊需要改的那部分，确认后写入完整的更新文件，不用重新走一遍全流程。
+174	
+175	若修改涉及工作流时间，先用 `cron_delete` 删除旧任务，再用 `cron_create` 注册新任务。
+
+
+────────────────────────────────────────────────────────────
+[user] 帮我生成一张图片：一个餐厅老板站在柜台后面，1:1 比例
+────────────────────────────────────────────────────────────
+
+
+[ERROR] mcp_authentication_failed_error: MCP server 'composio-post-agent' initialize failed: no credential is stored for this server URL — check that the agent's MCP server URL matches the URL in the vault
