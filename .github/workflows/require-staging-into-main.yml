@@ -1,0 +1,17 @@
+name: Require Staging Into Main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  require-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure PR head is staging
+        run: |
+          if [ "${{ github.head_ref }}" != "staging" ]; then
+            echo "Pull requests into main must come from the staging branch."
+            exit 1
+          fi
