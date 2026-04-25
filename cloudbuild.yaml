@@ -32,6 +32,9 @@ substitutions:
   _REPO: votrix
   _REGION: us-central1
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 images:
   - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE_NAME}:${SHORT_SHA}"
   - "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE_NAME}:latest"
