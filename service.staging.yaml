@@ -1,0 +1,77 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: votrix-backend-staging
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "3"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 900
+      containers:
+        - image: IMAGE_URL
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: "1"
+          env:
+            - name: APP_ENV
+              value: "staging"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: database-url-staging
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: supabase-url-staging
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: supabase-service-key-staging
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: anthropic-api-key-staging
+            - name: COMPOSIO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: composio-api-key-staging
+            - name: APOLLO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: apollo-api-key-staging
+            - name: TAVILY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: tavily-api-key-staging
+            - name: FIRECRAWL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: firecrawl-api-key-staging
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: sentry-dsn-staging
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: DEBUG
+              value: "false"
+            - name: FORCE_REPROVISION
+              value: "true"
+            - name: GCS_BUCKET_NAME
+              value: "votrixtestbucket"
