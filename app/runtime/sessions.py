@@ -13,17 +13,17 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 from typing import Any, AsyncGenerator
 
 import anthropic
+import structlog
 
 from app.client import get_async_client
 from app.config import get_settings
 from app.models.chat import FileAttachment
 from app.tools import execute as execute_tool
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _STREAM_TIMEOUT = anthropic.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0)
 

@@ -16,11 +16,11 @@ Steps:
 from __future__ import annotations
 
 import json
-import logging
 import os
 from pathlib import Path
 
 import httpx
+import structlog
 
 from app.management import skills
 from app.client import get_async_client
@@ -28,7 +28,7 @@ from app.config import get_settings
 from app.integrations import composio
 from app.tools import TOOL_DEFINITIONS
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 AGENTS_DIR = Path(__file__).parents[2] / "agents"
 
