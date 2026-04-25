@@ -14,7 +14,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.auth import AuthedUser, require_user
-from app.client import get_client
+from app.client import get_async_client
 
 logger = logging.getLogger(__name__)
 
@@ -45,10 +45,17 @@ async def upload_file(
     data = await file.read()
     mime = file.content_type or "application/octet-stream"
     filename = file.filename or "upload"
+    # Anthropic only accepts PDF or plaintext for document blocks;
+    # browsers often send octet-stream for text-based extensions.
+    _TEXT_EXTS = {".md", ".txt", ".csv", ".json", ".yaml", ".yml", ".xml", ".html", ".htm"}
+    if mime == "application/octet-stream":
+        ext = "." + filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if ext in _TEXT_EXTS:
+            mime = "text/plain"
 
-    client = get_client()
+    client = get_async_client()
     try:
-        result = client.beta.files.upload(
+        result = await client.beta.files.upload(
             file=(filename, data, mime),
             betas=_BETA,
         )
@@ -66,9 +73,9 @@ async def upload_file(
 async def list_files(
     _: AuthedUser = Depends(require_user),
 ):
-    client = get_client()
+    client = get_async_client()
     try:
-        result = client.beta.files.list(betas=_BETA)
+        result = await client.beta.files.list(betas=_BETA)
     except Exception as e:
         logger.exception("Files API list failed")
         raise HTTPException(status_code=502, detail=f"Anthropic Files API error: {e}")
@@ -91,9 +98,9 @@ async def delete_file(
     file_id: str,
     _: AuthedUser = Depends(require_user),
 ):
-    client = get_client()
+    client = get_async_client()
     try:
-        client.beta.files.delete(file_id, betas=_BETA)
+        await client.beta.files.delete(file_id, betas=_BETA)
     except Exception as e:
         logger.exception("Files API delete failed file_id=%s", file_id)
         raise HTTPException(status_code=502, detail=f"Anthropic Files API error: {e}")
@@ -106,16 +113,16 @@ async def download_file(
 ):
     """Download a file. Only works for agent-generated files — user uploads are
     not downloadable by Anthropic's design (one-way API)."""
-    client = get_client()
+    client = get_async_client()
     try:
-        meta = client.beta.files.retrieve_metadata(file_id, betas=_BETA)
+        meta = await client.beta.files.retrieve_metadata(file_id, betas=_BETA)
         if not getattr(meta, "downloadable", False):
             raise HTTPException(
                 status_code=403,
                 detail="This file was uploaded by a user and cannot be downloaded. Only agent-generated files are downloadable.",
             )
-        response = client.beta.files.download(file_id, betas=_BETA)
-        data = response.read()
+        response = await client.beta.files.download(file_id, betas=_BETA)
+        data = await response.read()
     except HTTPException:
         raise
     except Exception as e:

@@ -1,144 +1,166 @@
 ---
 name: social-media-post-content-creation
-description: "为各社交平台生成帖子文案、hashtag、配图。当 admin 说「写一篇帖子」「帮我做内容」「生成 IG 帖子」「写 Facebook 文案」「做推文」「生成配图」「内容创作」时触发。发布内容见 social-media-post-publishing。"
+description: >
+  社交媒体内容创作。有两种触发场景：
+  (1) [cron] 内容共创 — 每周定时触发，AI 独立起草本周内容计划，呈现给 admin 审批，确认后收集素材、逐条生成海报/视频；
+  (2) admin 临时要求 — 做海报、做视频、生成素材、发帖等临时内容创作需求。
+  默认输出格式：海报（设计好的图片）。Reels 类内容需用户提供视频素材。
 integrations: []
 ---
 
-# Content Creator
+# Social Media Content Creation
 
-你是这位商家的内容创作专家。你的目标是生成符合品牌语气、适配各平台格式、有真实吸引力的内容——不是模板填空，是真正能发出去的帖子。
+## 触发判断
 
----
+收到消息后先判断场景，进入对应阶段：
 
-## 启动检查
-
-读取 `/workspace/marketing-context.md`，提取：
-
-- `## 品牌语气` — 写作风格、应该 / 避免
-- `## 内容设置` — 内容主题、Hashtag 组、图片风格
-- `## 市场调研 → 行业趋势` — 融入内容角度（如有）
-- `## 市场调研 → Hashtag 库` — 补充 hashtag（如有）
-- `## 已连接平台` — 确认要生成哪些平台的版本
+- `[cron] 内容共创` → **第一阶段**：独立起草本周内容计划
+- 用户发来图片 / 视频素材，或说「这是素材」「这是本周的图」→ **第三阶段**：直接生成内容
+- 用户临时要求（「帮我做个海报」「帮我做条 Reels」）→ 跳到对应功能（F1 / F2 / F3 / F4）按需执行
 
 ---
 
-## 确定内容方向
+## 第一阶段：独立起草内容计划（cron 触发）
 
-### Admin 有具体指令
-直接用。例如「写一篇关于周末特惠的 IG 帖子」，主题明确，直接进入生成。
+### 1. 读取品牌背景
 
-### Admin 指令模糊（「帮我做今天的内容」）
-根据内容主题轮换决定今天用哪个 pillar：
-1. 列出 `/workspace/drafts/` 下的近期草稿文件，找出上次用了哪个主题
-2. 轮换到下一个 pillar
-3. 告知 admin：「今天我用的是『行业知识』主题，来的是这个方向——」
+读取 `/workspace/marketing-context.md`，了解：
+- 品牌名称、行业、风格调性
+- 已连接平台及各平台发布节奏
+- 内容方向（Pillars）
 
-### 定时自动触发（无 admin 在线）
-同上轮换逻辑，加入当前行业趋势角度，生成后存入 `/workspace/drafts/`，不发布。
+### 2. 起草本周计划
 
----
+根据本周日期 + 内容策略，为每条待发内容起草条目：
 
-## 平台规格
+| 字段 | 说明 |
+|---|---|
+| 日期 | 计划发布日 |
+| 平台 | Instagram / LinkedIn / Twitter 等 |
+| 内容类型 | Carousel / 单图海报 / Reels / Story / 文字 |
+| 主题 | 这条内容讲什么，一句话 |
+| 文案角度 | Hook 方向（数字冲击 / 场景代入 / 直接价值） |
+| 素材需求 | `需要你提供图片` / `需要你提供视频` / `AI 生成` |
 
-为每个已连接平台生成独立版本，不共用文案：
+**内容类型判断规则：**
 
-| 平台 | 文案长度 | 格式重点 | Hashtag 数量 | 图片比例 |
-|---|---|---|---|---|
-| Instagram | 125 字以内（第一句决定是否展开） | 视觉驱动，情感 hook | 10–15 个 | 1:1 或 4:5 |
-| Facebook | 可较长，建议 80 字以内效果最好 | 叙事感，可带链接 | 3–5 个 | 1:1 或 16:9 |
-| Twitter | 280 字，可做 thread | 简洁有力，观点鲜明 | 1–2 个 | 16:9 |
-| LinkedIn | 建议 150 字，第一行决定是否展开 | 专业，insight 驱动 | 3–5 个 | 1:1 或 16:9 |
+| 场景 | 选择 |
+|---|---|
+| 多个产品 / 多卖点 / 步骤教程 / 前后对比 | Carousel |
+| 单个强视觉 / 简单公告 / 节日海报 | 单图海报 |
+| 幕后故事 / 制作过程 / 有视频素材 | Reels（标记：需用户提供视频） |
+| 快速互动 / 限时优惠 / 轻量内容 | Story |
+| 行业观点 / 知识输出（LinkedIn 为主） | 文字 or Carousel |
 
-详细平台写作规范见 `/workspace/skills/social-media-post-content-creation/references/platform-specs.md`。
+**不确定时默认 Carousel**——互动率最高，灵活性最强。
 
----
-
-## 生成文案
-
-每个平台版本包含：
-
-1. **Hook**（第一句）— 抓住注意力，不废话
-2. **正文** — 符合品牌语气，有具体内容，不空泛
-3. **CTA**（行动指引）— 每篇必须有，根据目标选择：「点击主页链接」「留言告诉我们」「转发给需要的人」等
-4. **Hashtag** — 从 `Hashtag 组` 和 `Hashtag 库` 选取，按平台数量规格
-
-Hook 公式参考见 `/workspace/skills/social-media-post-content-creation/references/post-templates.md`。
+### 3. 进入第二阶段
 
 ---
 
-## 生成配图
+## 第二阶段：共创会话（admin review）
 
-询问 admin 是否需要配图。如果需要：
+用对话语气逐条过一遍，不要表格罗列，像顾问汇报一样：
 
-1. 根据帖子主题 + `图片风格` 字段构建 image prompt
-2. 调用 `image_generate`，选择对应平台的 `aspect_ratio`
-3. 工具返回 `public_url`，将 url 告知 admin 并写入草稿的 `## 配图路径` 字段
-4. 如果 admin 不满意，根据反馈调整 prompt 重新生成，最多 3 次
+> 「这是我为本周准备的内容计划，一共 X 条——
+>
+> 周一 Instagram Carousel：[主题]，打算从 [文案角度] 切入。这条我可以自己生成。
+>
+> 周三 Instagram Reels：[主题]。这条需要你拍一段 [XX 秒左右的 XX 内容] 发给我。
+>
+> 周五 LinkedIn：[主题]，纯文字，不需要素材。
+>
+> ...
+>
+> 整体方向有没有要调整的？确认后我们逐条来做。」
+
+Admin 可以：
+- 改主题、换类型
+- 删掉某条
+- 补充说明（「这周有个新品上架，加一条」）
+
+**确认后**：告知 admin 哪些帖子需要他提供素材，请他准备好后发过来，AI 同时开始生成不需要素材的内容。
+
+---
+
+## 第三阶段：内容生成（素材到位后逐条执行）
+
+**默认输出格式：海报**（设计好的图片，可直接发布）。
+
+根据每条内容的类型和素材情况，路由到对应功能：
+
+| 内容类型 | 素材情况 | 执行管道 |
+|---|---|---|
+| 单图海报 / Carousel | 用户提供了图片 | `f1-generate-poster.md`（直接做海报） |
+| 单图海报 / Carousel | 无图，AI 生成 | `f3-generate-image.md` 生成背景图 → 自动衔接 `f1-generate-poster.md` 叠文字排版 |
+| Reels / 短视频 | 用户提供了视频 | `f2-edit-video.md` |
+| 叙事视频 | 用户提供图片 + 剧本思路 | `f4-generate-video.md` |
+| 文字帖（LinkedIn / Twitter） | 不需要图片 | 直接生成文案，无需图片步骤 |
+
+**F3 → F1 管道说明：** F3 生成的图片是背景素材，不是最终输出。生成后立即进入 F1，以该图片为底图，叠加文字、品牌包装、排版设计，输出完整海报。F3 步骤 1 的「目标用途」填写「作为 F1 海报的背景」。
+
+**品牌视觉检查（生成前）：**
+
+- `/workspace/brand-style/poster-philosophy.md` 存在 → 读取并沿用，保持品牌一致
+- 不存在 → F1 / F3 执行过程中自动推导并写入，后续复用
+
+**每条内容生成完毕后，按以下步骤展示给用户审阅：**
+
+**第一步：用 `download_file` 获取每张图片的 file_id**
 
 ```
-image_generate(
-  prompt="...",
-  aspect_ratio="1:1"   # 根据平台选择
-)
-# 返回: {"status": true, "public_url": "https://...", "aspect_ratio": "1:1"}
+download_file({ file_path: "/mnt/session/outputs/poster_cover.png" })
+→ 返回 { file_id: "abc123", filename: "poster_cover.png", ... }
 ```
 
-不需要调用 `image_upload`，图片已自动上传，直接使用返回的 `public_url`。
+Carousel 有几张图就调几次，记下每张的 `file_id`。
 
----
+**第二步：调 `show_post_preview` 展示预览卡片（直接传路径，无需先调 `download_file`）**
 
-## 存储草稿
-
-每个平台生成一个独立草稿文件，写入 `/workspace/drafts/`。
-
-文件命名规则：`{YYYY-MM-DD}-{platform}-{topic-slug}.md`
-例如：`2024-01-15-instagram-weekend-promo.md`
-
-```markdown
-# [主题标题]
-
-- **平台：** Instagram
-- **主题：** 产品推广
-- **创建时间：** 2024-01-15 08:00
-
-## 文案
-[正文]
-
-## Hashtag
-[hashtag 列表]
-
-## 链接
-[附带链接，无则留空]
-
-## 配图路径
-[image_generate 返回的 public_url，无则留空]
+```json
+{
+  "platform": "instagram",
+  "content_type": "carousel",
+  "theme": "主题一句话",
+  "caption": "完整文案",
+  "hashtags": ["tag1", "tag2"],
+  "slides": [
+    { "file_id": "abc123", "label": "封面", "slide_number": 1 },
+    { "file_id": "def456", "label": "第2张", "slide_number": 2 }
+  ]
+}
 ```
 
-每个平台一个文件，不合并。
+- 单图海报：`slides` 只有一项，`content_type` 填 `"single"`
+- 文字帖：`slides` 为空数组，`content_type` 填 `"text"`
+
+**第三步：等用户说「ok」或提出修改意见，确认后再存草稿、生成下一条**
+
+**逐条执行，每条确认后再做下一条，不等全部做完再保存。**
 
 ---
 
-## 发布逻辑
+## 第四阶段：存储草稿
 
-生成并展示给 admin 后，读取 `/workspace/marketing-context.md` 的 `## 指令` 判断发布行为：
+每条内容生成完毕后，保存到 `/workspace/drafts/`：
 
-**指令说明需要确认**（例如「发布前需要等待我的确认」）
-等 admin 确认或修改，admin 说「发布」后将草稿标记为「待发布」，交给 social-media-post-publishing 执行发布。
+文件名格式：`{YYYY-MM-DD}-{platform}-{type}-{slug}.md`
 
-**指令说明直接发布**（例如「直接发布，不需要等待确认」）
-生成完毕将草稿标记为「待发布」，直接交给 social-media-post-publishing 执行发布。
+**支持平台（不能漏）：**
 
-**指令未说明 / 模糊**
-默认等待确认，不自动发布。
+| 平台 | 可发内容类型 | 草稿 platform 字段值 |
+|---|---|---|
+| Instagram | Carousel / 单图海报 / Reels / Story | `instagram` |
+| Facebook | Feed（与 IG 同步）/ 单图 | `facebook` |
+| LinkedIn | Text Post / Carousel（Document） | `linkedin` |
+| Twitter | 推文 / Thread | `twitter` |
 
-**定时自动触发（`[cron] 内容创作`）**
-一律将草稿存入 `/workspace/drafts/`，不发布。Admin 下次登录时会看到草稿，按指令决定是否发布。
+每条草稿必须包含：
+- `平台`：上表中的字段值
+- `内容类型`：Carousel / 单图海报 / Reels / Story / Text / Thread 等
+- `状态`：`待发布`
+- `计划发布日`：YYYY-MM-DD
+- 生成的媒体文件路径或 URL（文字帖可为空）
+- 文案（caption）与 Hashtags
 
----
-
-## 修改与迭代
-
-Admin 要求修改时：
-- 只改他提到的部分，不重写整篇
-- 改完再问「其他部分还需要调整吗？」
-- 修改超过 3 轮还不满意，建议从新的角度重新生成
+草稿存好后，发布由每天 09:00 的 `[cron] 内容发布` 按日期自动扫描处理，无需在此确认。

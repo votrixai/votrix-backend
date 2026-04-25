@@ -7,7 +7,6 @@ GET    /sessions/{session_id}       get session + events
 DELETE /sessions/{session_id}       delete session
 """
 
-import asyncio
 import json
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -18,7 +17,7 @@ from app.config import get_settings
 from app.db.engine import get_session
 from app.db.queries import sessions as sessions_q
 from app.db.queries import user_agents as user_agents_q
-from app.db.queries import users as users_q
+from app.management.agent_files import upload_config_files
 from app.management import sessions as management_sessions
 from app.management.environments import create_session
 from app.management.provisioning import create_user_agent, _read_config
@@ -38,12 +37,9 @@ async def _get_or_provision_agent(
     db: AsyncSession,
     user_id,
     agent_slug: str,
-    display_name: str,
 ) -> str:
     force = get_settings().force_reprovision
-    agent_id = await asyncio.to_thread(
-        create_user_agent, agent_slug, str(user_id), display_name, force=force
-    )
+    agent_id = await create_user_agent(agent_slug, str(user_id), force=force)
     existing = await user_agents_q.get(db, user_id, agent_slug)
     if existing:
         existing.agent_id = agent_id
@@ -59,10 +55,6 @@ async def create_session_endpoint(
     db: AsyncSession = Depends(get_session),
     current_user: AuthedUser = Depends(require_user),
 ):
-    user = await users_q.get_user(db, current_user.id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     try:
         config = _read_config(body.agent_slug)
     except FileNotFoundError:
@@ -71,7 +63,7 @@ async def create_session_endpoint(
 
     try:
         agent_id = await _get_or_provision_agent(
-            db, current_user.id, body.agent_slug, user.display_name
+            db, current_user.id, body.agent_slug
         )
     except RuntimeError as exc:
         import logging, traceback
@@ -88,7 +80,20 @@ async def create_session_endpoint(
         )
         raise
 
-    provider_session_id = create_session(agent_id, env_id)
+    files_config = config.get("files", [])
+    try:
+        resources = await upload_config_files(body.agent_slug, files_config)
+    except (ValueError, FileNotFoundError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    except Exception as exc:
+        import logging, traceback
+        logging.getLogger(__name__).error(
+            "file upload failed slug=%s user=%s: %s\n%s",
+            body.agent_slug, current_user.id, exc, traceback.format_exc(),
+        )
+        raise HTTPException(status_code=502, detail=f"Failed to upload configured files: {exc}")
+
+    provider_session_id = await create_session(agent_id, env_id, resources=resources)
 
     db_session = await sessions_q.create_session(
         db,
@@ -198,7 +203,5 @@ async def delete_session(
     if session.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Session does not belong to current user")
     if session.id:
-        await asyncio.to_thread(
-            management_sessions.delete_provider_session, session.id
-        )
+        await management_sessions.delete_provider_session(session.id)
     await sessions_q.delete_session(db, session_id)
