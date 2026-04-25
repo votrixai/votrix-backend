@@ -6,11 +6,11 @@ POST /internal/cron/tick
 
 from __future__ import annotations
 
-import logging
 import uuid
 import zoneinfo
 from datetime import datetime, timezone
 
+import structlog
 from croniter import croniter
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -20,7 +20,7 @@ from app.db.queries import schedules as schedules_q
 from app.db.queries import sessions as sessions_q
 from app.runtime import sessions as runtime
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 router = APIRouter(prefix="/internal", tags=["internal"])
 

@@ -18,6 +18,8 @@ dependencies = [
     "pyjwt>=2.9",
     "python-multipart>=0.0.26",
     "croniter>=1.3",
+    "structlog>=24.0",
+    "sentry-sdk[fastapi]>=2.0",
 ]
 
 [project.optional-dependencies]

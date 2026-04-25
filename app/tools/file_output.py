@@ -11,13 +11,14 @@ session-scoped, downloadable Files API entries.
 
 from __future__ import annotations
 
-import logging
 from typing import Any
+
+import structlog
 
 from app.client import get_async_client
 from app.storage import upload_file as storage_upload
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _BETA = ["files-api-2025-04-14", "managed-agents-2026-04-01"]
 _ALLOWED_PREFIX = "/mnt/session/outputs/"
