@@ -115,18 +115,13 @@ INSTAGRAM_POST_IG_USER_MEDIA_PUBLISH(
 → data.id = post_id
 ```
 
-**注意：**
-- Story 24 小时后自动消失
-- 互动贴纸（Poll / Question）通过 IG API 无法直接附加，需在 IG App 内手动添加；发布后告知 admin 可手动去加贴纸
+**注意：** 互动贴纸（Poll / Question）不支持，需在 IG App 内手动添加。
 
 ---
 
 ## 链接处理
 
-Instagram 正文链接不可点击。处理方式：
-
-- 正文中的链接改写为：「链接在主页 Bio」
-- 如需推广特定 URL，建议 admin 在 IG Bio 更新链接，或使用 linktree 等工具
+正文链接不可点击，改写为「链接在主页 Bio」。
 
 ---
 

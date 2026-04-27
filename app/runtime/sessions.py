@@ -14,6 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from typing import Any, AsyncGenerator
 
 import anthropic
@@ -114,10 +115,63 @@ async def stream(
     async with await client.beta.sessions.events.stream(
         session_id, timeout=_STREAM_TIMEOUT
     ) as event_stream:
-        await client.beta.sessions.events.send(
-            session_id,
-            events=[{"type": "user.message", "content": content}],
-        )
+        try:
+            await client.beta.sessions.events.send(
+                session_id,
+                events=[{"type": "user.message", "content": content}],
+            )
+        except anthropic.BadRequestError as exc:
+            if "waiting on responses to events" in str(exc):
+                # Session is idle but stuck in requires_action because a previous connection
+                # dropped before tool results were sent. user.interrupt does NOT clear this
+                # state — we must send dummy custom_tool_result events for all pending IDs,
+                # then retry the user message.
+                pending_ids = re.findall(r'sevt_\w+', str(exc))
+                logger.warning("[send] session stuck requires_action, pending=%r, resolving...", pending_ids)
+                try:
+                    if pending_ids:
+                        dummy_results = [
+                            {
+                                "type": "user.custom_tool_result",
+                                "custom_tool_use_id": eid,
+                                "content": [{"type": "text", "text": json.dumps({"error": "Connection was interrupted; retrying."})}],
+                            }
+                            for eid in pending_ids
+                        ]
+                        await client.beta.sessions.events.send(session_id, events=dummy_results)
+                    else:
+                        # No parseable IDs — fall back to interrupt
+                        await client.beta.sessions.events.send(
+                            session_id, events=[{"type": "user.interrupt"}]
+                        )
+                    await client.beta.sessions.events.send(
+                        session_id,
+                        events=[{"type": "user.message", "content": content}],
+                    )
+                except Exception as retry_exc:
+                    logger.error("[send] recovery failed: %s", retry_exc)
+                    yield {"type": "error", "message": f"会话恢复失败，请刷新重试: {retry_exc}"}
+                    return
+            else:
+                logger.error("[send] bad request: %s", exc)
+                yield {"type": "error", "message": str(exc)}
+                return
+        except anthropic.NotFoundError as exc:
+            logger.error("[send] session not found (expired?): %s", exc)
+            yield {"type": "error", "message": "会话已过期，请开启新对话"}
+            return
+        except anthropic.RateLimitError as exc:
+            logger.error("[send] rate limited: %s", exc)
+            yield {"type": "error", "message": "请求频率过高，请稍后重试"}
+            return
+        except anthropic.APITimeoutError as exc:
+            logger.error("[send] timeout: %s", exc)
+            yield {"type": "error", "message": "请求超时，请稍后重试"}
+            return
+        except anthropic.APIError as exc:
+            logger.error("[send] API error: %s", exc)
+            yield {"type": "error", "message": str(exc)}
+            return
 
         async for event in event_stream:
             raw = str(event)
@@ -268,7 +322,12 @@ async def stream(
                                     "custom_tool_use_id": eid,
                                     "content": [{"type": "text", "text": json.dumps(result)}],
                                 })
-                            await client.beta.sessions.events.send(session_id, events=results)
+                            try:
+                                await client.beta.sessions.events.send(session_id, events=results)
+                            except Exception as send_exc:
+                                logger.error("[requires_action] failed to send tool results: %s", send_exc)
+                                yield {"type": "error", "message": f"工具结果发送失败: {send_exc}"}
+                                return
                         # stream stays open — Anthropic continues on the same connection
 
                     else:

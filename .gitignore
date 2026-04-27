@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 .venv/
 uv.lock
 .env_cache.json

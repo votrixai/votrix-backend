@@ -38,12 +38,15 @@ _RATIO_TO_SIZE = {
     "4:5":  "896x1120",
 }
 
+
+
+
 DEFINITIONS = [
     {
         "type": "custom",
         "name": "image_generate",
         "description": (
-            "Generate an image from a text prompt, optionally guided by reference images. "
+            "Generate an image from a structured prompt, optionally guided by reference images. "
             "Returns a public URL to the generated image. "
             "Aspect ratios: 1:1 (feed), 9:16 (Stories/Reels), 16:9 (YouTube/LinkedIn), 4:5 (Instagram portrait). "
             "Provide up to 14 reference image URLs via reference_image_urls to steer style, composition, or content."
@@ -53,7 +56,36 @@ DEFINITIONS = [
             "properties": {
                 "prompt": {
                     "type": "string",
-                    "description": "Description of the image to generate.",
+                    "description": "Core scene description — who/what, where, key visual details.",
+                },
+                "style": {
+                    "type": "string",
+                    "description": (
+                        "Visual style token. Supported values: "
+                        "3d-model, analog-film, anime, cinematic, comic-book, digital-art, "
+                        "enhance, fantasy-art, isometric, line-art, low-poly, neon-punk, "
+                        "origami, photographic, pixel-art, tile-texture."
+                    ),
+                },
+                "mood": {
+                    "type": "string",
+                    "description": "Emotional atmosphere, e.g. 'serene, nostalgic', 'dramatic', 'warm and inviting'.",
+                },
+                "composition": {
+                    "type": "string",
+                    "description": "Framing / layout instructions, e.g. 'upper third open for title text', 'rule of thirds', 'centered'.",
+                },
+                "negative_elements": {
+                    "type": "string",
+                    "description": "Comma-separated list of things to exclude, e.g. 'text, watermark, people'.",
+                },
+                "context": {
+                    "type": "string",
+                    "enum": [
+                        "poster-background", "banner", "icon", "social-media",
+                        "product-shot", "editorial", "hero-image", "thumbnail", "illustration",
+                    ],
+                    "description": "Intended use case — drives composition and style adjustments.",
                 },
                 "aspect_ratio": {
                     "type": "string",
@@ -107,6 +139,46 @@ async def _mount_into_sandbox(session_id: str, img_bytes: bytes, mime_type: str,
         return None
 
 
+_CONTEXT_HINTS = {
+    "poster-background": "Leave a clean area suitable for text overlay.",
+    "banner": "Wide horizontal composition, subject must read clearly at small sizes.",
+    "icon": "Simple shapes, solid or white background, minimal detail.",
+    "thumbnail": "Bold composition, readable at small sizes.",
+    "social-media": "Eye-catching colors, strong focal point, punchy contrast.",
+    "product-shot": "Clean studio lighting, sharp product focus, commercial quality.",
+    "hero-image": "Dramatic composition, strong visual impact.",
+}
+
+def _build_enhanced_prompt(raw_input: dict) -> str:
+    parts = [raw_input["prompt"].strip()]
+
+    if style := raw_input.get("style"):
+        parts.append(f"Style: {style}.")
+    if mood := raw_input.get("mood"):
+        parts.append(f"Mood: {mood}.")
+    if composition := raw_input.get("composition"):
+        parts.append(f"Composition: {composition}.")
+
+    context = raw_input.get("context")
+    if hint := _CONTEXT_HINTS.get(context or ""):
+        parts.append(hint)
+
+    negatives = []
+    if context in ("poster-background", "banner"):
+        negatives.extend(["text", "typography", "letters"])
+    negatives.extend(["watermark", "signature"])
+
+    neg_input = raw_input.get("negative_elements") or raw_input.get("negativeElements")
+    if neg_input:
+        for item in neg_input.split(","):
+            item = item.strip()
+            if item:
+                negatives.append(item)
+
+    parts.append("No " + ", no ".join(negatives) + ".")
+    return " ".join(parts)
+
+
 async def handle(name: str, input: dict, user_id: str, session_id: str | None = None) -> dict:
     settings = get_settings()
     if not settings.gemini_api_key:
@@ -114,7 +186,7 @@ async def handle(name: str, input: dict, user_id: str, session_id: str | None = 
     if not settings.supabase_url:
         return {"status": False, "message": "Supabase storage not configured"}
 
-    prompt = input.get("prompt", "")
+    prompt = _build_enhanced_prompt(input)
     aspect_ratio = input.get("aspect_ratio", "1:1")
     size = _RATIO_TO_SIZE.get(aspect_ratio, "1024x1024")
     reference_urls: List[str] = input.get("reference_image_urls") or []
@@ -131,6 +203,10 @@ async def handle(name: str, input: dict, user_id: str, session_id: str | None = 
                 )
             except Exception as fetch_exc:
                 logger.warning("Failed to fetch reference image %s — %s", url, fetch_exc)
+                return {
+                    "status": False,
+                    "message": f"Reference image is not publicly accessible: {url}. Please provide a public URL.",
+                }
 
     contents.append(
         genai_types.Part.from_text(

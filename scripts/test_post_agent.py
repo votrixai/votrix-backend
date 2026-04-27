@@ -38,7 +38,7 @@ from app.runtime.sessions import stream as runtime_stream
 load_dotenv()
 
 AGENT_SLUG   = "post-agent"
-USER_ID      = "votrix-ai-test6"
+USER_ID      = "787acb69-7920-49d3-a02a-31b6cede6792"
 
 INPUT_FILE  = Path(__file__).parent / "test_input.txt"
 OUTPUT_FILE = Path(__file__).parent / "test_output.txt"

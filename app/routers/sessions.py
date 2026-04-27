@@ -19,7 +19,7 @@ from app.db.queries import sessions as sessions_q
 from app.db.queries import user_agents as user_agents_q
 from app.management.agent_files import upload_config_files
 from app.management import sessions as management_sessions
-from app.management.environments import create_session
+from app.management.environments import create_session, get_or_create as create_env
 from app.management.provisioning import create_user_agent, _read_config
 from app.models.session import (
     SessionCreateRequest,
@@ -59,7 +59,7 @@ async def create_session_endpoint(
         config = _read_config(body.agent_slug)
     except FileNotFoundError:
         raise HTTPException(status_code=400, detail=f"Unknown agent '{body.agent_slug}'")
-    env_id = config["envId"]
+    env_id = config.get("envId") or await create_env()
 
     try:
         agent_id = await _get_or_provision_agent(
