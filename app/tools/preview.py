@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import logging
+import structlog
 
 from app.tools.file import _find_file
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 DEFINITIONS = [
     {

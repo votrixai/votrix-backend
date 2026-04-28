@@ -14,8 +14,9 @@ SSE event format:
 """
 
 import json
-import logging
 from typing import AsyncGenerator
+
+import structlog
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -29,7 +30,7 @@ from app.management import sessions as management_sessions
 from app.models.chat import ChatRequest
 from app.runtime import sessions as runtime
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 router = APIRouter(tags=["chat"])
 

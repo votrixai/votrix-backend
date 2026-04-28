@@ -16,19 +16,19 @@ Steps:
 from __future__ import annotations
 
 import json
-import logging
 import os
 from pathlib import Path
 
 import httpx
+import structlog
 
 from app.management import skills
 from app.client import get_async_client
 from app.config import get_settings
-from app.integrations.composio import create_mcp_server, get_auth_config
+from app.integrations.composio import create_mcp_server, get_auth_config, mcp_url
 from app.tools import TOOL_DEFINITIONS
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 AGENTS_DIR = Path(__file__).parents[2] / "agents"
 
@@ -178,7 +178,6 @@ async def create_user_agent(
         await _auto_connect_api_key_integrations(integrations, composio_id)
         mcp_server_id = await create_mcp_server(agent_id, integrations)
         if mcp_server_id:
-            from app.integrations.composio import mcp_url
             mcp_servers.append({
                 "type": "url",
                 "name": f"composio-{agent_id}",

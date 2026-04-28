@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . import cron, file, image, oauth, preview, search_tools, video
+from app.tools import cron, file, image, oauth, preview, search_tools, video
 
 # name → full tool definition dict (used by provisioning to build agents.create() tools list)
 TOOL_DEFINITIONS: dict[str, dict] = {

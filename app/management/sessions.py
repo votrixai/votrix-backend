@@ -7,11 +7,11 @@ natural spot for the `Provider.get_session(...)` seam.
 
 from __future__ import annotations
 
-import logging
+import structlog
 
 from app.client import get_async_client
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 
 async def get_provider_session_title(provider_session_id: str) -> str | None:

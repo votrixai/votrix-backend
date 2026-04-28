@@ -1,0 +1,79 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: votrix-backend
+  annotations:
+    run.googleapis.com/invoker-iam-disabled: "true"
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "10"
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 900
+      containers:
+        - image: IMAGE_URL
+          ports:
+            - containerPort: 8000
+          resources:
+            limits:
+              memory: 1Gi
+              cpu: "1"
+          env:
+            - name: APP_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: database-url
+            - name: SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: supabase-url
+            - name: SUPABASE_SERVICE_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: supabase-service-key
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: anthropic-api-key
+            - name: COMPOSIO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: composio-api-key
+            - name: APOLLO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: apollo-api-key
+            - name: TAVILY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: tavily-api-key
+            - name: FIRECRAWL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: firecrawl-api-key
+            - name: SENTRY_DSN
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: sentry-dsn
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: DEBUG
+              value: "false"
+            - name: FORCE_REPROVISION
+              value: "false"
+            - name: GCS_BUCKET_NAME
+              value: "votrixtestbucket"

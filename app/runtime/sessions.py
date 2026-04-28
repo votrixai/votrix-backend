@@ -13,18 +13,18 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 import re
 from typing import Any, AsyncGenerator
 
 import anthropic
+import structlog
 
 from app.client import get_async_client
 from app.config import get_settings
 from app.models.chat import FileAttachment
 from app.tools import execute as execute_tool
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _STREAM_TIMEOUT = anthropic.Timeout(connect=10.0, read=300.0, write=10.0, pool=10.0)
 
@@ -126,10 +126,6 @@ async def stream(
                 yield {"type": "error", "message": "会话已过期，请开启新对话"}
                 return
             if "waiting on responses to events" in str(exc):
-                # Session is idle but stuck in requires_action because a previous connection
-                # dropped before tool results were sent. user.interrupt does NOT clear this
-                # state — we must send dummy custom_tool_result events for all pending IDs,
-                # then retry the user message.
                 pending_ids = re.findall(r'sevt_\w+', str(exc))
                 logger.warning("[send] session stuck requires_action, pending=%r, resolving...", pending_ids)
                 try:
@@ -144,7 +140,6 @@ async def stream(
                         ]
                         await client.beta.sessions.events.send(session_id, events=dummy_results)
                     else:
-                        # No parseable IDs — fall back to interrupt
                         await client.beta.sessions.events.send(
                             session_id, events=[{"type": "user.interrupt"}]
                         )

@@ -12,16 +12,16 @@ All three require the file to be at /mnt/session/outputs/ first.
 from __future__ import annotations
 
 import hashlib
-import logging
 from typing import Any
 
 import httpx
+import structlog
 
 from app.client import get_async_client
 from app.config import get_settings
 from app.storage import upload_file as storage_upload
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _BETA = ["files-api-2025-04-14", "managed-agents-2026-04-01"]
 _ALLOWED_PREFIX = "/mnt/session/outputs/"

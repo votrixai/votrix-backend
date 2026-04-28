@@ -7,11 +7,19 @@ from fastapi.responses import HTMLResponse
 
 load_dotenv()
 
+from app.config import get_settings
+from app.logging import setup as setup_logging
 from app.routers import agents, chat, cron, files, sessions, users
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    settings = get_settings()
+    setup_logging(
+        app_env=settings.app_env,
+        sentry_dsn=settings.sentry_dsn,
+        log_level=settings.log_level,
+    )
     yield
 
 

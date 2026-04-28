@@ -14,12 +14,12 @@ Gemini does not accept URLs directly; we fetch each image and pass as inline byt
 
 from __future__ import annotations
 
-import logging
 import uuid
 from pathlib import Path
 from typing import List
 
 import httpx
+import structlog
 from google import genai
 from google.genai import types as genai_types
 
@@ -27,7 +27,7 @@ from app.client import get_async_client
 from app.config import get_settings
 from app.storage import upload_image
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _BETA = ["files-api-2025-04-14", "managed-agents-2026-04-01"]
 
@@ -37,8 +37,6 @@ _RATIO_TO_SIZE = {
     "16:9": "1792x1024",
     "4:5":  "896x1120",
 }
-
-
 
 
 DEFINITIONS = [
@@ -148,6 +146,7 @@ _CONTEXT_HINTS = {
     "product-shot": "Clean studio lighting, sharp product focus, commercial quality.",
     "hero-image": "Dramatic composition, strong visual impact.",
 }
+
 
 def _build_enhanced_prompt(raw_input: dict) -> str:
     parts = [raw_input["prompt"].strip()]

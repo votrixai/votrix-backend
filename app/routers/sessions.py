@@ -9,6 +9,7 @@ DELETE /sessions/{session_id}       delete session
 
 import json
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +30,8 @@ from app.models.session import (
     SessionFileResponse,
     SessionResponse,
 )
+
+logger = structlog.get_logger()
 
 router = APIRouter(tags=["sessions"])
 
@@ -63,18 +66,10 @@ async def create_session_endpoint(
             db, current_user.id, body.agent_slug
         )
     except RuntimeError as exc:
-        import logging, traceback
-        logging.getLogger(__name__).error(
-            "provisioning failed slug=%s user=%s: %s\n%s",
-            body.agent_slug, current_user.id, exc, traceback.format_exc(),
-        )
+        logger.exception("provisioning failed", agent_slug=body.agent_slug, user_id=str(current_user.id))
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
-        import logging, traceback
-        logging.getLogger(__name__).error(
-            "provisioning unexpected error slug=%s user=%s: %s\n%s",
-            body.agent_slug, current_user.id, exc, traceback.format_exc(),
-        )
+        logger.exception("provisioning unexpected error", agent_slug=body.agent_slug, user_id=str(current_user.id))
         raise
 
     files_config = config.get("files", [])
@@ -83,11 +78,7 @@ async def create_session_endpoint(
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
-        import logging, traceback
-        logging.getLogger(__name__).error(
-            "file upload failed slug=%s user=%s: %s\n%s",
-            body.agent_slug, current_user.id, exc, traceback.format_exc(),
-        )
+        logger.exception("file upload failed", agent_slug=body.agent_slug, user_id=str(current_user.id))
         raise HTTPException(status_code=502, detail=f"Failed to upload configured files: {exc}")
 
     memory_config = config.get("memoryConfig")
@@ -99,6 +90,7 @@ async def create_session_endpoint(
             "access": "read_write",
             "instructions": memory_config["instructions"],
         })
+
 
     provider_session_id = await create_session(agent_id, env_id, resources=resources)
 

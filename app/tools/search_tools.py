@@ -7,13 +7,12 @@ returned slugs exist in its own available tools to determine supportability.
 
 from __future__ import annotations
 
-import logging
-
 import httpx
+import structlog
 
 from app.config import get_settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 _API_BASE = "https://backend.composio.dev/api/v3"
 

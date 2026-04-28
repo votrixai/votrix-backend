@@ -7,14 +7,14 @@ DELETE /files/{file_id}             delete a file
 GET    /files/{file_id}/content     download an agent-generated file
 """
 
-import logging
-
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.auth import AuthedUser, require_user
 from app.client import get_async_client
+
 
 
 def _detect_image_mime(data: bytes, declared: str) -> str:
@@ -35,7 +35,7 @@ def _detect_image_mime(data: bytes, declared: str) -> str:
             return "image/heic"
     return declared
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 
 router = APIRouter(prefix="/files", tags=["files"])
 
