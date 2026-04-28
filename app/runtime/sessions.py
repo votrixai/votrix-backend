@@ -121,6 +121,10 @@ async def stream(
                 events=[{"type": "user.message", "content": content}],
             )
         except anthropic.BadRequestError as exc:
+            if "archived session" in str(exc).lower():
+                logger.error("[send] session archived: %s", exc)
+                yield {"type": "error", "message": "会话已过期，请开启新对话"}
+                return
             if "waiting on responses to events" in str(exc):
                 # Session is idle but stuck in requires_action because a previous connection
                 # dropped before tool results were sent. user.interrupt does NOT clear this
