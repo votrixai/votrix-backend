@@ -2,15 +2,16 @@
 Composio MCP helpers.
 
 MCP server lifecycle:
-  - One server per agent, named "votrix-{agent_id}"
-  - get_or_create_mcp_server() finds existing or creates new (idempotent)
-  - force=True deletes and recreates
+  - One server per agent per provision, named "votrix-{agent_id}-{datetime}"
+  - create_mcp_server() always creates a new server; old servers are kept alive
+    so existing Anthropic agents (baked into running sessions) continue to work
   - Per-user routing via ?user_id= on the MCP URL
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 import httpx
@@ -28,7 +29,10 @@ def _headers() -> dict:
 
 
 def _server_name(agent_id: str) -> str:
-    return f"votrix-{agent_id}"
+    # Composio limit: 30 chars. Use last 8 chars of agent_id + 12-char timestamp.
+    ts = datetime.now(timezone.utc).strftime("%m%d%H%M%S")  # 10 chars
+    short_id = agent_id[-8:]                                  # last 8 chars
+    return f"vx-{short_id}-{ts}"                             # 3+1+8+1+10 = 23 chars
 
 
 async def get_auth_config(toolkit_slug: str) -> dict | None:
@@ -61,36 +65,6 @@ async def get_auth_config(toolkit_slug: str) -> dict | None:
             page += 1
 
 
-async def _find_existing_server(name: str) -> dict | None:
-    """Return existing server dict if found by name, else None. Handles pagination."""
-    page = 1
-    async with httpx.AsyncClient() as client:
-        while True:
-            r = await client.get(
-                f"{_API_BASE}/mcp/servers",
-                headers=_headers(),
-                params={"page": page},
-                timeout=15,
-            )
-            r.raise_for_status()
-            data = r.json()
-            for server in data.get("items", []):
-                if server.get("name") == name:
-                    return server
-            if page >= (data.get("total_pages") or 1):
-                return None
-            page += 1
-
-
-async def _delete_server(server_id: str) -> None:
-    async with httpx.AsyncClient() as client:
-        r = await client.delete(
-            f"{_API_BASE}/mcp/{server_id}", headers=_headers(), timeout=15,
-        )
-    if not r.is_success:
-        logger.warning("composio: delete server %s returned %s", server_id, r.status_code)
-
-
 async def _create_server(
     name: str,
     auth_config_ids: list[str],
@@ -115,32 +89,23 @@ async def _create_server(
     return r.json()["id"]
 
 
-async def get_or_create_mcp_server(
+async def create_mcp_server(
     agent_id: str,
     integrations: list[dict],
-    force: bool = False,
 ) -> str | None:
     """
-    Return the Composio MCP server_id for this agent.
+    Create a new Composio MCP server for this agent provision.
 
-    - Finds existing server named "votrix-{agent_id}"
-    - force=True: delete and recreate
-    - If no integrations have a valid auth_config, returns None (no MCP server needed)
+    Always creates a new server with a datetime-stamped name — old servers are
+    intentionally kept alive so existing Anthropic agents (baked into running
+    sessions) continue to reach their MCP server.
+
+    Returns None if there are no integrations.
     """
     if not integrations:
         return None
 
     name = _server_name(agent_id)
-
-    existing = await _find_existing_server(name)
-    if existing and not force:
-        logger.info("composio: reusing MCP server %s (%s)", name, existing["id"])
-        return existing["id"]
-
-    if existing and force:
-        logger.info("composio: deleting existing MCP server %s", name)
-        await _delete_server(existing["id"])
-
     auth_config_ids: list[str] = []
     all_managed = True
 

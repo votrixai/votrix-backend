@@ -6,6 +6,7 @@ Usage:
     python scripts/test_post_agent.py --force    # re-upload skills
     python scripts/test_post_agent.py --message "..." # single message and exit
     python scripts/test_post_agent.py --force --attach /path/to/file.png  # attach file to first message
+    python scripts/test_post_agent.py --user-id <uuid>  # use specific user (default: first user in DB)
 
 How it works:
     - Watches test_input.txt for new lines (append to chat)
@@ -29,16 +30,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from app.client import get_async_client
+from app.db.engine import session_scope
+from app.db.queries import users as users_q
 from app.management.agent_files import upload_config_files
 from app.management import provisioning, skills
 from app.management.environments import create_session
+from app.management.memory_stores import get_or_create as get_or_create_memory_store
 from app.models.chat import FileAttachment
 from app.runtime.sessions import stream as runtime_stream
 
 load_dotenv()
 
-AGENT_SLUG   = "post-agent"
-USER_ID      = "787acb69-7920-49d3-a02a-31b6cede6792"
+AGENT_SLUG = "post-agent"
 
 INPUT_FILE  = Path(__file__).parent / "test_input.txt"
 OUTPUT_FILE = Path(__file__).parent / "test_output.txt"
@@ -77,14 +80,36 @@ def _load_cache() -> tuple[str, str, str | None]:
     return data.get("agent_id"), data.get("env_id"), data.get("session_id")
 
 
+# ─── DB helpers ───────────────────────────────────────────────────────────────
+
+async def resolve_user_id(user_id_arg: str | None) -> str:
+    """Return user_id: use arg if given, else pick first user from DB."""
+    async with session_scope() as db:
+        if user_id_arg:
+            import uuid as _uuid
+            user = await users_q.get_user(db, _uuid.UUID(user_id_arg))
+            if not user:
+                print(f"[error] user {user_id_arg} not found in DB", file=sys.stderr)
+                sys.exit(1)
+            print(f"[user] {user.id}  ({user.display_name})")
+            return str(user.id)
+        users = await users_q.list_users(db)
+        if not users:
+            print("[error] no users in DB — create one first", file=sys.stderr)
+            sys.exit(1)
+        user = users[0]
+        print(f"[user] picked first user: {user.id}  ({user.display_name})")
+        return str(user.id)
+
+
 # ─── Provision ────────────────────────────────────────────────────────────────
 
-async def run_provision(force: bool = False) -> tuple[str, str]:
+async def run_provision(user_id: str, force: bool = False) -> tuple[str, str]:
     """Upload skills + create per-user agent. Returns (agent_id, env_id)."""
     config = json.loads(
         (Path(__file__).parents[1] / "agents" / AGENT_SLUG / "config.json").read_text()
     )
-    env_id = config["envId"]
+    env_id = config.get("envId") or ""
 
     print(f"\n{'─'*60}\n[skills] uploading for {AGENT_SLUG}\n{'─'*60}")
 
@@ -92,8 +117,8 @@ async def run_provision(force: bool = False) -> tuple[str, str]:
     for slug, sid in skill_ids.items():
         print(f"  {slug} → {sid}")
 
-    print(f"\n{'─'*60}\n[provision] creating agent for user: {USER_ID}\n{'─'*60}")
-    agent_id = await provisioning.create_user_agent(AGENT_SLUG, USER_ID, force=force)
+    print(f"\n{'─'*60}\n[provision] creating agent for user: {user_id}\n{'─'*60}")
+    agent_id = await provisioning.create_user_agent(AGENT_SLUG, user_id)
     print(f"  agent_id → {agent_id}")
 
     _save_cache(agent_id, env_id, session_id=None)
@@ -101,18 +126,32 @@ async def run_provision(force: bool = False) -> tuple[str, str]:
     return agent_id, env_id
 
 
-async def create_session_from_agent_config(agent_id: str, env_id: str) -> str:
-    """Create a session and mount files declared in agents/<slug>/config.json."""
+async def create_session_from_agent_config(agent_id: str, env_id: str, user_id: str) -> str:
+    """Create a session and mount files + memory store declared in agents/<slug>/config.json."""
     config = json.loads(
         (Path(__file__).parents[1] / "agents" / AGENT_SLUG / "config.json").read_text()
     )
     resources = await upload_config_files(AGENT_SLUG, config.get("files", []))
+
+    memory_config = config.get("memoryConfig")
+    async with session_scope() as db:
+        import uuid as _uuid
+        store_id = await get_or_create_memory_store(db, _uuid.UUID(user_id), AGENT_SLUG, memory_config)
+    if store_id:
+        resources.append({
+            "type": "memory_store",
+            "memory_store_id": store_id,
+            "access": "read_write",
+            "instructions": memory_config["instructions"],
+        })
+        print(f"  [memory_store] {store_id}")
+
     return await create_session(agent_id, env_id, resources=resources)
 
 
 # ─── Single chat turn ─────────────────────────────────────────────────────────
 
-async def chat_turn(message: str, session_id: str, out_file: Path,
+async def chat_turn(message: str, session_id: str, out_file: Path, user_id: str,
                     attachments: list[FileAttachment] | None = None) -> bool:
     """Send one message. Returns True on success, False on rate-limit (caller should retry)."""
     sep = "─" * 60
@@ -127,7 +166,7 @@ async def chat_turn(message: str, session_id: str, out_file: Path,
 
     t_start = time.perf_counter()
     rate_limited = False
-    async for event in runtime_stream(session_id, message, USER_ID, attachments=attachments):
+    async for event in runtime_stream(session_id, message, user_id, attachments=attachments):
         match event["type"]:
             case "token":
                 print(event["content"], end="", flush=True)
@@ -154,7 +193,8 @@ async def chat_turn(message: str, session_id: str, out_file: Path,
 
 # ─── File-watching loop ────────────────────────────────────────────────────────
 
-async def watch_loop(agent_id: str, env_id: str, session_id: str | None = None,
+async def watch_loop(agent_id: str, env_id: str, user_id: str,
+                     session_id: str | None = None,
                      attach_path: str | None = None) -> None:
     """Poll test_input.txt; send each new line as a chat message."""
     INPUT_FILE.write_text("")
@@ -174,7 +214,7 @@ async def watch_loop(agent_id: str, env_id: str, session_id: str | None = None,
     if session_id:
         print(f"[resume] reusing session {session_id}", flush=True)
     else:
-        session_id = await create_session_from_agent_config(agent_id, env_id)
+        session_id = await create_session_from_agent_config(agent_id, env_id, user_id)
         _save_cache(agent_id, env_id, session_id)
     emit_header(f"\n[ready] Watching {INPUT_FILE}")
     emit_header(f"[ready] Output → {OUTPUT_FILE}")
@@ -192,14 +232,14 @@ async def watch_loop(agent_id: str, env_id: str, session_id: str | None = None,
             seen_lines = len(lines)
 
             for msg in new_lines:
-                ok = await chat_turn(msg, session_id, OUTPUT_FILE, attachments=pending_attachment)
+                ok = await chat_turn(msg, session_id, OUTPUT_FILE, user_id, attachments=pending_attachment)
                 pending_attachment = None
                 if not ok:
                     wait = 20
                     print(f"\n[overloaded] waiting {wait}s then retrying...", flush=True)
                     await asyncio.sleep(wait)
-                    session_id = await create_session_from_agent_config(agent_id, env_id)
-                    await chat_turn(msg, session_id, OUTPUT_FILE)
+                    session_id = await create_session_from_agent_config(agent_id, env_id, user_id)
+                    await chat_turn(msg, session_id, OUTPUT_FILE, user_id)
                 INPUT_FILE.write_text("")
                 seen_lines = 0
 
@@ -217,7 +257,10 @@ async def main() -> None:
     parser.add_argument("--skip-provision", action="store_true", help="Skip provision, reuse last agent")
     parser.add_argument("--message", default=None, help="Send one message and exit")
     parser.add_argument("--attach",  default=None, help="File path to upload and attach to first message")
+    parser.add_argument("--user-id", default=None, help="User UUID (default: first user in DB)")
     args = parser.parse_args()
+
+    user_id = await resolve_user_id(args.user_id)
 
     cached_session_id = None
     if args.skip_provision:
@@ -228,18 +271,18 @@ async def main() -> None:
                 print(f"[skip provision] session_id={cached_session_id}")
         else:
             print("[skip provision] no cache found, provisioning...")
-            agent_id, env_id = await run_provision(force=False)
+            agent_id, env_id = await run_provision(user_id, force=False)
     else:
-        agent_id, env_id = await run_provision(force=args.force)
+        agent_id, env_id = await run_provision(user_id, force=args.force)
         _save_cache(agent_id, env_id)
 
     if args.message:
-        session_id = await create_session_from_agent_config(agent_id, env_id)
+        session_id = await create_session_from_agent_config(agent_id, env_id, user_id)
         print(f"  session_id → {session_id}")
         atts = [await upload_attachment(args.attach)] if args.attach else None
-        await chat_turn(args.message, session_id, OUTPUT_FILE, attachments=atts)
+        await chat_turn(args.message, session_id, OUTPUT_FILE, user_id, attachments=atts)
     else:
-        await watch_loop(agent_id, env_id, session_id=cached_session_id, attach_path=args.attach)
+        await watch_loop(agent_id, env_id, user_id, session_id=cached_session_id, attach_path=args.attach)
 
 
 if __name__ == "__main__":
