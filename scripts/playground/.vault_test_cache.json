@@ -1,8 +1,0 @@
-{
-  "agent_id": "agent_011CZwGF9g2sXHfqnUNqq1Cm",
-  "env_id": "env_017H2BworcD2zVFGg5fcpyZL",
-  "vault_id": "vlt_011CZwGFMKX6Hd7k3akGd6zQ",
-  "cred_id": "vcrd_01GrgpK8xipLatkUWs28Ymbh",
-  "agent_mcp_url": "https://backend.composio.dev/v3/mcp/5a629a28-ec72-4601-b192-cf705ecc6d01/mcp",
-  "vault_mcp_url": "https://backend.composio.dev/v3/mcp/5a629a28-ec72-4601-b192-cf705ecc6d01/mcp"
-}

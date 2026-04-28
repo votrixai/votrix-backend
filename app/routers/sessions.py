@@ -14,13 +14,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import AuthedUser, require_user
-from app.config import get_settings
 from app.db.engine import get_session
 from app.db.queries import sessions as sessions_q
 from app.db.queries import user_agents as user_agents_q
 from app.management.agent_files import upload_config_files
 from app.management import sessions as management_sessions
-from app.management.environments import create_session
+from app.management.environments import create_session, get_or_create as create_env
+from app.management.memory_stores import get_or_create as get_or_create_memory_store
 from app.management.provisioning import create_user_agent, _read_config
 from app.models.session import (
     SessionCreateRequest,
@@ -41,14 +41,11 @@ async def _get_or_provision_agent(
     user_id,
     agent_slug: str,
 ) -> str:
-    force = get_settings().force_reprovision
-    agent_id = await create_user_agent(agent_slug, str(user_id), force=force)
     existing = await user_agents_q.get(db, user_id, agent_slug)
     if existing:
-        existing.agent_id = agent_id
-        await db.commit()
-    else:
-        await user_agents_q.create(db, user_id, agent_slug, agent_id)
+        return existing.agent_id
+    agent_id = await create_user_agent(agent_slug, str(user_id))
+    await user_agents_q.create(db, user_id, agent_slug, agent_id)
     return agent_id
 
 
@@ -62,7 +59,7 @@ async def create_session_endpoint(
         config = _read_config(body.agent_slug)
     except FileNotFoundError:
         raise HTTPException(status_code=400, detail=f"Unknown agent '{body.agent_slug}'")
-    env_id = config["envId"]
+    env_id = config.get("envId") or await create_env()
 
     try:
         agent_id = await _get_or_provision_agent(
@@ -83,6 +80,17 @@ async def create_session_endpoint(
     except Exception as exc:
         logger.exception("file upload failed", agent_slug=body.agent_slug, user_id=str(current_user.id))
         raise HTTPException(status_code=502, detail=f"Failed to upload configured files: {exc}")
+
+    memory_config = config.get("memoryConfig")
+    store_id = await get_or_create_memory_store(db, current_user.id, body.agent_slug, memory_config)
+    if store_id:
+        resources.append({
+            "type": "memory_store",
+            "memory_store_id": store_id,
+            "access": "read_write",
+            "instructions": memory_config["instructions"],
+        })
+
 
     provider_session_id = await create_session(agent_id, env_id, resources=resources)
 

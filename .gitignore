@@ -1,5 +1,6 @@
 .env
 .env.*
+!.env.example
 .venv/
 .env_cache.json
 .skills_registry.json
@@ -13,5 +14,4 @@ dist/
 agents/**/.cache.json
 skills/**/.cache.json
 
-# Test script runtime cache
-scripts/.post_agent_cache.json
+scripts/
