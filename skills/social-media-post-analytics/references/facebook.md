@@ -2,7 +2,7 @@
 
 ---
 
-## 账号级别数据
+## Account-Level Data
 
 ```
 FACEBOOK_GET_PAGE_INSIGHTS(
@@ -10,44 +10,44 @@ FACEBOOK_GET_PAGE_INSIGHTS(
   metric  = ["fans", "page_impressions", "page_engaged_users"],
   period  = "week"   # day / week / month
 )
-→ data[].name、data[].values（时间序列）
+→ data[].name, data[].values (time series)
 ```
 
-- `fans`：粉丝净增量
-- `page_impressions`：页面总触达
-- `page_engaged_users`：互动用户数
+- `fans`: Net follower growth
+- `page_impressions`: Total page reach
+- `page_engaged_users`: Number of engaged users
 
 ---
 
-## 单帖表现
+## Single Post Performance
 
 ```
 FACEBOOK_GET_POST_INSIGHTS(
   post_id = {post_id},
   metric  = ["post_impressions", "post_reactions_by_type_total", "post_clicks"]
 )
-→ data[].name、data[].values
+→ data[].name, data[].values
 ```
 
-- `post_impressions`：触达人数
-- `post_reactions_by_type_total`：各类 reaction 数（like/love/haha/wow/sad/angry）
-- `post_clicks`：帖子点击数
+- `post_impressions`: Number of people reached
+- `post_reactions_by_type_total`: Count of each reaction type (like/love/haha/wow/sad/angry)
+- `post_clicks`: Post click count
 
-汇总互动数 = 所有 reaction 之和 + 评论数 + 分享数。
-
----
-
-## 刷新流程
-
-从 `/workspace/post-history/` 读取近 30 天帖子的 post_id，逐一调用单帖接口。  
-每次最多处理 10 条，处理完询问是否继续。
+Total engagement = sum of all reactions + comment count + share count.
 
 ---
 
-## 错误处理
+## Refresh Flow
 
-| 错误 | 处理方式 |
+Read post_ids from the last 30 days of posts in `/workspace/post-history/`, calling the single post endpoint one by one.  
+Process a maximum of 10 per batch; ask whether to continue after completion.
+
+---
+
+## Error Handling
+
+| Error | Resolution |
 |---|---|
-| token 过期 / 权限不足 | 告知 admin 需重新连接 Facebook，该平台数据跳过 |
-| post_id 不存在（已删除） | 标记为「已删除」，从统计中排除 |
-| API 限流 | 告知 admin，建议 15 分钟后重试 |
+| Token expired / insufficient permissions | Inform admin that Facebook needs to be reconnected; skip that platform's data |
+| post_id does not exist (deleted) | Mark as "deleted"; exclude from statistics |
+| API rate limited | Inform admin; suggest retrying in 15 minutes |

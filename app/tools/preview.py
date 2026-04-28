@@ -32,7 +32,7 @@ DEFINITIONS = [
                             },
                             "label": {
                                 "type": "string",
-                                "description": "Slide label shown in the UI, e.g. '封面', '第2张', 'CTA'",
+                                "description": "Slide label shown in the UI, e.g. 'Cover', 'Slide 2', 'CTA'",
                             },
                         },
                         "required": ["path", "label"],

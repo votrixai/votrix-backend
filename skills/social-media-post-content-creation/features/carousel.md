@@ -1,68 +1,68 @@
-# Carousel 内容模式速查手册
+# Carousel Content Pattern Quick Reference
 
-## 基本规格
+## Basic Specs
 
-尺寸推荐 1080×1350px（4:5 竖版），每组 5～10 张，图片视频可混搭。
+Recommended dimensions: 1080x1350px (4:5 portrait), 5-10 slides per set, images and videos can be mixed.
 
-## 叙事结构
+## Narrative Structure
 
-每组 carousel 遵循同一节奏：**封面抓人 → 中间给料 → 末张推行动**。
+Every carousel follows the same rhythm: **Cover grabs attention → Middle slides deliver value → Final slide drives action**.
 
-| 位置 | 任务 |
-|------|------|
-| 第 1 张 | Hook：停住拇指，强标题或反常识 |
-| 第 2～N 张 | 主体：每张只讲一个点 |
-| 末张 | CTA：引导收藏、关注或跳转 |
+| Position | Purpose |
+|----------|---------|
+| Slide 1 | Hook: Stop the thumb — strong headline or counterintuitive statement |
+| Slides 2-N | Body: Each slide covers only one point |
+| Final Slide | CTA: Encourage save, follow, or click-through |
 
-## 18 种内容模式
+## 18 Content Patterns
 
-### 实用价值类
+### Practical Value
 
-| 模式 | 一句话说明 | 流程 | 核心指标 |
-|------|-----------|------|----------|
-| 教学拆解 | 每张一步，滑完=学完 | 问题→步骤 1→2→3→收藏CTA | 收藏率 |
-| 盘点对比 | 每张一个选项，横向展示 | 封面→A→B→C→总结推荐 | 收藏率 |
-| 问题→方案 | 先戳痛点，再给解法 | 痛点→原因→方案→行动CTA | 转化率 |
-| 数据证言 | 数字+截图+用户反馈 | 数据封面→证据→证言→体验CTA | 信任度 |
+| Pattern | One-Line Description | Flow | Key Metric |
+|---------|---------------------|------|------------|
+| Step-by-Step Breakdown | One step per slide, swipe through = lesson complete | Problem → Step 1 → 2 → 3 → Save CTA | Save rate |
+| Roundup Comparison | One option per slide, side-by-side showcase | Cover → A → B → C → Summary recommendation | Save rate |
+| Problem → Solution | Hit the pain point first, then provide the fix | Pain point → Cause → Solution → Action CTA | Conversion rate |
+| Data & Testimonials | Numbers + screenshots + user feedback | Data cover → Evidence → Testimonial → Try-it CTA | Trust level |
 
-### 故事叙事类
+### Story & Narrative
 
-| 模式 | 一句话说明 | 流程 | 核心指标 |
-|------|-----------|------|----------|
-| 反转剧情 | 铺预期，最后翻盘 | 正常铺垫→强化→反转→CTA | 停留时长 |
-| 对话截图 | 模拟聊天记录，像追剧 | "看这段对话"→对话→关键回复→结论 | 好奇心 |
-| 漫画分镜 | 每张一格，视觉叙事 | 场景→角色→冲突→解决→Punchline | 品牌人格 |
-| POV 第一人称 | "POV: 你是..."沉浸体验 | 设定→你看到→你发现→结局 | 沉浸感 |
-| 故事线 | 时间线或情绪递进 | 悬念→起因→转折→高潮→结局CTA | 互动率 |
+| Pattern | One-Line Description | Flow | Key Metric |
+|---------|---------------------|------|------------|
+| Plot Twist | Build expectations, then flip the script | Normal setup → Escalation → Twist → CTA | Time on post |
+| Chat Screenshot | Simulate a chat log — feels like binge-watching | "Look at this conversation" → Chat → Key reply → Conclusion | Curiosity |
+| Comic Strip | One panel per slide, visual storytelling | Scene → Character → Conflict → Resolution → Punchline | Brand personality |
+| POV First Person | "POV: You are..." immersive experience | Setup → You see → You discover → Ending | Immersion |
+| Story Arc | Timeline or emotional progression | Suspense → Origin → Turning point → Climax → Ending CTA | Engagement rate |
 
-### 幽默互动类
+### Humor & Interaction
 
-| 模式 | 一句话说明 | 流程 | 核心指标 |
-|------|-----------|------|----------|
-| Meme 连环 | 同主题表情包层层递进 | 共鸣meme→升级→更离谱→关注CTA | 分享率 |
-| 你是哪种人 | 每张一种类型，对号入座 | "你是哪种X"→A→B→C→评论告诉我 | 评论量 |
-| 期望vs现实 | 隔张对比，自嘲幽默 | 封面→期望→现实→期望→现实 | 共鸣感 |
-| 假装正经 | 正式排版讲荒诞内容 | 正式标题→"研究发现"→荒诞结论 | 反差感 |
+| Pattern | One-Line Description | Flow | Key Metric |
+|---------|---------------------|------|------------|
+| Meme Chain | Same-theme memes escalating progressively | Relatable meme → Level up → Even more absurd → Follow CTA | Share rate |
+| Which Type Are You | One type per slide, self-identify | "Which type of X are you?" → A → B → C → Tell me in the comments | Comment count |
+| Expectation vs Reality | Alternating comparison, self-deprecating humor | Cover → Expectation → Reality → Expectation → Reality | Relatability |
+| Faux Serious | Formal layout delivering absurd content | Formal title → "Studies show" → Absurd conclusion | Contrast effect |
 
-### 幽默种草类（产品宣传专用）
+### Humor & Product Seeding (Product Promotion)
 
-> 适用于 SMB 推广具体产品，用幽默降低广告感，让用户在笑的过程中完成种草。
+> Designed for SMBs promoting specific products — humor reduces the ad feel and lets users get sold while laughing.
 
-| 模式 | 一句话说明 | 流程 | 核心指标 |
-|------|-----------|------|----------|
-| 产品救场 | 先演痛点惨剧，产品出场扭转局面 | 熟悉痛点场景→事态升级→产品登场→对比结局→CTA | 停留时长/转化率 |
-| 避雷种草 | "千万别买"反向安利，越劝越想买 | 封面警告→列"缺点"（其实是卖点）→反转推荐→购买CTA | 分享率/转化率 |
-| 错误打开方式 | 演示"用错了"的惨状，再演正确体验 | 封面"别这样用"→错误示范后果→正确方式→爽感对比→CTA | 互动率/收藏率 |
-| 产品拟人自白 | 产品第一人称"委屈诉说"自己被低估 | "没人知道我能..."→逐张自述功能→用户惊喜反应→"现在你知道了"CTA | 好奇心/评论量 |
-| 夸张测评 | 把产品效果戏剧化放大，喜剧方式展示真实价值 | 封面夸张承诺→逐项测试→戏剧化反应→真实结论→CTA | 分享率/转化率 |
+| Pattern | One-Line Description | Flow | Key Metric |
+|---------|---------------------|------|------------|
+| Product to the Rescue | Dramatize the pain point first, then the product saves the day | Familiar pain point → Escalation → Product enters → Before/after comparison → CTA | Time on post / Conversion rate |
+| Reverse Psychology Seeding | "Don't buy this" reverse recommendation — the more you warn, the more they want it | Warning cover → List "flaws" (actually selling points) → Twist recommendation → Purchase CTA | Share rate / Conversion rate |
+| Wrong Way to Use It | Show the disaster of using it wrong, then the correct experience | Cover "Don't do this" → Wrong demo consequences → Correct way → Satisfying comparison → CTA | Engagement rate / Save rate |
+| Product First-Person Confession | Product narrates in first person, "nobody knows I can..." | "Nobody knows I can..." → Feature reveals slide by slide → User surprise reaction → "Now you know" CTA | Curiosity / Comment count |
+| Exaggerated Review | Dramatize product results comically, showcase real value through humor | Exaggerated promise cover → Test each feature → Dramatic reactions → Real conclusion → CTA | Share rate / Conversion rate |
 
-## 目标→模式速查
+## Goal → Pattern Quick Reference
 
-| 想要 | 选这个 |
-|------|--------|
-| 被收藏 | 教学拆解、盘点对比、错误打开方式 |
-| 被分享 | Meme 连环、期望vs现实、避雷种草、夸张测评 |
-| 评论爆炸 | 你是哪种人、产品拟人自白 |
-| 拉停留 | 反转剧情、对话截图、产品救场 |
-| 建信任 | 数据证言、问题→方案 |
-| 直接转化 | 问题→方案、避雷种草、产品救场 |
+| Goal | Choose This |
+|------|------------|
+| Get saved | Step-by-Step Breakdown, Roundup Comparison, Wrong Way to Use It |
+| Get shared | Meme Chain, Expectation vs Reality, Reverse Psychology Seeding, Exaggerated Review |
+| Explode comments | Which Type Are You, Product First-Person Confession |
+| Increase time on post | Plot Twist, Chat Screenshot, Product to the Rescue |
+| Build trust | Data & Testimonials, Problem → Solution |
+| Direct conversion | Problem → Solution, Reverse Psychology Seeding, Product to the Rescue |

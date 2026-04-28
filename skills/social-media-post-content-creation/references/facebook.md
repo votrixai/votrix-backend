@@ -1,18 +1,18 @@
 # Facebook
 
-| 内容类型 | 尺寸 | 时长 / 张数 | Caption | Hashtag |
-|---------|------|------------|---------|---------|
-| Feed Post（带图/Carousel） | 1:1 (1200×1200) 或 16:9 (1200×630)，最多 10 张 | — | 40–80 字互动率最高 | 3–5 个 |
-| Reels | 9:16 (1080×1920) | 30–60s 效果最好 | 50 字以内 | 3–5 个 |
+| Content Type | Dimensions | Duration / Slides | Caption | Hashtag |
+|-------------|-----------|-------------------|---------|---------|
+| Feed Post (with image/Carousel) | 1:1 (1200x1200) or 16:9 (1200x630), up to 10 images | — | 40-80 characters gets highest engagement | 3-5 |
+| Reels | 9:16 (1080x1920) | 30-60s works best | Under 50 characters | 3-5 |
 
-**周内容配比（每周 3–4 条）：**
+**Weekly Content Ratio (3-4 posts per week):**
 
-| 类型 | 占比 | 备注 |
-|------|------|------|
-| Feed Post（带图/Carousel） | 60% | 1:1 图片与 Instagram / LinkedIn 通用 |
-| Reels | 40% | 可直接复用 Instagram Reels 素材，无需重新生成 |
+| Type | Ratio | Notes |
+|------|-------|-------|
+| Feed Post (with image/Carousel) | 60% | 1:1 images are shared with Instagram / LinkedIn |
+| Reels | 40% | Can directly reuse Instagram Reels assets without regenerating |
 
-**平台规则：**
-- 贴链接会自动生成预览卡，正文不需要重复描述
-- 原生上传视频比贴 YouTube 链接触达更广
-- Reels 与 Instagram Reels 可用同一素材跨发布
+**Platform Rules:**
+- Posting a link auto-generates a preview card; no need to repeat the description in the body text
+- Natively uploaded video gets wider reach than posting a YouTube link
+- Reels can be cross-posted using the same assets as Instagram Reels

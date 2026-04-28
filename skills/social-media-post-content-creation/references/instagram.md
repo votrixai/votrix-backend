@@ -1,22 +1,22 @@
 # Instagram
 
-| 内容类型 | 尺寸 | 时长 / 张数 | Caption | Hashtag |
-|---------|------|------------|---------|---------|
-| 单图 | 1:1 (1080×1080) 或 4:5 (1080×1350) | — | 前 125 字显示，之后折叠 | 10–15 个 |
-| Carousel | 1:1，所有张同比例 | 2–10 张 | 引导滑动，如「左滑查看全部 →」 | 10–15 个 |
-| Reels | 9:16 (1080×1920) | 30–60s 效果最好 | 30 字以内 | 3–5 个 |
-| Story | 9:16，上下各留 14% safe zone | 图片 7s / 视频 15s，24h 消失 | 无持久 caption | — |
+| Content Type | Dimensions | Duration / Slides | Caption | Hashtag |
+|-------------|-----------|-------------------|---------|---------|
+| Single Image | 1:1 (1080x1080) or 4:5 (1080x1350) | — | First 125 characters visible, rest is collapsed | 10-15 |
+| Carousel | 1:1, all slides same aspect ratio | 2-10 slides | Encourage swiping, e.g. "Swipe left to see all →" | 10-15 |
+| Reels | 9:16 (1080x1920) | 30-60s works best | Under 30 characters | 3-5 |
+| Story | 9:16, leave 14% safe zone top and bottom | Image 7s / Video 15s, disappears after 24h | No persistent caption | — |
 
-**周内容配比（每周 4–5 条 feed）：**
+**Weekly Content Ratio (4-5 feed posts per week):**
 
-| 类型 | 占比 | 备注 |
-|------|------|------|
-| Carousel | 40% | 收藏率高，算法偏好 |
-| Reels | 30% | 推流新用户，触达最广 |
-| 单图 | 20% | 公告 / 节日 / 简单产品 |
-| Story | 每日 1–2 条（独立算） | 不占 feed 配额 |
+| Type | Ratio | Notes |
+|------|-------|-------|
+| Carousel | 40% | High save rate, algorithm favors this format |
+| Reels | 30% | Pushes to new users, widest reach |
+| Single Image | 20% | Announcements / holidays / simple product shots |
+| Story | 1-2 per day (counted separately) | Does not count toward feed quota |
 
-**平台规则：**
-- 链接不可点击，统一写「链接在主页 Bio」
-- Reels 靠视频前 3 秒留住用户，caption 辅助
-- Story 关键内容放中间 72%，避开上下 safe zone
+**Platform Rules:**
+- Links are not clickable; always write "Link in Bio"
+- Reels rely on the first 3 seconds of video to retain viewers; caption is supplementary
+- Keep key content in the middle 72% of Stories; avoid the top and bottom safe zones

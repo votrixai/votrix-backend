@@ -1,31 +1,31 @@
 # Response Templates
 
-各类评论的回复模板参考，结合品牌语气调整后使用。
+Reference reply templates for various comment types; adjust according to brand tone before use.
 
 ---
 
-## 帖子评论回复模板
+## Post Comment Reply Templates
 
-### 赞美类
-> 谢谢您！[简短呼应，例如「很高兴您喜欢」]😊 欢迎常来！
+### Praise
+> Thank you! [Brief acknowledgment, e.g., "glad you enjoyed it"]😊 We'd love to see you again!
 
-### 提问类（能回答）
-> [直接回答问题]。如果还有其他问题，随时告诉我们！
+### Questions (answerable)
+> [Answer the question directly]. If you have any other questions, feel free to let us know!
 
-### 提问类（信息不足）
-> 感谢您的关注！这个问题具体情况可能有所不同，欢迎私信我们，我们会为您详细解答。
+### Questions (insufficient information)
+> Thanks for your interest! The specifics may vary depending on the situation. Feel free to DM us and we'll provide a detailed answer.
 
-### 投诉类
-> 非常抱歉给您带来了不好的体验。请您私信我们，我们希望尽快为您解决这个问题。
+### Complaints
+> We're truly sorry for the poor experience. Please DM us — we'd like to resolve this for you as soon as possible.
 
-### 垃圾评论 / 无关内容
-> [建议 admin 直接删除，不回复]
+### Spam / Irrelevant Content
+> [Suggest admin delete directly; do not reply]
 
 ---
 
-## 回复注意事项
+## Reply Guidelines
 
-- **永远不要在公开评论里争论**，即使对方明显无理
-- **不要复制粘贴模板**，每条回复要呼应评论里具体提到的内容
-- **Instagram 回复上限 300 字**，最多 4 个 hashtag，1 个 URL
-- **回复速度**：差评建议 24 小时内回复，好评 72 小时内即可
+- **Never argue in public comments**, even if the other party is clearly unreasonable
+- **Do not copy-paste templates**; each reply should address the specific points mentioned in the comment
+- **Instagram reply limit is 300 characters**, with a maximum of 4 hashtags and 1 URL
+- **Response speed**: Aim to reply to negative reviews within 24 hours; positive reviews within 72 hours is fine

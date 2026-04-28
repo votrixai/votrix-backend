@@ -1,90 +1,90 @@
 ---
 name: canvas-design
-description: 仅用于初始化品牌视觉风格。根据品牌名称、行业和风格关键词，输出一份设计哲学文档（.md），定义色彩系统、排版气质、构图方向和美学命名，供 F1/F3/F4 作为视觉风格基准。不生成图片或海报，不响应用户的内容创作请求。Create original visual designs, never copying existing artists' work to avoid copyright violations.
+description: Used only for initializing brand visual style. Based on brand name, industry, and style keywords, outputs a design philosophy document (.md) that defines the color system, typography character, composition direction, and aesthetic naming, serving as the visual style baseline for F1/F3/F4. Does not generate images or posters, does not respond to user content creation requests. Create original visual designs, never copying existing artists' work to avoid copyright violations.
 license: Complete terms in LICENSE.txt
 ---
 
-## 职责边界
+## Scope of Responsibility
 
-**这个 skill 只输出一个文件：设计哲学文档（.md），保存至 `/workspace/brand-style/philosophy.md`。**
+**This skill outputs only one file: a design philosophy document (.md), saved to `/workspace/brand-style/philosophy.md`.**
 
-- 不生成任何图片（.png / .pdf）
-- 不包含商品信息、价格、联系方式、促销文案、CTA
-- 下游的 F1（海报）、F3（AI 图片）、F4（AI 视频）读取此文件作为视觉风格基准
+- Does not generate any images (.png / .pdf)
+- Does not include product information, prices, contact details, promotional copy, or CTA
+- Downstream F1 (posters), F3 (AI images), F4 (AI videos) read this file as their visual style baseline
 
 ---
 
-## 设计哲学创作
+## Design Philosophy Creation
 
-根据品牌名称、行业、风格关键词，创作一套视觉哲学体系。
+Based on brand name, industry, and style keywords, create a visual philosophy system.
 
-### 第一步：命名美学运动（1–2 个词）
+### Step 1: Name the Aesthetic Movement (1–2 words)
 
-为这个品牌的视觉风格命名一个美学运动。名字应当简洁、有意象，能瞬间召唤一种视觉感受：
+Name an aesthetic movement for this brand's visual style. The name should be concise, evocative, and instantly conjure a visual feeling:
 
-例："Brutalist Joy" / "Chromatic Silence" / "Analog Meditation" / "暖调工匠" / "极光几何"
+Examples: "Brutalist Joy" / "Chromatic Silence" / "Analog Meditation" / "Warm Craftsman" / "Aurora Geometry"
 
-### 第二步：撰写哲学宣言（4–6 段）
+### Step 2: Write the Philosophy Manifesto (4–6 paragraphs)
 
-围绕以下五个维度展开，每个维度各成一段，不重复：
+Develop around the following five dimensions, one paragraph each, no repetition:
 
-- **空间与形态**：留白的比例、形状的语言、密度与疏朗的节奏
-- **色彩与质感**：主色调的情绪、色彩如何传递品牌气质、材质感的表达
-- **尺度与韵律**：大小对比、重复元素、视觉节奏的建立方式
-- **构图与平衡**：视觉重心的位置、元素之间的张力与和谐
-- **排版与层级**：字体的性格、文字作为视觉元素的使用方式、信息层级
+- **Space and Form**: proportion of whitespace, the language of shapes, rhythm of density and openness
+- **Color and Texture**: the mood of primary colors, how color conveys brand character, expression of material quality
+- **Scale and Rhythm**: size contrast, repeating elements, how visual rhythm is established
+- **Composition and Balance**: position of visual focal point, tension and harmony between elements
+- **Typography and Hierarchy**: personality of typefaces, how text is used as a visual element, information hierarchy
 
-**写作要求：**
-- 用诗意的语言描述视觉感受，而非技术规格
-- 多次强调工匠精神：「meticulously crafted」「painstaking attention」「master-level execution」
-- 保持通用性，不提及具体商品或营销意图
-- 为下游创作留有解释空间，不过度约束
+**Writing requirements:**
+- Use poetic language to describe visual feelings, not technical specifications
+- Emphasize craftsmanship repeatedly: "meticulously crafted," "painstaking attention," "master-level execution"
+- Keep it universal, do not mention specific products or marketing intent
+- Leave room for interpretation by downstream creation, do not over-constrain
 
-### 第三步：输出结构化风格规范
+### Step 3: Output Structured Style Specifications
 
-在哲学宣言之后，输出以下结构化字段，供 F1/F3/F4 直接读取：
+After the philosophy manifesto, output the following structured fields for F1/F3/F4 to read directly:
 
 ```
-## 风格规范
+## Style Specifications
 
-### 美学命名
-[1–2 个词]
+### Aesthetic Name
+[1–2 words]
 
-### 色彩系统
-- 主色调：[颜色描述 + hex]
-- 辅助色：[颜色描述 + hex]
-- 点睛色：[颜色描述 + hex]
-- 整体色彩情绪：[一句话]
+### Color System
+- Primary color: [color description + hex]
+- Secondary color: [color description + hex]
+- Accent color: [color description + hex]
+- Overall color mood: [one sentence]
 
-### 排版气质
-- 风格类型：[气势型 / 精致型 / 现代型 / 温柔型]
-- 推荐标题字体：[字体名，从 canvas-fonts/ 中选]
-- 推荐副标题字体：[字体名]
-- 推荐点缀字体：[字体名，可选]
+### Typography Character
+- Style type: [Bold / Refined / Modern / Gentle]
+- Recommended headline font: [font name, choose from canvas-fonts/]
+- Recommended subheadline font: [font name]
+- Recommended accent font: [font name, optional]
 
-### 空间构图
-- 构图类型：[沉浸型 / 分区型 / 叠层型 / 框架型]
-- 留白倾向：[宽松 / 适中 / 紧凑]
-- 视觉重心：[居中 / 偏上 / 偏下 / 偏侧]
+### Spatial Composition
+- Composition type: [Immersive / Zoned / Layered / Framed]
+- Whitespace tendency: [Spacious / Moderate / Compact]
+- Visual focal point: [Center / Upper / Lower / Side]
 ```
 
-### 哲学示例（参考，不要照抄）
+### Philosophy Example (for reference, do not copy)
 
 **"Concrete Poetry"**
-空间与形态：大面积色块主导画面，几何形状有雕塑般的重量感……
-色彩与质感：色彩浓烈而克制，每种颜色都承载意义而非装饰……
-（以此类推，4–6 段）
+Space and Form: Large color blocks dominate the canvas, geometric shapes carry a sculptural sense of weight...
+Color and Texture: Colors are bold yet restrained, each color carries meaning rather than decoration...
+(And so on, 4–6 paragraphs)
 
-风格规范：
-- 美学命名：Concrete Poetry
-- 主色调：炭黑 #1A1A1A
-- 辅助色：暖白 #F5F0E8
-- 点睛色：砖红 #C0392B
-- 风格类型：气势型
-- 构图类型：分区型
+Style Specifications:
+- Aesthetic Name: Concrete Poetry
+- Primary color: Charcoal Black #1A1A1A
+- Secondary color: Warm White #F5F0E8
+- Accent color: Brick Red #C0392B
+- Style type: Bold
+- Composition type: Zoned
 
 ---
 
-## 输出
+## Output
 
-将完整内容（哲学宣言 + 风格规范）保存为 `/workspace/brand-style/philosophy.md`，不输出其他文件。
+Save the complete content (philosophy manifesto + style specifications) as `/workspace/brand-style/philosophy.md`, do not output other files.

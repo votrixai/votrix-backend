@@ -1,20 +1,20 @@
 # Twitter / X
 
-| 内容类型 | 媒体规格 | 字数 | Hashtag |
-|---------|---------|------|---------|
-| Single Tweet | 图片最多 4 张，16:9 (1200×675)；视频最长 2分20秒 | 280 字（链接固定占 23 字） | 1–2 个 |
-| Thread | 第一条可带图 | 每条 ≤280 字，建议 3–8 条 | 1–2 个（第一条） |
+| Content Type | Media Specs | Character Limit | Hashtag |
+|-------------|-------------|-----------------|---------|
+| Single Tweet | Up to 4 images, 16:9 (1200x675); video max 2min 20sec | 280 characters (links always count as 23 characters) | 1-2 |
+| Thread | First tweet can include an image | Each tweet ≤280 characters, recommended 3-8 tweets | 1-2 (first tweet) |
 
-**周内容配比（每周 5–7 条）：**
+**Weekly Content Ratio (5-7 posts per week):**
 
-| 类型 | 占比 | 备注 |
-|------|------|------|
-| Single Tweet（带图） | 70% | 快观点 / 快响应，附 1–4 张图；视频不支持，有视频素材降级为带图发布 |
-| Thread（首条带图） | 30% | 深度内容 / 多卖点，首条附图提升互动率 |
+| Type | Ratio | Notes |
+|------|-------|-------|
+| Single Tweet (with image) | 70% | Quick takes / quick responses, attach 1-4 images; video not supported, downgrade video assets to image posts |
+| Thread (with image on first tweet) | 30% | In-depth content / multiple selling points, image on first tweet boosts engagement |
 
-**平台规则：**
-- 每个字都要值得，强观点 > 中性陈述
-- Hashtag 最多 1–2 个，太多显 spammy
-- Thread 每条独立成立，单独看也有价值
-- 问句式结尾互动率最高
-- 视频不支持发布，规划内容时不安排视频类型
+**Platform Rules:**
+- Every character counts — strong opinions > neutral statements
+- Max 1-2 hashtags; too many looks spammy
+- Each tweet in a Thread should stand alone and provide value independently
+- Question-style endings drive the highest engagement
+- Video publishing is not supported; do not plan video content types

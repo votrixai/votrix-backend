@@ -1,88 +1,88 @@
-# Facebook 发布 API
+# Facebook Publishing API
 
 ---
 
-## 前置：获取 Page ID
+## Prerequisite: Obtain Page ID
 
-`page_id` 从 `/workspace/marketing-context.md` 的 `## 已连接平台 → Facebook` 读取。
-如需确认可调：
+`page_id` is read from `## Connected Platforms → Facebook` in `/workspace/marketing-context.md`.
+To verify, you can call:
 
 ```
 FACEBOOK_LIST_MANAGED_PAGES()
-→ 返回 data[].id（page_id）和 data[].name
+→ Returns data[].id (page_id) and data[].name
 ```
 
 ---
 
-## Feed Post — 纯文字 / 链接
+## Feed Post — Text Only / Link
 
 ```
 FACEBOOK_CREATE_POST(
   page_id   = {page_id},
-  message   = {正文},
-  link      = {链接 url},   # 可选，自动生成预览卡
+  message   = {body text},
+  link      = {link url},   # Optional, auto-generates preview card
   published = true
 )
-→ data.id = post_id（格式：pageId_postId）
+→ data.id = post_id (format: pageId_postId)
 ```
 
-**注意：**
-- `message` 和 `link` 至少提供一个
-- 贴链接会自动生成预览卡，正文不需要重复描述链接内容
-- hashtag 在 Facebook 效果弱，放正文末尾即可
+**Notes:**
+- At least one of `message` or `link` must be provided
+- Including a link auto-generates a preview card; the body text does not need to repeat the link content
+- Hashtags have weak effect on Facebook; just place them at the end of the body text
 
 ---
 
-## Feed Post — 带图片
+## Feed Post — With Image
 
 ```
 FACEBOOK_CREATE_PHOTO_POST(
   page_id   = {page_id},
-  url       = {image_public_url},  # 直链 HTTPS，不能是 HTML 页面
-  message   = {正文 + hashtag},
+  url       = {image_public_url},  # Direct HTTPS link, cannot be an HTML page
+  message   = {body text + hashtag},
   published = true
 )
-→ data.id = post_id（格式：pageId_postId）
+→ data.id = post_id (format: pageId_postId)
 ```
 
-**注意：**
-- `url` 必须是图片文件直链，返回正确 MIME type（image/jpeg 或 image/png）
-- 不支持重定向 URL 或需要认证的链接
+**Notes:**
+- `url` must be a direct link to an image file, returning the correct MIME type (image/jpeg or image/png)
+- Redirect URLs or links requiring authentication are not supported
 
 ---
 
-## Reels / 视频
+## Reels / Video
 
 ```
 FACEBOOK_CREATE_VIDEO_POST(
   page_id     = {page_id},
-  file_url    = {video_public_url},  # 直链 MP4，H.264 + AAC 编码
-  description = {简短文案},
-  title       = {视频标题},          # 可选
+  file_url    = {video_public_url},  # Direct MP4 link, H.264 + AAC encoding
+  description = {short copy},
+  title       = {video title},       # Optional
   published   = true
 )
 → data.id = post_id
 ```
 
-**注意：**
-- `file_url` 必须是直链 MP4，不能是 YouTube 等播放页链接
-- 视频上传后进入处理状态，处理完成后才对用户可见
-- Facebook Reels 与 Instagram Reels 可用同一视频素材
+**Notes:**
+- `file_url` must be a direct MP4 link; links to YouTube or other player pages are not accepted
+- After uploading, the video enters a processing state and becomes visible to users only after processing is complete
+- Facebook Reels and Instagram Reels can use the same video asset
 
 ---
 
 ## Story
 
-不支持。
+Not supported.
 
 ---
 
-## 错误处理
+## Error Handling
 
-| 错误 | 处理方式 |
+| Error | How to Handle |
 |---|---|
-| token 过期 / 权限不足 | 告知 admin 需重新连接 Facebook，引导运行 setup |
-| 图片 URL 无法访问 | 确认 URL 是直链 HTTPS，返回正确 MIME type |
-| 视频格式不支持 | 建议使用 MP4 + H.264/AAC，告知 admin 重新提供 |
-| 发布失败（网络/限流） | 保留草稿，建议稍后重试 |
-| 内容违反平台政策 | 返回 Facebook 原始错误信息，建议修改后重试 |
+| Token expired / insufficient permissions | Inform admin they need to reconnect Facebook, guide them to run setup |
+| Image URL inaccessible | Confirm URL is a direct HTTPS link returning the correct MIME type |
+| Video format not supported | Suggest using MP4 + H.264/AAC, inform admin to provide again |
+| Publishing failed (network/rate limit) | Keep draft, suggest retrying later |
+| Content violates platform policy | Return Facebook's original error message, suggest modifying and retrying |

@@ -1,125 +1,125 @@
 ---
 name: social-media-post-content-creation
 description: >
-  社交媒体内容创作。规划未来几次发布的内容，确认素材需求，生成图片/视频/文案，呈现给用户审阅，存入草稿待定时发布。
-  触发场景：(1) [cron] 每周定时起草内容计划；(2) 用户临时要求生成内容。
+  Social media content creation. Plan upcoming posts, confirm asset requirements, generate images/videos/copy, present to user for review, and save as drafts for scheduled publishing.
+  Trigger scenarios: (1) [cron] Weekly scheduled content plan drafting; (2) User ad-hoc content generation requests.
 integrations: []
 ---
 
 # Social Media Content Creation
 
-## 触发判断
+## Trigger Logic
 
-- `[cron] 内容共创` → **阶段 1**：起草本周内容计划
-- 用户发来素材（图片 / 视频）或说「这是素材」→ **阶段 3**：直接创作
-- 用户临时要求（「帮我做个海报」「帮我做几张图」）→ **阶段 3**：直接创作
+- `[cron] Content Co-creation` → **Phase 1**: Draft this week's content plan
+- User sends assets (images / videos) or says "here are the assets" → **Phase 3**: Create directly
+- User ad-hoc request ("make me a poster", "create some images for me") → **Phase 3**: Create directly
 
 ---
 
-## 阶段 1 — 内容计划
+## Phase 1 — Content Plan
 
-读取 `/workspace/marketing-context.md`，了解品牌名称、行业、调性、已连接平台、发布节奏、内容方向。
+Read `/workspace/marketing-context.md` to understand brand name, industry, tone, connected platforms, posting cadence, and content direction.
 
-根据已连接平台，读取对应 reference 文件了解尺寸规格、Caption 限制、Hashtag 数量及周内容配比：
+Based on connected platforms, read the corresponding reference files to understand dimension specs, caption limits, hashtag counts, and weekly content ratios:
 `/mnt/skills/social-media-post-content-creation/references/{platform}.md`
 
-根据本周日期为每条待发内容起草条目：
+Draft entries for each post scheduled this week based on the current week's dates:
 
-| 字段 | 说明 |
-|------|------|
-| 日期 | 计划发布日 |
-| 平台 | Instagram / LinkedIn / Twitter 等 |
-| 内容类型 | 单图海报 / Carousel / Reels / Story（仅 Instagram）|
-| 主题 | 这条内容讲什么，一句话 |
-| 素材需求 | AI 生成 / 需用户提供图片 / 需用户提供视频 |
+| Field | Description |
+|-------|-------------|
+| Date | Planned publish date |
+| Platform | Instagram / LinkedIn / Twitter, etc. |
+| Content Type | Single Image Poster / Carousel / Reels / Story (Instagram only) |
+| Topic | What this post is about, in one sentence |
+| Asset Requirement | AI-generated / User-provided image / User-provided video |
 
-**内容类型判断：**
+**Content Type Selection:**
 
-| 场景 | 类型 |
-|------|------|
-| 多产品 / 多卖点 / 步骤教程 / 前后对比 | Carousel |
-| 单个强视觉 / 简单公告 / 节日海报 | 单图海报 |
-| 幕后故事 / 制作过程 / 有视频素材 | Reels |
-| 快速互动 / 限时优惠（仅 Instagram） | Story |
+| Scenario | Type |
+|----------|------|
+| Multiple products / multiple selling points / step-by-step tutorial / before-and-after comparison | Carousel |
+| Single strong visual / simple announcement / holiday poster | Single Image Poster |
+| Behind-the-scenes story / making-of process / video assets available | Reels |
+| Quick interaction / limited-time offer (Instagram only) | Story |
 
-不确定选哪种类型时，参照对应平台 reference 文件中的周配比，补足当周比例较低的类型。
+When unsure which type to choose, refer to the weekly ratio in the corresponding platform reference file and fill in whichever type is underrepresented that week.
 
-**跨平台素材复用：**
-同周如多平台发同主题内容，合并为一个素材任务，在计划表"素材需求"里注明复用关系：
-- 1:1 图片 → Instagram 单图 / Facebook Feed Post / LinkedIn Image Post 三平台通用
-- 9:16 视频 → Instagram Reels + Facebook Reels 直接跨发，无需重新生成
-
----
-
-## 阶段 2 — 素材清单
-
-将所有条目的素材需求拆分为两类：
-
-- **AI 自动生成**：直接进入阶段 3
-- **需用户提供**：列出清单，说明每条需要什么（几秒视频 / 产品图 / 场景图），等素材到位后进入阶段 3
-
-以对话语气呈现计划和清单，**等待 admin 明确确认后才能继续**。除非 admin 之前已明确说明「每次直接生成，不用确认」，否则禁止跳过此步骤直接进入阶段 3。
+**Cross-Platform Asset Reuse:**
+If multiple platforms cover the same topic in the same week, consolidate into one asset task and note the reuse relationship in the plan's "Asset Requirement" column:
+- 1:1 image → Shared across Instagram Single Image / Facebook Feed Post / LinkedIn Image Post
+- 9:16 video → Cross-post directly to Instagram Reels + Facebook Reels without regenerating
 
 ---
 
-## 阶段 3 — 素材创作
+## Phase 2 — Asset Checklist
 
-所有可生成的内容并行创作，根据内容类型路由。已标注「复用 [平台] 素材」的条目跳过生成，直接引用已生成的文件路径：
+Split all entries' asset requirements into two categories:
 
-| 内容类型 | 路由 |
-|---------|------|
-| 单图海报 | `poster-design` skill |
-| Carousel 海报 | 先读 `/mnt/skills/social-media-post-content-creation/features/carousel.md` 规划叙事结构，再用 `poster-design` skill 逐张设计 |
-| 纯图片 / Carousel 组图（不叠文字） | `/mnt/skills/social-media-post-content-creation/features/generate-image.md` |
-| 视频 | `/mnt/skills/social-media-post-content-creation/features/generate-video.md` |
+- **AI Auto-generated**: Proceed directly to Phase 3
+- **User-provided**: List out what is needed for each entry (how many seconds of video / product photo / scene photo), then proceed to Phase 3 once assets are received
+
+Present the plan and checklist in a conversational tone, **and wait for explicit admin confirmation before proceeding**. Unless the admin has previously stated "just generate directly each time, no confirmation needed," do not skip this step and jump to Phase 3.
 
 ---
 
-## 阶段 4 — Post 组装
+## Phase 3 — Asset Creation
 
-每条素材生成后配套写：
+Create all generatable content in parallel, routing by content type. Entries marked "reuse [platform] asset" skip generation and directly reference the already-generated file path:
 
-- **Caption**：补充素材没有呈现的信息（背景故事 / 使用体验 / 为什么选择），结尾引导行动
-- **Hashtags**：按平台要求（Instagram 10–15 个 / Facebook & LinkedIn 3–5 个 / Twitter 1–2 个），覆盖大众标签 + 垂直标签 + 地理 / 品牌标签
+| Content Type | Route |
+|-------------|-------|
+| Single Image Poster | `poster-design` skill |
+| Carousel Poster | First read `/mnt/skills/social-media-post-content-creation/features/carousel.md` to plan the narrative structure, then use `poster-design` skill to design each slide |
+| Pure Image / Carousel Images (no text overlay) | `/mnt/skills/social-media-post-content-creation/features/generate-image.md` |
+| Video | `/mnt/skills/social-media-post-content-creation/features/generate-video.md` |
 
 ---
 
-## 阶段 5 — 用户审阅
+## Phase 4 — Post Assembly
 
-所有内容生成完毕后，调用 `show_post_preview` 一次性呈现全部 post：
+After each asset is generated, write the accompanying:
+
+- **Caption**: Supplement information not conveyed by the asset (backstory / usage experience / why this choice), ending with a call to action
+- **Hashtags**: Per platform requirements (Instagram 10-15 / Facebook & LinkedIn 3-5 / Twitter 1-2), covering broad tags + niche tags + geo / brand tags
+
+---
+
+## Phase 5 — User Review
+
+Once all content is generated, call `show_post_preview` to present all posts at once:
 
 ```
 show_post_preview({
-  slides: [{ path: "/mnt/session/outputs/{filename}", label: "封面" }],
-  caption: "完整文案",
+  slides: [{ path: "/mnt/session/outputs/{filename}", label: "Cover" }],
+  caption: "Full copy text",
   hashtags: ["tag1", "tag2"]
 })
 ```
 
-- 单图：slides 一项
-- Carousel：slides 按张顺序传入
-- 纯文字帖：slides 为空数组
+- Single image: one item in slides
+- Carousel: slides passed in sequential order
+- Text-only post: slides is an empty array
 
-用户整体确认后进入阶段 6。对某条有修改意见则单独重做该条，重新呈现。
+After the user confirms everything, proceed to Phase 6. If there are revision notes on a specific post, redo that post individually and re-present.
 
 ---
 
-## 阶段 6 — 存档
+## Phase 6 — Archiving
 
-每条确认后写入 `/workspace/drafts/`：
+After each post is confirmed, write to `/workspace/drafts/`:
 
-文件名：`{YYYY-MM-DD}-{platform}-{type}-{slug}.md`
+Filename: `{YYYY-MM-DD}-{platform}-{type}-{slug}.md`
 
-每条草稿包含：
+Each draft includes:
 
-| 字段 | 说明 |
-|------|------|
-| 平台 | `instagram` / `facebook` / `linkedin` / `twitter` |
-| 内容类型 | Carousel / 单图海报 / Reels / Story（仅 Instagram）|
-| 状态 | `待发布` |
-| 计划发布日 | YYYY-MM-DD |
-| 媒体文件路径 | 生成的图片 / 视频路径（文字帖可为空） |
-| Caption | 完整文案 |
-| Hashtags | 标签列表 |
+| Field | Description |
+|-------|-------------|
+| Platform | `instagram` / `facebook` / `linkedin` / `twitter` |
+| Content Type | Carousel / Single Image Poster / Reels / Story (Instagram only) |
+| Status | `pending publish` |
+| Planned Publish Date | YYYY-MM-DD |
+| Media File Path | Generated image / video path (can be empty for text-only posts) |
+| Caption | Full copy text |
+| Hashtags | Tag list |
 
-草稿存好后由每天 09:00 的 `[cron] 内容发布` 按日期自动扫描发布。
+Once drafts are saved, the daily 09:00 `[cron] Content Publish` job automatically scans and publishes by date.

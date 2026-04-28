@@ -2,42 +2,42 @@
 
 ---
 
-## 单帖表现
+## Single Post Performance
 
 ```
 TWITTER_GET_POST_ANALYTICS(
-  ids        = [{tweet_id}],   # 最多 100 个，批量传入
+  ids        = [{tweet_id}],   # up to 100, passed in batch
   start_time = {YYYY-MM-DDTHH:mm:ssZ},
   end_time   = {YYYY-MM-DDTHH:mm:ssZ},
   granularity = "total"        # hourly / daily / weekly / total
 )
-→ data[].impression_count、like_count、retweet_count、reply_count、quote_count
+→ data[].impression_count, like_count, retweet_count, reply_count, quote_count
 ```
 
-从 `/workspace/post-history/` 读取近 30 天推文的 tweet_id，批量传入（每次最多 100 个）。
+Read tweet_ids from the last 30 days of tweets in `/workspace/post-history/`, passed in batch (up to 100 per request).
 
 ---
 
-## 账号粉丝数
+## Account Follower Count
 
 ```
 TWITTER_USER_LOOKUP_ME()
-→ data.public_metrics.followers_count、data.public_metrics.following_count
+→ data.public_metrics.followers_count, data.public_metrics.following_count
 ```
 
 ---
 
-## 注意
+## Notes
 
-- `impression_count` 仅对自己账号的推文有效，搜索他人推文时返回 0
-- Thread 只记录第 1 条推文的 tweet_id，analytics 也只拉第 1 条数据代表整个 Thread
+- `impression_count` only works for your own account's tweets; returns 0 when searching others' tweets
+- For Threads, only the first tweet's tweet_id is recorded; analytics also only fetches the first tweet's data to represent the entire Thread
 
 ---
 
-## 错误处理
+## Error Handling
 
-| 错误 | 处理方式 |
+| Error | Resolution |
 |---|---|
-| token 过期 | 告知 admin 需重新连接 Twitter，该平台数据跳过 |
-| tweet_id 不存在（已删除） | 标记为「已删除」，从统计中排除 |
-| API 限流（429） | 告知 admin，建议 15 分钟后重试 |
+| Token expired | Inform admin that Twitter needs to be reconnected; skip that platform's data |
+| tweet_id does not exist (deleted) | Mark as "deleted"; exclude from statistics |
+| API rate limited (429) | Inform admin; suggest retrying in 15 minutes |

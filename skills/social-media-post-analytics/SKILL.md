@@ -1,6 +1,6 @@
 ---
 name: social-media-post-analytics
-description: "拉取各平台数据，分析帖子表现、受众增长，生成报告。当 admin 说「数据报告」「表现怎样」「多少人看了」「粉丝增长」「哪篇帖子效果最好」「analytics」「insights」时触发。"
+description: "Fetch data from each platform, analyze post performance and audience growth, and generate reports. Triggered when admin says 'data report', 'how's performance', 'how many views', 'follower growth', 'which post performed best', 'analytics', or 'insights'."
 integrations:
   - facebook
   - instagram
@@ -10,169 +10,169 @@ integrations:
 
 # Analytics
 
-你负责从各平台拉取表现数据，结合本地 post-history 记录，生成可执行的分析报告。
+You are responsible for fetching performance data from each platform, combining it with local post-history records, and generating actionable analysis reports.
 
 ---
 
-## 启动检查
+## Startup Check
 
-读取 `/workspace/marketing-context.md`，确认：
-- 已连接平台列表（只分析已连接的平台）
-- Page ID / Account ID（API 调用必需）
+Read `/workspace/marketing-context.md` to confirm:
+- List of connected platforms (only analyze connected platforms)
+- Page ID / Account ID (required for API calls)
 
 ---
 
-## 数据架构：两层读取
+## Data Architecture: Two-Layer Retrieval
 
-**原则：先读本地，缺数据再调 API。**
+**Principle: Read local data first; only call APIs for missing data.**
 
-### 第一层：本地 post-history
+### Layer 1: Local post-history
 
-路径：`/workspace/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
+Path: `/workspace/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
 
-每条帖子记录格式：
+Each post record format:
 ```
-- 触达：-
-- 互动：-
-- 点赞：-
-- 评论：-
-- 分享：-
+- Reach: -
+- Engagement: -
+- Likes: -
+- Comments: -
+- Shares: -
 ```
 
-字段为 `-` 表示尚未拉取，需要调 API 刷新。
+A field value of `-` means it has not been fetched yet and requires an API refresh.
 
-### 第二层：平台 API（按需刷新）
+### Layer 2: Platform API (refresh on demand)
 
-仅当本地数据为 `-` 时调用。每次最多批量处理 **10 条**帖子，处理完告知 admin 并询问是否继续。
+Only called when local data is `-`. Process a maximum of **10 posts** per batch; after completion, inform admin and ask whether to continue.
 
 ---
 
-## 平台 API 调用
+## Platform API Calls
 
-根据已连接平台，读取对应 reference 文件执行 API 调用：
+Based on connected platforms, read the corresponding reference files to execute API calls:
 
-| 平台 | Reference 文件 |
+| Platform | Reference File |
 |---|---|
 | Facebook | `/workspace/skills/social-media-post-analytics/references/facebook.md` |
 | Instagram | `/workspace/skills/social-media-post-analytics/references/instagram.md` |
 | Twitter | `/workspace/skills/social-media-post-analytics/references/twitter.md` |
 | LinkedIn | `/workspace/skills/social-media-post-analytics/references/linkedin.md` |
 
-各平台独立拉取，一个失败不影响其他平台继续。
+Each platform is fetched independently; a failure on one does not affect the others.
 
 ---
 
-## 刷新本地数据
+## Refreshing Local Data
 
-API 拉取后，立即更新对应 post-history 文件里的 `-` 字段：
+After fetching from APIs, immediately update the `-` fields in the corresponding post-history files:
 
-读取文件 → 替换对应帖子下的 `触达：-`、`互动：-`、`点赞：-`、`评论：-`、`分享：-` → 写回文件。
+Read file > replace `Reach: -`, `Engagement: -`, `Likes: -`, `Comments: -`, `Shares: -` under the corresponding post > write back to file.
 
-同时将本次刷新时间写入 `/workspace/marketing-context.md` 的 `## 运行状态` 对应平台字段。
+Also write the refresh timestamp to the corresponding platform field under `## Operational Status` in `/workspace/marketing-context.md`.
 
 ---
 
-## 报告类型
+## Report Types
 
-Admin 说「出报告」时询问要哪种，或根据问句直接判断：
+When admin says "generate a report", ask which type they want, or infer directly from the question:
 
-### 1. 快速总结（默认）
+### 1. Quick Summary (default)
 
-> Admin 说「最近表现怎样」「给我看看数据」
+> Admin says "how's recent performance" or "show me the data"
 
-- 各平台最近 7 天：总触达、总互动、新增粉丝
-- 表现最好的 1 篇帖子（各平台）
-- 一句话结论 + 1 个可执行建议
+- Each platform's last 7 days: total reach, total engagement, new followers
+- Best-performing post (per platform)
+- One-sentence conclusion + 1 actionable suggestion
 
-### 2. 帖子排名
+### 2. Post Ranking
 
-> Admin 说「哪篇帖子效果最好」「帖子排行」
+> Admin says "which post performed best" or "post rankings"
 
-从 post-history 读取指定时间范围内所有帖子，按互动率排序：
+Read all posts within the specified time range from post-history, sorted by engagement rate:
 
 ```
-互动率 = (点赞 + 评论 + 分享) / 触达 × 100%
+Engagement Rate = (Likes + Comments + Shares) / Reach x 100%
 ```
 
-展示 Top 5，标注平台、主题、发布时间、关键指标。
-分析共同特征：时间段、内容类型、hashtag 组合。
+Display Top 5, noting platform, topic, publish time, and key metrics.
+Analyze common traits: time slots, content types, hashtag combinations.
 
-### 3. 账号增长
+### 3. Account Growth
 
-> Admin 说「粉丝增长怎样」「涨了多少粉」
+> Admin says "how's follower growth" or "how many new followers"
 
-- 各平台粉丝数变化（本周 vs 上周）
-- 增长最快的时间段
-- 对应期间发布了什么内容（关联分析）
+- Follower count changes per platform (this week vs last week)
+- Fastest growth periods
+- What content was published during those periods (correlation analysis)
 
-### 4. 内容策略分析
+### 4. Content Strategy Analysis
 
-> Admin 说「哪类内容效果好」「内容建议」
+> Admin says "which content type performs best" or "content suggestions"
 
-按内容主题（Pillar）分组统计平均互动率：
+Group by content theme (Pillar) and calculate average engagement rate:
 
-| 主题 | 帖子数 | 平均互动率 | 最佳平台 |
+| Theme | Post Count | Avg Engagement Rate | Best Platform |
 |---|---|---|---|
-| 产品推广 | - | - | - |
-| 行业知识 | - | - | - |
-| 幕后故事 | - | - | - |
-| 客户案例 | - | - | - |
+| Product Promotion | - | - | - |
+| Industry Knowledge | - | - | - |
+| Behind the Scenes | - | - | - |
+| Customer Stories | - | - | - |
 
-输出：哪类内容效果最好，哪类需要调整，发布时间优化建议。
+Output: Which content type performs best, which needs adjustment, and posting time optimization suggestions.
 
-分析完成后，将结论写回 `/workspace/marketing-context.md` 的 `## 内容策略`：
-- 若某类型触达 / 互动率显著高于其他类型，更新「当前优先类型」
-- 在「策略更新记录」末尾追加一条：
-  `[analytics {日期}] {具体调整，例：Reels 触达是 Feed 3 倍，已更新优先类型为 Reels}`
-- 记录超过 10 条时删除最旧的一条
+After analysis, write conclusions back to `## Content Strategy` in `/workspace/marketing-context.md`:
+- If a certain type has significantly higher reach / engagement rate than others, update "Current Priority Type"
+- Append an entry at the end of "Strategy Update Log":
+  `[analytics {date}] {specific adjustment, e.g.: Reels reach is 3x Feed; updated priority type to Reels}`
+- Delete the oldest entry when the log exceeds 10 entries
 
-### 5. 完整月报
+### 5. Full Monthly Report
 
-> Admin 说「出月报」「本月数据」
+> Admin says "generate monthly report" or "this month's data"
 
-综合以上 4 类，涵盖：
-- 各平台账号增长汇总
-- 本月所有帖子表现排名
-- 内容策略分析
-- 本月评论情感趋势（如有）
-- 下月建议：内容方向、发布频率、需要改进的平台
+Comprehensive report combining all 4 types above, covering:
+- Account growth summary per platform
+- Performance ranking of all posts this month
+- Content strategy analysis
+- Comment sentiment trends for the month (if available)
+- Next month's suggestions: content direction, posting frequency, platforms that need improvement
 
 ---
 
-## 展示报告
+## Displaying Reports
 
-优先在对话中直接展示，数字用表格，趋势用对比（本周 vs 上周）。
+Prefer displaying directly in the conversation; use tables for numbers and comparisons for trends (this week vs last week).
 
-报告超过一屏时，询问 admin 是否保存为文件。Admin 确认后写入：
+When the report exceeds one screen, ask admin whether to save as a file. After admin confirms, write to:
 
-路径：`/workspace/analytics-reports/{YYYY-MM}/{报告类型}-{YYYY-MM-DD}.md`
+Path: `/workspace/analytics-reports/{YYYY-MM}/{report-type}-{YYYY-MM-DD}.md`
 
-文件命名示例：
+File naming examples:
 - `summary-2024-01-15.md`
 - `post-ranking-2024-01-15.md`
 - `monthly-report-2024-01.md`
 
 ---
 
-## 批量处理限制
+## Batch Processing Limit
 
-单次 API 刷新最多处理 **10 条**帖子。处理完毕后：
+A single API refresh processes a maximum of **10 posts**. After completion:
 
 ```
-已刷新 10 条帖子数据（共 23 条待更新）。
-是否继续拉取剩余 13 条？（每次拉取 10 条）
+Refreshed data for 10 posts (23 total pending updates).
+Continue fetching the remaining 13? (10 per batch)
 ```
 
-Admin 说「继续」就处理下一批；说「够了」就用已有数据生成报告。
+If admin says "continue", process the next batch; if admin says "that's enough", generate the report with available data.
 
 ---
 
-## 错误处理
+## Error Handling
 
-| 错误 | 处理方式 |
+| Error | Resolution |
 |---|---|
-| 平台 token 过期 | 告知 admin 需重新连接该平台，该平台数据跳过 |
-| 帖子 ID 不存在（已删除） | 标记为「已删除」，从统计中排除 |
-| API 限流 | 告知 admin 当前受限，建议 15 分钟后重试 |
-| post-history 文件不存在 | 告知 admin 该时间段无发布记录 |
-| 数据全为 `-` 且无 API 连接 | 提示需要先连接平台才能拉取数据 |
+| Platform token expired | Inform admin the platform needs to be reconnected; skip that platform's data |
+| Post ID does not exist (deleted) | Mark as "deleted"; exclude from statistics |
+| API rate limited | Inform admin of current restriction; suggest retrying in 15 minutes |
+| post-history file does not exist | Inform admin there are no publishing records for that time period |
+| All data is `-` with no API connection | Prompt that a platform must be connected before data can be fetched |

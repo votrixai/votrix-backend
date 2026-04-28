@@ -1,35 +1,35 @@
-# Facebook 评论监控 API
+# Facebook Comment Monitoring API
 
 ---
 
-## 获取评论
+## Fetching Comments
 
 ```
 FACEBOOK_GET_COMMENTS(
   post_id = {post_id}
 )
-→ data[].id、data[].message、data[].from、data[].created_time
+→ data[].id, data[].message, data[].from, data[].created_time
 ```
 
-从 `/workspace/post-history/` 读取近 30 天帖子的 post_id，逐一拉取。  
-只处理上次巡查时间之后的新评论（`created_time > 上次巡查时间`）。
+Read post_ids from the last 30 days of posts in `/workspace/post-history/`, fetching one by one.
+Only process new comments after the last patrol time (`created_time > last patrol time`).
 
 ---
 
-## 回复评论
+## Replying to Comments
 
 ```
 FACEBOOK_CREATE_COMMENT(
   post_id = {post_id},
-  message = {回复内容}
+  message = {reply content}
 )
 ```
 
 ---
 
-## 删除评论
+## Deleting Comments
 
-仅限自己主页的垃圾评论，admin 确认后执行：
+Limited to spam comments on your own page; execute after admin confirmation:
 
 ```
 FACEBOOK_DELETE_COMMENT(
@@ -39,9 +39,9 @@ FACEBOOK_DELETE_COMMENT(
 
 ---
 
-## 错误处理
+## Error Handling
 
-| 错误 | 处理方式 |
+| Error | Resolution |
 |---|---|
-| token 过期 / 权限不足 | 告知 admin 需重新连接 Facebook，引导运行 setup |
-| post_id 无效 | 跳过该帖子，继续处理其他帖子 |
+| Token expired / insufficient permissions | Inform admin that Facebook needs to be reconnected; guide them to run setup |
+| Invalid post_id | Skip this post and continue processing other posts |

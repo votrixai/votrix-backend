@@ -123,7 +123,7 @@ async def stream(
         except anthropic.BadRequestError as exc:
             if "archived session" in str(exc).lower():
                 logger.error("[send] session archived: %s", exc)
-                yield {"type": "error", "message": "会话已过期，请开启新对话"}
+                yield {"type": "error", "message": "Session has expired, please start a new conversation"}
                 return
             if "waiting on responses to events" in str(exc):
                 pending_ids = re.findall(r'sevt_\w+', str(exc))
@@ -149,7 +149,7 @@ async def stream(
                     )
                 except Exception as retry_exc:
                     logger.error("[send] recovery failed: %s", retry_exc)
-                    yield {"type": "error", "message": f"会话恢复失败，请刷新重试: {retry_exc}"}
+                    yield {"type": "error", "message": f"Session recovery failed, please refresh and try again: {retry_exc}"}
                     return
             else:
                 logger.error("[send] bad request: %s", exc)
@@ -157,15 +157,15 @@ async def stream(
                 return
         except anthropic.NotFoundError as exc:
             logger.error("[send] session not found (expired?): %s", exc)
-            yield {"type": "error", "message": "会话已过期，请开启新对话"}
+            yield {"type": "error", "message": "Session has expired, please start a new conversation"}
             return
         except anthropic.RateLimitError as exc:
             logger.error("[send] rate limited: %s", exc)
-            yield {"type": "error", "message": "请求频率过高，请稍后重试"}
+            yield {"type": "error", "message": "Request rate too high, please try again later"}
             return
         except anthropic.APITimeoutError as exc:
             logger.error("[send] timeout: %s", exc)
-            yield {"type": "error", "message": "请求超时，请稍后重试"}
+            yield {"type": "error", "message": "Request timed out, please try again later"}
             return
         except anthropic.APIError as exc:
             logger.error("[send] API error: %s", exc)
@@ -325,7 +325,7 @@ async def stream(
                                 await client.beta.sessions.events.send(session_id, events=results)
                             except Exception as send_exc:
                                 logger.error("[requires_action] failed to send tool results: %s", send_exc)
-                                yield {"type": "error", "message": f"工具结果发送失败: {send_exc}"}
+                                yield {"type": "error", "message": f"Failed to send tool results: {send_exc}"}
                                 return
                         # stream stays open — Anthropic continues on the same connection
 
@@ -341,9 +341,9 @@ async def stream(
                         retry = getattr(error, "retry_status", None)
                         retry_type = getattr(retry, "type", None) if retry else None
                         if error_type == "model_rate_limited_error":
-                            msg = "模型当前繁忙，请稍后重试"
+                            msg = "Model is currently busy, please try again later"
                             if retry_type == "exhausted":
-                                msg = "模型当前繁忙，已多次重试仍失败，请稍后重试"
+                                msg = "Model is currently busy, retries exhausted, please try again later"
                         else:
                             msg = f"{error_type}: {error_msg}"
                     else:

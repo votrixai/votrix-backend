@@ -53,6 +53,10 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
+## Language
+
+- All text in this repo must be in English. Never write Mandarin or any non-English characters into any file.
+
 ## Code Conventions
 
 - All DB access via `app/db/queries/*.py` — DAO functions take `AsyncSession` as first arg
