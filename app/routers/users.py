@@ -30,8 +30,7 @@ async def get_me(
     user = await users_q.get_user(db, current_user.id)
     if not user:
         raise HTTPException(status_code=404, detail="User profile not found (trigger missed?)")
-    workspaces = await workspaces_q.get_user_workspaces(db, current_user.id)
-    memberships = {m.workspace_id: m.role for m in (user.workspace_memberships or [])}
+    rows = await workspaces_q.get_user_workspaces(db, current_user.id)
     return UserResponse(
         id=user.id,
         display_name=user.display_name,
@@ -40,10 +39,10 @@ async def get_me(
             WorkspaceResponse(
                 id=w.id,
                 display_name=w.display_name,
-                role=memberships.get(w.id, "member"),
+                role=role,
                 created_at=w.created_at,
             )
-            for w in workspaces
+            for w, role in rows
         ],
     )
 
