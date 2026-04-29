@@ -1,12 +1,15 @@
 """
 Agent template routes — reads from agents/ directory on disk.
 
-GET   /agents                        list all agent templates
-GET   /agents/{agent_id}             get config
-POST  /agents/{agent_id}/reprovision reprovision agent blueprint + sync memory stores
+GET    /agents                         list all agent templates
+GET    /agents/{agent_id}              get config
+POST   /agents/{agent_id}/reprovision  update-or-create agent on Anthropic + sync memory stores
+POST   /agents/{agent_id}/enable       enable agent for current user's workspace
+DELETE /agents/{agent_id}/enable       disable agent for current user's workspace
 """
 
 import json
+import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,13 +18,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import AuthedUser, require_user
 from app.db.engine import get_session
 from app.db.queries import agent_blueprints as blueprints_q
-from app.management.memory_stores import sync_memory_stores_for_blueprint
-from app.management.provisioning import create_user_agent, _read_config
+from app.db.queries import agent_employees as employees_q
+from app.db.queries import workspaces as workspaces_q
+from app.management.memory_stores import create_for_employee, sync_memory_stores_for_blueprint
+from app.management.provisioning import create_user_agent, update_user_agent, _read_config
 from app.models.agent import AgentConfig
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
 AGENTS_DIR = Path(__file__).parents[2] / "agents"
+EXCLUDED_AGENT_DIRS = {"TEMPLATE"}
 
 
 def _load_config(agent_id: str) -> AgentConfig:
@@ -32,7 +38,15 @@ def _load_config(agent_id: str) -> AgentConfig:
     return AgentConfig(slug=agent_id, **{k: v for k, v in data.items() if k not in ("agentId", "envId")})
 
 
-EXCLUDED_AGENT_DIRS = {"TEMPLATE"}
+def _parse_blueprint_id(agent_id: str) -> uuid.UUID:
+    config = _read_config(agent_id)
+    raw = config.get("agentId")
+    if not raw:
+        raise HTTPException(status_code=422, detail=f"Agent '{agent_id}' has no agentId in config.json")
+    try:
+        return uuid.UUID(raw)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Agent '{agent_id}' has invalid agentId (must be UUID)")
 
 
 @router.get("", response_model=list[AgentConfig])
@@ -53,26 +67,88 @@ async def get_agent(agent_id: str):
 async def reprovision_agent(
     agent_id: str,
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
 ):
-    _load_config(agent_id)
+    _load_config(agent_id)  # 404 guard
     config = _read_config(agent_id)
+    blueprint_id = _parse_blueprint_id(agent_id)
 
-    new_provider_agent_id = await create_user_agent(agent_id)
+    existing_bp = await blueprints_q.get(db, blueprint_id)
 
-    existing_bp = await blueprints_q.get_by_provider_id(db, new_provider_agent_id)
     if existing_bp:
+        # Update Anthropic agent in-place — provider_agent_id stays the same
+        await update_user_agent(agent_id, existing_bp.provider_agent_id)
         bp = existing_bp
     else:
+        # First provision — create on Anthropic, then persist to DB
+        provider_agent_id = await create_user_agent(agent_id)
         bp = await blueprints_q.create(
-            db, new_provider_agent_id, config.get("name", agent_id)
+            db,
+            blueprint_id=blueprint_id,
+            provider_agent_id=provider_agent_id,
+            display_name=config.get("name", agent_id),
         )
 
     memory_configs = config.get("memoryConfigs", [])
     memory_stats = await sync_memory_stores_for_blueprint(db, bp.id, memory_configs)
 
     return {
-        "agent_id": new_provider_agent_id,
         "blueprint_id": str(bp.id),
+        "provider_agent_id": bp.provider_agent_id,
         "memory_stores": memory_stats,
     }
+
+
+@router.post("/{agent_id}/enable", status_code=201)
+async def enable_agent(
+    agent_id: str,
+    db: AsyncSession = Depends(get_session),
+    current_user: AuthedUser = Depends(require_user),
+):
+    _load_config(agent_id)
+    blueprint_id = _parse_blueprint_id(agent_id)
+
+    bp = await blueprints_q.get(db, blueprint_id)
+    if not bp:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Agent '{agent_id}' has not been provisioned yet. Run reprovision first.",
+        )
+
+    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="No workspace found for user")
+
+    existing = await employees_q.get(db, ws.id, blueprint_id)
+    if existing:
+        return {"employee_id": str(existing.id), "workspace_id": str(ws.id), "blueprint_id": str(blueprint_id)}
+
+    config = _read_config(agent_id)
+    employee = await employees_q.create(db, ws.id, blueprint_id)
+
+    for mc in config.get("memoryConfigs", []):
+        await create_for_employee(db, employee.id, mc)
+
+    return {
+        "employee_id": str(employee.id),
+        "workspace_id": str(ws.id),
+        "blueprint_id": str(blueprint_id),
+    }
+
+
+@router.delete("/{agent_id}/enable", status_code=204)
+async def disable_agent(
+    agent_id: str,
+    db: AsyncSession = Depends(get_session),
+    current_user: AuthedUser = Depends(require_user),
+):
+    blueprint_id = _parse_blueprint_id(agent_id)
+
+    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="No workspace found for user")
+
+    existing = await employees_q.get(db, ws.id, blueprint_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Agent not enabled for this workspace")
+
+    await employees_q.delete(db, existing.id)

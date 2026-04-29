@@ -62,10 +62,18 @@ async def chat(
     provider_session_id = db_session.provider_session_id
     session_id = db_session.id
 
+    composio_session_id = db_session.composio_session_id
+
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
         try:
-            async for event in runtime.stream(provider_session_id, body.message, str(current_user.id), body.attachments):
+            async for event in runtime.stream(
+                provider_session_id,
+                body.message,
+                str(current_user.id),
+                body.attachments,
+                composio_session_id=composio_session_id,
+            ):
                 if event["type"] == "token":
                     ai_tokens.append(event["content"])
                 elif event["type"] == "file":
