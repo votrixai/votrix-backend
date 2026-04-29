@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import AuthedUser, require_user
 from app.db.engine import get_session, session_scope
 from app.db.queries import sessions as sessions_q
-from app.db.queries import users as users_q
+from app.db.queries import workspaces as workspaces_q
 from app.management import sessions as management_sessions
 from app.models.chat import ChatRequest
 from app.runtime import sessions as runtime
@@ -41,18 +41,15 @@ async def chat(
     db: AsyncSession = Depends(get_session),
     current_user: AuthedUser = Depends(require_user),
 ):
-    user = await users_q.get_user(db, current_user.id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     db_session = await sessions_q.get_session(db, body.session_id)
     if db_session is None:
         raise HTTPException(
             status_code=404,
             detail="Session not found — call POST /sessions first",
         )
-    if db_session.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Session does not belong to current user")
+    if not await workspaces_q.is_member(db, db_session.workspace_id, current_user.id):
+        raise HTTPException(status_code=403, detail="Not a member of this workspace")
+
     await sessions_q.append_event(db, body.session_id, "user_message", body.message)
     if body.attachments:
         await sessions_q.append_event(
@@ -62,17 +59,20 @@ async def chat(
             json.dumps([a.model_dump() for a in body.attachments]),
         )
 
+    provider_session_id = db_session.provider_session_id
+    session_id = db_session.id
+
     async def event_stream() -> AsyncGenerator[str, None]:
         ai_tokens: list[str] = []
         try:
-            async for event in runtime.stream(db_session.id, body.message, str(user.id), body.attachments):
+            async for event in runtime.stream(provider_session_id, body.message, str(current_user.id), body.attachments):
                 if event["type"] == "token":
                     ai_tokens.append(event["content"])
                 elif event["type"] == "file":
                     async with session_scope() as s:
                         await sessions_q.append_event(
                             s,
-                            body.session_id,
+                            session_id,
                             "ai_file",
                             json.dumps({
                                 "file_id": event.get("file_id"),
@@ -85,36 +85,34 @@ async def chat(
                     async with session_scope() as s:
                         await sessions_q.append_event(
                             s,
-                            body.session_id,
+                            session_id,
                             "ai_preview",
                             json.dumps(payload),
                         )
                 elif event["type"] == "error":
                     async with session_scope() as s:
-                        await sessions_q.append_event(s, body.session_id, "error", event.get("message", ""))
+                        await sessions_q.append_event(s, session_id, "error", event.get("message", ""))
                 elif event["type"] == "done":
                     reply = "".join(ai_tokens)
                     if reply:
                         async with session_scope() as s:
-                            await sessions_q.append_event(s, body.session_id, "ai_message", reply)
-                    if not db_session.provider_session_title:
+                            await sessions_q.append_event(s, session_id, "ai_message", reply)
+                    if not db_session.title:
                         title = await management_sessions.get_provider_session_title(
-                            db_session.id,
+                            provider_session_id,
                         )
                         if title:
                             async with session_scope() as s:
-                                await sessions_q.update_provider_session_title(
-                                    s, db_session.id, title
-                                )
+                                await sessions_q.update_title(s, session_id, title)
 
                 raw = json.dumps(event)
                 logger.debug("[stream] %s", raw[:50])
                 yield f"data: {raw}\n\n"
 
         except Exception as e:
-            logger.exception("chat stream failed session_id=%s", body.session_id)
+            logger.exception("chat stream failed session_id=%s", session_id)
             async with session_scope() as s:
-                await sessions_q.append_event(s, body.session_id, "error", str(e))
+                await sessions_q.append_event(s, session_id, "error", str(e))
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
 
     return StreamingResponse(

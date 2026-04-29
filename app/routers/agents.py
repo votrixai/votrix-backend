@@ -3,10 +3,7 @@ Agent template routes — reads from agents/ directory on disk.
 
 GET   /agents                        list all agent templates
 GET   /agents/{agent_id}             get config
-POST  /agents/{agent_id}/reprovision reprovision agent for current user
-
-Note: reprovision is currently scoped to the authenticated user.
-Future: will become a template-level update that propagates to all users.
+POST  /agents/{agent_id}/reprovision reprovision agent blueprint + sync memory stores
 """
 
 import json
@@ -17,8 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import AuthedUser, require_user
 from app.db.engine import get_session
-from app.db.queries import user_agents as user_agents_q
-from app.management.provisioning import create_user_agent
+from app.db.queries import agent_blueprints as blueprints_q
+from app.management.memory_stores import sync_memory_stores_for_blueprint
+from app.management.provisioning import create_user_agent, _read_config
 from app.models.agent import AgentConfig
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -57,12 +55,24 @@ async def reprovision_agent(
     db: AsyncSession = Depends(get_session),
     current_user: AuthedUser = Depends(require_user),
 ):
-    _load_config(agent_id)  # 404 if unknown agent
-    new_agent_id = await create_user_agent(agent_id, str(current_user.id))
-    existing = await user_agents_q.get(db, current_user.id, agent_id)
-    if existing:
-        existing.agent_id = new_agent_id
-        await db.commit()
+    _load_config(agent_id)
+    config = _read_config(agent_id)
+
+    new_provider_agent_id = await create_user_agent(agent_id)
+
+    existing_bp = await blueprints_q.get_by_provider_id(db, new_provider_agent_id)
+    if existing_bp:
+        bp = existing_bp
     else:
-        await user_agents_q.create(db, current_user.id, agent_id, new_agent_id)
-    return {"agent_id": new_agent_id}
+        bp = await blueprints_q.create(
+            db, new_provider_agent_id, config.get("name", agent_id)
+        )
+
+    memory_configs = config.get("memoryConfigs", [])
+    memory_stats = await sync_memory_stores_for_blueprint(db, bp.id, memory_configs)
+
+    return {
+        "agent_id": new_provider_agent_id,
+        "blueprint_id": str(bp.id),
+        "memory_stores": memory_stats,
+    }

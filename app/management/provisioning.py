@@ -1,7 +1,7 @@
 """
 Per-user agent provisioning.
 
-create_user_agent(agent_id, user_id, force) → anthropic_agent_id
+create_user_agent(agent_id) → anthropic_agent_id
 
 Steps:
   1. Read agents/{agent_id}/config.json
@@ -151,15 +151,14 @@ def _skill_entries(skill_ids: dict[str, str]) -> list[dict]:
 
 async def create_user_agent(
     agent_id: str,
-    user_id: str,
-    composio_user_id: str | None = None,
+    composio_entity_id: str | None = None,
 ) -> str:
     """
-    Provision a per-user Anthropic managed agent.
+    Provision an Anthropic managed agent from a template.
     Returns the Anthropic agent_id (caller must persist to DB).
     """
     config = _read_config(agent_id)
-    composio_id = composio_user_id or user_id
+    composio_id = composio_entity_id or agent_id
 
     skill_ids = await skills.get_or_upload_all(config.get("skills", []))
     custom_tools = [TOOL_DEFINITIONS[t] for t in config.get("tools", []) if t in TOOL_DEFINITIONS]
