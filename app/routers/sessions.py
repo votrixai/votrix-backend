@@ -113,15 +113,15 @@ async def create_session_endpoint(
         logger.exception("file upload failed", agent_slug=body.agent_slug)
         raise HTTPException(status_code=502, detail=f"Failed to upload configured files: {exc}")
 
-    memory_config = config.get("memoryConfig")
-    store_id = await get_or_create_memory_store(db, employee_id, memory_config)
-    if store_id:
-        resources.append({
-            "type": "memory_store",
-            "memory_store_id": store_id,
-            "access": "read_write",
-            "instructions": memory_config["instructions"],
-        })
+    for mc in config.get("memoryConfigs", []):
+        store_id = await get_or_create_memory_store(db, employee_id, mc)
+        if store_id:
+            resources.append({
+                "type": "memory_store",
+                "memory_store_id": store_id,
+                "access": "read_write",
+                "instructions": mc["instructions"],
+            })
 
     provider_session_id = await create_session(agent_id, env_id, resources=resources)
 
