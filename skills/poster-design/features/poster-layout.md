@@ -51,9 +51,9 @@ Solid color or gradient background. Large headline (80–120px) is the visual he
 ### Slide Role → Template
 
 ```
-Hook (slide 1)       → C1 Bold Hero
-Content (middle)     → C2 Split Content
-CTA (last slide)     → C3 CTA Focus
+Hook（第 1 张）     → C1 Bold Hero
+Content（中间张）   → C2 Split Content
+CTA（末张）        → C3 CTA Focus
 ```
 
 ### C1 — Bold Hero
@@ -63,7 +63,7 @@ Image fills full canvas. Bottom 40% (y:810–1350) gets gradient overlay (transp
 Top 55% (y:0–742): image fills this area, no text. Bottom 45% (y:742–1350): solid brand color or near-white fill. Text top-down inside bottom area: single-point headline (56–72px) → 1–2 lines of body copy (32–36px) → optional small tag. Each slide only carries one key point — do not stack multiple messages.
 
 ### C3 — CTA Focus
-Solid brand color background (no image, or small accent image in top-right corner, max 30% of canvas). Center-aligned text stack: brand name / logo placeholder (top) → CTA headline 60–72px → action instruction 34–40px (e.g. Click to follow / Save for later / Click to visit) → optional QR code or handle. High contrast, minimal visual noise.
+Solid brand color background (no image, or small accent image in top-right corner, max 30% of canvas). Center-aligned text stack: brand name / logo placeholder (top) → CTA headline 60–72px → action instruction 34–40px (e.g. 点击关注 / 收藏备用 / 点击跳转) → optional QR code or handle. High contrast, minimal visual noise.
 
 ### Carousel Image Requirements
 

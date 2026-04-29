@@ -1,6 +1,6 @@
 ---
 name: social-media-post-publishing
-description: "Publish or schedule content to connected social platforms. Triggered when admin says 'publish', 'post', 'schedule', 'post to Instagram', 'post to Facebook', 'post to Twitter', 'post to LinkedIn', 'post', 'schedule'. For content generation, see social-media-post-content-creation."
+description: "发布或定时发布内容到已连接的社交平台。当 admin 说「发布」「发帖」「定时发」「发到 Instagram」「发到 Facebook」「发到 Twitter」「发到 LinkedIn」「post」「schedule」时触发。生成内容见 social-media-post-content-creation。"
 integrations:
   - facebook
   - instagram
@@ -10,134 +10,134 @@ integrations:
 
 # Social Publisher
 
-You are responsible for accurately publishing content to the corresponding platforms and saving publishing records to `/workspace/post-history/` for subsequent analytics use.
+你负责将内容准确发布到对应平台，并将发布记录存入 `/workspace/post-history/`，供 analytics 后续分析使用。
 
 ---
 
-## Cron Daily Auto-Publish Mode
+## Cron 每日自动发布模式
 
-When the trigger message is `[cron] content publish`:
+触发消息为 `[cron] 内容发布` 时：
 
-1. Read the `## Directives` section of `/workspace/marketing-context.md` to confirm publishing behavior (requires confirmation / publish directly)
-2. Search `/workspace/drafts/` for all drafts whose filenames start with **today's date**
-3. Filter drafts with status "ready to publish" and group by platform
-4. Files with status "draft" (not yet confirmed by admin):
-   - If directive is "requires confirmation": skip, notify admin "There are X drafts pending confirmation today"
-   - If directive is "publish directly": treat as confirmed, proceed to publishing flow
-5. Publish content for each platform in sequence, then execute post-publish processing (write post-history, clear drafts, report results)
-6. If there are no drafts for today, exit silently without notifying admin
-
----
-
-## Startup Check
-
-Read `/workspace/marketing-context.md`:
-- Confirm that the target platform has a Page ID / Account ID / ig_user_id under `## Connected Platforms`
-- For unconnected platforms: inform admin they need to run setup to connect that platform first, skip and continue with other platforms
+1. 读取 `/workspace/marketing-context.md` 的 `## 指令`，确认发布行为（需确认 / 直接发布）
+2. 在 `/workspace/drafts/` 中查找文件名以**今天日期**开头的所有草稿
+3. 过滤出状态为「待发布」的草稿，按平台分组
+4. 状态为「草稿」（未经 admin 确认）的文件：
+   - 若指令为「需要确认」：跳过，通知 admin「今天有 X 条草稿待确认」
+   - 若指令为「直接发布」：视为已确认，直接进入发布流程
+5. 依次发布各平台内容，执行发布后处理（写 post-history、清空草稿、汇报结果）
+6. 当天无草稿时静默退出，不通知 admin
 
 ---
 
-## Retrieve Content to Publish
+## 启动检查
 
-**Direct handoff from content-creator**
-Content is already in the conversation context; proceed directly to the publishing flow.
-
-**Admin specifies a draft**
-List all drafts under `/workspace/drafts/` for admin to choose from, then read the corresponding file.
-
-**Admin provides ready-made copy**
-Use the content provided by admin directly, and ask about the target platform and content type.
+读取 `/workspace/marketing-context.md`：
+- 确认 `## 已连接平台` 里目标平台有 Page ID / Account ID / ig_user_id
+- 未连接的平台：告知 admin 需先运行 setup 连接该平台，跳过后继续其他平台
 
 ---
 
-## Determining Publish Scope (when admin says "publish")
+## 获取待发布内容
 
-When admin issues a publish command without specifying a particular draft, determine scope using these rules:
+**从 content-creator 直接衔接**
+内容已在对话 context 中，直接进入发布流程。
 
-**Default: only publish the nearest day**
+**Admin 指定草稿**
+列出 `/workspace/drafts/` 下所有草稿展示给 admin 选择，读取对应文件。
 
-1. Scan `/workspace/drafts/` for drafts with status "ready to publish"
-2. Sort by the date in draft filenames, find the **date closest to today (including today) that is not earlier than today**
-3. Only take that day's drafts into the publishing flow; drafts for other dates are not processed
-4. Before publishing, inform admin: "Will publish {N} posts for {date}, across {platform list}", then execute after confirmation
-
-**When bulk publishing is implied: confirm first**
-
-If admin's wording clearly implies publishing multiple days or all content, for example:
-- "Publish everything this week", "publish all", "publish them together", "publish everything that was created"
-
-Do not execute directly. First confirm with admin:
-
-> "Detected drafts for {N} days ({date range}), {X} posts total. Do you want to publish all of them, or only the nearest day ({nearest date})?"
-
-Wait for admin's explicit reply before executing, to avoid accidental operations.
+**Admin 提供现成文案**
+直接用 admin 给的内容，询问目标平台和内容类型。
 
 ---
 
-## Publishing
+## 发布范围判断（admin 说「发布」时）
 
-Based on the draft's `platform` + `content type` fields, read the corresponding reference file and execute the API call:
+当 admin 发出发布指令但未明确指定具体草稿时，按以下规则判断范围：
 
-| Platform | Reference File |
+**默认：只发最近一天**
+
+1. 扫描 `/workspace/drafts/` 下状态为「待发布」的草稿
+2. 按草稿文件名中的日期排序，找出**日期最接近今天（含今天）且不早于今天**的那一天
+3. 只取该天的草稿进入发布流程，其他日期的草稿不处理
+4. 发布前告知 admin：「将发布 {日期} 的 {N} 条内容，共 {平台列表}」，确认后执行
+
+**暗示批量发布时：先确认**
+
+若 admin 的措辞明确暗示发布多天或全部内容，例如：
+- 「把这周的都发了」「全部发布」「一起发」「把创作的都发出去」
+
+则不直接执行，先向 admin 确认：
+
+> 「检测到 {N} 天的草稿（{日期范围}），共 {X} 条。你是要全部发布，还是只发最近一天（{最近日期}）？」
+
+等 admin 明确回复后再执行，避免误操作。
+
+---
+
+## 发布
+
+根据草稿的 `平台` + `内容类型` 字段，读取对应 reference 文件执行 API 调用：
+
+| 平台 | Reference 文件 |
 |---|---|
 | Instagram | `/workspace/skills/social-media-post-publishing/references/instagram-publishing.md` |
 | Facebook | `/workspace/skills/social-media-post-publishing/references/facebook-publishing.md` |
 | LinkedIn | `/workspace/skills/social-media-post-publishing/references/linkedin-publishing.md` |
 | Twitter | `/workspace/skills/social-media-post-publishing/references/twitter-publishing.md` |
 
-Each platform publishes independently; one failure does not affect other platforms from continuing.
+各平台独立发布，一个失败不影响其他平台继续。
 
 ---
 
-## Post-Publish Processing
+## 发布后处理
 
-After each platform publishes successfully, execute immediately:
+每个平台发布成功后，立即执行：
 
-**1. Update draft status**
+**1. 更新草稿状态**
 
-Read the draft file, change the `status` field to "published", and leave all other content unchanged.
+读取草稿文件，将 `状态` 字段改为「已发布」，其余内容保留不动。
 
-**2. Write to post-history**
+**2. 写入 post-history**
 
-Path: `/workspace/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
+路径：`/workspace/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
 
-If the file exists, read it and append to the end; if it does not exist, create a new one:
+文件存在则读取后末尾追加，不存在则新建：
 
 ```markdown
-## {HH:MM} | {platform} | {content type} | {topic title}
+## {HH:MM} | {平台} | {内容类型} | {主题标题}
 
-- **Post ID:** {post_id}
-- **Copy:** {first 100 characters of copy}...
-- **Hashtag:** {hashtag list}
-- **Link:** {link, leave blank if none}
-- **Image:** {public_url, leave blank if none}
-- **Performance Data:** (to be filled in by analytics)
-  - Reach: -
-  - Engagement: -
-  - Likes: -
-  - Comments: -
-  - Shares: -
-
----
-```
-
-**3. Report results**
-
-```
-✓ Instagram Reels  — Published successfully (post_id: xxx)
-✓ Facebook Feed    — Published successfully (post_id: xxx)
-✗ LinkedIn Text    — Failed: token expired, please reconnect LinkedIn
-```
+- **Post ID：** {post_id}
+- **文案：** {文案前 100 字}...
+- **Hashtag：** {hashtag 列表}
+- **链接：** {链接，无则留空}
+- **配图：** {public_url，无则留空}
+- **表现数据：**（由 analytics 填入）
+  - 触达：-
+  - 互动：-
+  - 点赞：-
+  - 评论：-
+  - 分享：-
 
 ---
+```
 
-## Error Handling
+**3. 汇报结果**
 
-| Error | How to Handle |
+```
+✓ Instagram Reels  — 发布成功（post_id: xxx）
+✓ Facebook Feed    — 发布成功（post_id: xxx）
+✗ LinkedIn Text    — 失败：token 过期，请重新连接 LinkedIn
+```
+
+---
+
+## 错误处理
+
+| 错误 | 处理方式 |
 |---|---|
-| Platform token expired | Inform admin they need to reconnect that platform, guide them to run setup |
-| Image/video format or dimensions do not meet requirements | Inform them of the specific requirements, wait for admin to provide again |
-| Publishing failed (network/rate limit) | Keep draft status as "ready to publish", suggest retrying later |
-| Content violates platform policy | Return the platform's original error message, suggest modifying and retrying |
+| 平台 token 过期 | 告知 admin 需重新连接该平台，引导运行 setup |
+| 图片/视频格式或尺寸不符 | 告知具体要求，等 admin 重新提供 |
+| 发布失败（网络/限流） | 保留草稿状态为「待发布」，建议稍后重试 |
+| 内容违反平台政策 | 返回平台原始错误信息，建议修改后重试 |
 
-See each reference file for platform-specific error handling.
+平台特有错误处理见各 reference 文件。

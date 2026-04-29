@@ -1,127 +1,127 @@
 # Marketing Context
 
-_All skills read configuration and instructions from this file._
+_所有技能从此文件读取配置和指令。_
 
 ---
 
-## Instructions
+## 指令
 
-_Add special rules for this account here — the agent will follow these with priority. Workflow preferences such as publishing behavior, interaction style, etc. go here; no toggle configuration needed._
-
----
-
-## Brand Profile
-
-- **Name:**
-- **Industry:**
-- **Website:**
-- **Description:**
-- **Region:**
-- **Timezone:** (e.g., Asia/Shanghai, America/New_York)
-- **Target Audience:**
-- **Main Products / Services:**
-- **Brand Composition Style:** (layout, element composition, whitespace ratio, image-text relationship, overall visual atmosphere, etc.)
-- **Brand Style:**
-- **Content Mood / Mood:** (inferred from assets, e.g., premium quality, warm and friendly, professional and serious, lively and fun; leave blank when unconfirmed)
-- **Logo Description:**
-- **Logo URL:**
+_在此添加针对此账号的特殊规则，agent 会优先遵守。发布行为、互动风格等工作流偏好写在这里，不需要开关配置。_
 
 ---
 
-## Brand Assets
+## 品牌资料
 
-- **Logo:**
-  _(one per line, format: `path — note`, e.g.:)_
-  _`/workspace/assets/logo.png — original full-color version`_
-  _`/workspace/assets/logo-mono.png — monochrome version (dark background)`_
-
-- **Mascot:**
-  _(one per line, same format as above, e.g.:)_
-  _`/workspace/assets/mascot.png — original version`_
-  _`/workspace/assets/mascot-clean.png — background-removed version`_
-
----
-
-## Content Strategy
-
-_Initialized by setup; continuously updated by analytics and review-monitor._
-
-### Content Direction Allocation
-
-### Publishing Cadence
+- **名称：**
+- **行业：**
+- **网站：**
+- **简介：**
+- **地区：**
+- **时区：**（如 Asia/Shanghai、America/New_York）
+- **目标受众：**
+- **主要产品 / 服务：**
+- **品牌构图风格：**（排版布局、元素构成、留白比例、图文关系、整体视觉氛围等）
+- **品牌风格：**
+- **内容氛围 / Mood：**（从素材推断，如高端质感、温暖亲切、专业严肃、活泼趣味；未确认时留空）
+- **Logo 描述：**
+- **Logo URL：**
 
 ---
 
-## Custom Rules
+## 品牌素材
 
-_Admin or AI can append rules here. Examples: no posting on specific holidays, no promotions for certain product categories, avoid mentioning competitors when replying to comments, etc._
+- **Logo：**
+  _(每行一个，格式：`路径 — 备注`，例如：)_
+  _`/workspace/assets/logo.png — 原彩色版`_
+  _`/workspace/assets/logo-mono.png — 单色化版（深色背景）`_
 
----
-
-## Workflows
-
-_Scheduled automated tasks. The agent executes these when it receives a `[cron]` trigger message — no need for admin to be online._
-
-### Content Creation (Batch)
-- **Enabled:** false
-- **Trigger Time:** Every Monday 09:00
-
-### Content Publishing (Daily)
-- **Enabled:** false
-- **Trigger Time:** Every day 09:00
-
-### Comment Patrol
-- **Enabled:** false
-- **Trigger Interval:** Every 6 hours
-
-### Data Report
-- **Enabled:** false
-- **Trigger Time:** Every Friday 18:00
-- **Report Type:** Quick summary
+- **吉祥物：**
+  _(每行一个，格式同上，例如：)_
+  _`/workspace/assets/mascot.png — 原版`_
+  _`/workspace/assets/mascot-clean.png — 去背景版`_
 
 ---
 
-## Connected Platforms
+## 内容策略
+
+_由 setup 初始化，analytics 和 review-monitor 持续更新。_
+
+### 内容方向分配
+
+### 发布节奏
+
+---
+
+## 自定义规则
+
+_Admin 或 AI 均可在此追加规则。例如：特定节假日不发帖、某类产品不做促销、回复评论时避免提及竞品等。_
+
+---
+
+## 工作流
+
+_定时自动化任务。agent 收到 `[cron]` 触发消息时依此执行，无需 admin 在线。_
+
+### 内容创作（批量）
+- **启用：** false
+- **触发时间：** 每周一 09:00
+
+### 内容发布（每日）
+- **启用：** false
+- **触发时间：** 每天 09:00
+
+### 评论巡查
+- **启用：** false
+- **触发间隔：** 每 6 小时
+
+### 数据汇报
+- **启用：** false
+- **触发时间：** 每周五 18:00
+- **报告类型：** 快速总结
+
+---
+
+## 已连接平台
 
 ### Facebook
-- Enabled: false
-- Page Name:
-- Page ID:
+- 启用：false
+- 主页名称：
+- Page ID：
 
 ### Instagram
-- Enabled: false
-- Username:
-- Account ID:
+- 启用：false
+- 用户名：
+- Account ID：
 
 ### Twitter
-- Enabled: false
-- Username:
-- User ID:
+- 启用：false
+- 用户名：
+- User ID：
 
 ### LinkedIn
-- Enabled: false
-- Company Name:
-- Organization ID:
-- Person ID:
+- 启用：false
+- 公司名称：
+- Organization ID：
+- Person ID：
 
 ---
 
-## Runtime Status
+## 运行状态
 
-_Automatically updated by cron tasks; records each platform's last patrol position to avoid duplicate processing._
+_由 cron 任务自动更新，记录各平台上次巡查的位置，避免重复处理。_
 
 ### Facebook
-- Last Patrol Time:
-- Last Processed Post ID:
+- 上次巡查时间：
+- 最后处理的 Post ID：
 
 ### Instagram
-- Last Patrol Time:
-- Last Processed Post ID:
+- 上次巡查时间：
+- 最后处理的 Post ID：
 
 ### Twitter
-- Last Patrol Time:
-- Last Processed Post ID:
+- 上次巡查时间：
+- 最后处理的 Post ID：
 
 ### LinkedIn
-- Last Patrol Time:
-- Last Processed Post ID:
+- 上次巡查时间：
+- 最后处理的 Post ID：

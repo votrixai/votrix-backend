@@ -1,30 +1,30 @@
 # Generate Video
 
-Use case: Generate or edit video content for social media (Reels / Story / short-form video).
+适用场景：为社交媒体生成或剪辑视频内容（Reels / Story / 短视频）。
 
 ---
 
-## Step 1 — Context Gathering
+## 步骤 1 — 情境读取
 
-Read `/workspace/marketing-context.md` to extract brand tone and target audience. Combine with the user's message to determine the video topic and promotional objective.
-
----
-
-## Step 2 — Asset Assessment
-
-- **User provides video assets** → Edit directly: trim to target duration, add subtitles / music / brand elements
-- **No assets, AI-generated** → Generate video clips based on the topic and combine into a complete video
+读取 `/workspace/marketing-context.md`，提取品牌调性、目标受众。结合用户消息确定视频主题和宣传目的。
 
 ---
 
-## Step 3 — Generation
+## 步骤 2 — 素材判断
 
-Pass in: video topic, style keywords, target duration, dimensions (portrait 9:16 / square 1:1).
-
-`negative_prompt`: `text, watermark, logo`
+- **用户提供视频素材** → 直接剪辑，裁剪至目标时长，加字幕 / 配乐 / 品牌元素
+- **无素材，AI 生成** → 根据主题生成视频片段，组合成完整视频
 
 ---
 
-## Step 4 — Output
+## 步骤 3 — 生成
 
-Call `show_post_preview`, pass the video path in slides, briefly describe the content direction in caption, and fill in hashtags based on the brand.
+传入：视频主题、风格关键词、目标时长、尺寸（竖版 9:16 / 方形 1:1）。
+
+`negative_prompt`：`text, watermark, logo`
+
+---
+
+## 步骤 4 — 输出
+
+调用 `show_post_preview`，slides 传入视频路径，caption 简述内容方向，hashtags 按品牌填写。

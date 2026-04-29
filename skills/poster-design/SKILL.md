@@ -1,227 +1,227 @@
 ---
 name: poster-design
 description: >
-  Complete poster design workflow. Design publish-ready promotional posters (single or Carousel multi-image) from scratch: context reading, narrative planning, copywriting, style decision, layout design, color system, asset generation, Pillow compositing, quality review.
-  Suitable for scenarios where the business needs a dedicated poster design — new product launches, promotional campaigns, brand awareness, holiday promotions, etc.
+  完整海报设计流程。从零开始设计可直接发布的宣传海报（单张或 Carousel 组图）：情境读取、叙事规划、文案创作、风格决策、排版设计、色彩系统、素材生成、Pillow合成、质量复查。
+  适用于商家需要专门设计海报的场景——新品上架、活动促销、品牌宣传、节日推广等。
 integrations: []
 ---
 
-# Poster Design
+# 海报设计
 
-## Step 1 — Context Reading
+## 步骤 1 — 情境读取
 
-Read all available context by priority; infer directly what can be inferred, do not ask:
+按优先级读取所有可用上下文，能推断的直接推断，不询问：
 
-1. `/workspace/marketing-context.md` — brand name, industry, tone, brand composition style, target audience, color system
-2. User message — extract: poster theme, target audience signals, required text
+1. `/workspace/marketing-context.md` — 品牌名、行业、调性、品牌构图风格、目标受众、色彩系统
+2. 用户消息 — 提取：海报主题、目标受众信号、必须出现的文字
 
-Determine directly:
-- **Mode**: single poster or Carousel multi-image (infer from user message or platform)
-- **Promotional purpose**: persuade whom to do what
-- **Target audience**: their aesthetic preferences and decision-making psychology
-- **Publication size**: for single posters, infer from platform; if unable to infer, default to 1080x1080; Carousel fixed at 1080x1350px
-- **Brand assets**: read the "Brand Assets" section of `marketing-context.md`, extract Logo and mascot path list (may be empty)
+直接确定：
+- **模式**：单张海报 or Carousel 组图（从用户消息或平台推断）
+- **宣传目的**：说服谁做什么
+- **目标受众**：他们的审美习惯和决策心理
+- **发布尺寸**：单张从平台推断，推断不出默认 1080×1080；Carousel 固定 1080×1350px
+- **品牌素材**：读取 `marketing-context.md` 的「品牌素材」节，提取 Logo 和吉祥物路径列表（可为空）
 
-The only situation requiring follow-up: theme is completely missing, unable to determine what this poster is promoting.
+唯一需要追问的情况：主题完全缺失，无法判断这张海报在宣传什么。
 
 ---
 
-## Step 1.5 — Carousel Narrative Planning (only execute for Carousel)
+## 步骤 1.5 — Carousel 叙事规划（仅 Carousel 时执行）
 
-Read `/mnt/skills/poster-design/features/carousel.md`, select a narrative mode based on promotional purpose, and plan the narrative role for each slide:
+读取 `/mnt/skills/poster-design/features/carousel.md`，根据宣传目的选定叙事模式，规划每张的叙事角色：
 
-- If the user has not specified a mode, default to **humorous interactive**.
-- If the promotional purpose is product promotion, prefer **humorous product seeding**, with **product rescue** as the first choice; check modes already used in this conversation to avoid repetition, rotate in order (cautionary seeding -> wrong way to use -> product personification monologue -> exaggerated review).
+- 若用户未指定模式，默认选用**幽默互动类**。
+- 若宣传目的是推广产品，优先选**幽默种草类**，首选**产品救场**；检查本次对话已用过的模式，避免重复，依次轮换（避雷种草→错误打开方式→产品拟人自白→夸张测评）。
 
-Output planning table:
+输出规划表：
 
-| Slide | Narrative Role | One-sentence Theme Direction |
-|-------|---------------|------------------------------|
+| 张 | 叙事角色 | 一句话主题方向 |
+|----|----------|--------------|
 | 1 | Hook | ... |
-| 2–N | Single-point content | Each slide covers only one topic |
-| Last | CTA | Call to action |
+| 2–N | 单点内容 | 每张只讲一件事 |
+| 末张 | CTA | 行动指引 |
 
-**Inform the user of each slide's narrative role and theme direction, wait for confirmation before continuing.**
-
----
-
-## Step 2 — Copywriting
-
-Based on the promotional purpose and confirmed narrative structure, write all text content.
-
-**Single poster**:
-- Headline
-- Subheadline (optional)
-- Selling point tags (optional, 2–4)
-- Price (if applicable)
-- CTA text
-
-**Carousel**: write complete copy for each slide according to the narrative planning table —
-- Each slide: main headline + description text (1–2 lines) + optional small tags
-
-After writing, **present to the user for confirmation**; only continue after confirmation.
+**告知用户每张叙事角色和主题方向，等待确认后再继续。**
 
 ---
 
-## Step 3 — Style Decision
+## 步骤 2 — 文案创作
 
-Read `/mnt/skills/poster-design/features/styles.md`, decide the style according to selection logic, default **Photography**.
+根据宣传目的和确认的叙事结构，写出所有文字内容。
 
-Select the most effective style based on promotional purpose (emotional resonance / problem solving / impulse purchase / trust building / curiosity attraction) and audience psychology.
+**单张**：
+- 主标题
+- 副标题（可选）
+- 卖点标签（可选，2–4 个）
+- 价格（若有）
+- CTA 文字
 
-Lock in the **style token**, keep it consistent throughout; all Carousel slides maintain the same style.
+**Carousel**：按叙事规划表逐张写完整文案——
+- 每张：大标题 + 说明文字（1–2 行）+ 可选小标签
 
-**Images must be clean**: generated images should have a clean background, clear subject, no visual clutter. In step 6 image generation prompts, always include `clean background, clear subject, no visual clutter`.
-
----
-
-## Step 4 — Layout Design
-
-Read `/mnt/skills/poster-design/features/poster-layout.md`.
-
-- **Single poster**: select one of T1–T8 according to template selection logic.
-- **Carousel**: select templates by narrative role — Hook -> C1, Content -> C2, CTA -> C3.
-
-Record the selected template; step 6 asset generation and step 7 compositing both follow this template's region definitions.
+写完后**呈现给用户确认**，确认后才继续。
 
 ---
 
-## Step 5 — Color System
+## 步骤 3 — 风格决策
 
-Read `/mnt/skills/poster-design/features/colors.md`, reference the palette system, and select or combine colors based on brand tone and promotional purpose.
+读取 `/mnt/skills/poster-design/features/styles.md`，按选择逻辑决定风格，默认 **Photography**。
 
-Color tone and style must be consistent with the brand composition style recorded in `marketing-context.md`, based not on specific color values but on overall visual atmosphere matching.
+根据宣传目的（情感共鸣 / 问题解决 / 冲动消费 / 信任建立 / 好奇吸引）和受众心理选定最有效的风格。
 
-All Carousel slides use the same color tone description.
+锁定 **style token**，贯穿全程不更改；Carousel 所有张保持一致。
+
+**图片必须 clean**：生成图片背景干净、主体清晰、无视觉杂乱。在步骤 6 生图 prompt 中必须加入 `clean background, clear subject, no visual clutter`。
 
 ---
 
-## Step 6 — Asset Generation
+## 步骤 4 — 排版设计
 
-### 6a. Main Image Assets
+读取 `/mnt/skills/poster-design/features/poster-layout.md`。
 
-**User has a clear Reference Image** -> use directly for compositing, skip generation.
+- **单张**：按模板选择逻辑选定 T1–T8 之一。
+- **Carousel**：按叙事角色对应选定模板——Hook → C1，Content → C2，CTA → C3。
 
-**User has a Reference Image but it is blurry or low quality** -> regenerate using the reference as a guide, improving quality and style consistency.
+记录选定模板，步骤 6 素材生成和步骤 7 合成均依据此模板的区域定义。
 
-**User has no Reference Image** -> generate asset images based on the following three sets of information:
+---
 
-**1. Style keywords**
-- style token (step 3)
-- Image Tone Keywords (step 5 palette)
+## 步骤 5 — 色彩系统
+
+读取 `/mnt/skills/poster-design/features/colors.md`，参考调色板体系，根据品牌调性和宣传目的自行选定或组合配色。
+
+色调和风格须与 `marketing-context.md` 中记录的品牌构图风格保持一致，不基于具体色值，以整体视觉氛围匹配为准。
+
+Carousel 所有张使用同一色调描述。
+
+---
+
+## 步骤 6 — 素材生成
+
+### 6a. 主图素材
+
+**用户有 Reference Image 且清晰** → 直接用于合成，跳过生成。
+
+**用户有 Reference Image 但模糊或质量差** → 以 reference 为参考重新生成，提升质量和风格一致性。
+
+**用户无 Reference Image** → 根据以下三组信息生成素材图：
+
+**① 风格关键词**
+- style token（步骤 3）
+- Image Tone Keywords（步骤 5 调色板）
 - `clean background, clear subject, no visual clutter`
 
-**2. Template region constraints** (from the template selected in step 4)
+**② 模板区域约束**（来自步骤 4 选定的模板）
 
-| Template | Image Generation Size and Composition Constraints |
-|----------|--------------------------------------------------|
-| T1 | Image fills top 60%, compose at 1080x648, subject fully presented within this area |
-| T2 | Image fills left 50%, compose at 540x1080 |
-| T3 | Full image 1080x1080, subject stays in top 65%, bottom 35% will be covered by gradient overlay |
-| T4 | Transparent background, centered subject, approx 600x500 composition area |
-| T5 | Full image, center-bottom area will be covered by semi-transparent card, subject biased top or side |
-| T6 | Full image, diagonal split, subject on one side of image |
-| T7 | Multiple small images, each with uniform background color and composition |
-| T8 | Optional small image, not the visual hero |
-| C1 | Full image 1080x1350, subject stays in top 60%, bottom 40% will be covered by gradient overlay |
-| C2 | Image fills top 55%, compose at 1080x742 |
-| C3 | Usually no main image needed, skip |
+| 模板 | 图片生成尺寸与构图约束 |
+|------|----------------------|
+| T1 | 图填顶部 60%，按 1080×648 构图，主体在此范围内完整呈现 |
+| T2 | 图填左侧 50%，按 540×1080 构图 |
+| T3 | 全图 1080×1080，主体保持在顶部 65%，底部 35% 将被渐变遮罩覆盖 |
+| T4 | 透明背景，居中主体，约 600×500 构图范围 |
+| T5 | 全图，中下区域将被半透明卡片覆盖，主体偏上或偏侧 |
+| T6 | 全图，对角线分割，主体在图片一侧 |
+| T7 | 多张小图，各自统一背景色和构图 |
+| T8 | 可选小图，非视觉主体 |
+| C1 | 全图 1080×1350，主体保持在顶部 60%，底部 40% 将被渐变遮罩覆盖 |
+| C2 | 图填顶部 55%，按 1080×742 构图 |
+| C3 | 通常无需生成主图，跳过 |
 
-**3. Copy-theme alignment**
-The image's scene, mood, and visual atmosphere must match the copy content confirmed in step 2; reflect what the copy expresses in the prompt.
+**③ 文案主题关联**
+图片的场景、情绪、视觉氛围须和步骤 2 确认的文案内容匹配，在 prompt 中体现文案在表达什么。
 
-**`negative_elements` must include**: `text, typography, letters, numbers, watermark, busy background, cluttered, decorative noise`
+**`negative_elements` 必须包含**：`text, typography, letters, numbers, watermark, busy background, cluttered, decorative noise`
 
-**Carousel consistency**: from slide 2 onward, pass slide 1's generated image as reference image to maintain scene/style coherence. C3 usually does not need a main image, skip.
+**Carousel 一致性**：第 2 张起传入第 1 张生成图作为 reference image，保持场景/风格连贯。C3 通常无需生成主图，跳过。
 
-### 6b. Background Image
+### 6b. 背景图
 
-| Template | Handling Method |
-|----------|----------------|
-| T3 (full bleed) / T5 (overlay card) / C1 (Bold Hero) | Generate texture or gradient background image |
-| T1 / T2 / T4 / T6 / T7 / T8 / C2 / C3 | Draw directly in Pillow using step 5 base color, no generation needed |
+| 模板 | 处理方式 |
+|------|---------|
+| T3（全出血）/ T5（叠层卡片）/ C1（Bold Hero） | 生成纹理或渐变背景图 |
+| T1 / T2 / T4 / T6 / T7 / T8 / C2 / C3 | 用步骤 5 的底色在 Pillow 中直接绘制，无需生成 |
 
 ---
 
-## Step 7 — Pillow Compositing
+## 步骤 7 — Pillow 合成
 
-Strictly follow all rules in `/mnt/skills/poster-design/features/pillow-rules.md`.
+严格遵循 `/mnt/skills/poster-design/features/pillow-rules.md` 的全部规则。
 
-**Composite each slide independently**, execute each slide in the following order, complete and pass step 8 quality review before processing the next slide.
+**逐张独立合成**，每张按以下顺序执行，完成并通过步骤 8 质量复查后再处理下一张。
 
-### Per-slide Compositing Flow
+### 每张合成流程
 
-**1. Load image**
-Load the current slide's original image asset.
+**① 加载图片**
+加载当前张的原始图片素材。
 
-**2. Determine text region coordinates**
-Based on the template selected in step 4, read the current slide's text region bounds (x0, y0, x1, y1) from `poster-layout.md`.
+**② 确定文字区域坐标**
+根据步骤 4 选定的模板，从 `poster-layout.md` 读取当前张的文字区域范围（x0, y0, x1, y1）。
 
-**3. Analyze brightness -> decide overlay and text color**
-Calculate the mean brightness of the text placement region:
-- Mean > 180: region is bright -> darken overlay (alpha 180–220), white text
-- Mean 60–180: midtone -> semi-transparent overlay (alpha 120–160), white text
-- Mean < 60: region is dark -> light overlay or none (alpha 60–100), white text
+**③ 分析亮度 → 决定遮罩和文字颜色**
+对文字落点区域做亮度均值计算：
+- 均值 > 180：区域偏亮 → 加深遮罩（alpha 180–220），白色文字
+- 均值 60–180：中间调 → 半透明遮罩（alpha 120–160），白色文字
+- 均值 < 60：区域偏暗 → 轻遮罩或不加（alpha 60–100），白色文字
 
-**4. Dynamically calculate font size and line wrapping**
-Start from the template-defined max font size (L2 level starts at 72px), use `getbbox` to measure copy width; if it exceeds the text region width, reduce step by step (-4px each time) until it fits. Minimum font size no less than 36px. Line wrapping logic follows `pillow-rules.md` rule 11.
+**④ 动态计算字号和换行**
+从模板定义的最大字号开始（L2 级从 72px），用 `getbbox` 测量文案宽度，超出文字区域宽度则逐步减小（每次 -4px），直至不超出。最小字号不低于 36px。换行逻辑按 `pillow-rules.md` 规则 11 执行。
 
-**5. Composite in layer order**
+**⑤ 按层顺序合成**
 ```
-Base color/background image -> main image asset -> mascot (when user explicitly requests) -> gradient overlay (if needed) -> color blocks -> decorative lines -> text layer -> Logo
+底色/背景图 → 主图素材 → 吉祥物（用户明确要求时）→ 渐变遮罩（如需）→ 色块 → 装饰线 → 文字层 → Logo
 ```
 
-**6. Save, proceed to step 8 quality review**
+**⑥ 保存，进入步骤 8 质量复查**
 
-**Single poster output**: `/mnt/session/outputs/poster_{slug}.png`
+**单张输出**：`/mnt/session/outputs/poster_{slug}.png`
 
-**Carousel output**: `/mnt/session/outputs/poster_{slug}_slide{n}.png`
+**Carousel 输出**：`/mnt/session/outputs/poster_{slug}_slide{n}.png`
 
-**Logo compositing** (execute when `marketing-context.md` "Brand Assets -> Logo" has a path):
-- **Quality preprocessing**: if logo has no transparent background -> first use `rembg` or threshold masking to remove background; if low resolution or blurry edges -> directly apply monochrome processing (extract alpha channel shape, fill with poster `text_color`, naturally crisp)
-- **Multi-path selection**: when multiple paths exist, analyze background brightness at the logo placement area: bright background (> 128) use the first one, dark background (<=128) use the second one; if only one path, apply monochrome processing
-- **Position and size**: bottom-right corner, 24px from edge; width no more than 12% of canvas width, maintain original aspect ratio
-- Composite using Pillow `Image.alpha_composite`, preserve transparency channel
-- **When generating a new version**: save the processed file to `/workspace/assets/`, and append a line `path — note` to the corresponding field under "Brand Assets" in `marketing-context.md` to avoid reprocessing next time
+**Logo 合成**（`marketing-context.md` 的「品牌素材 → Logo」有路径时执行）：
+- **质量预处理**：logo 无透明背景 → 先用 `rembg` 或阈值抠图去背；分辨率低或边缘模糊 → 直接做单色化处理（提取 alpha 通道形状，填充海报 `text_color`，天然清晰）
+- **多路径选择**：有多个路径时，分析 logo 落点区域背景亮度：亮背景（> 128）用第一个，暗背景（≤ 128）用第二个；只有一个路径则做单色化处理
+- **位置与尺寸**：右下角，距边 24px；宽度不超过画布宽度的 12%，保持原比例
+- 用 Pillow `Image.alpha_composite` 合成，保留透明通道
+- **生成新版本时**：将处理后的文件存入 `/workspace/assets/`，并在 `marketing-context.md` 的「品牌素材」对应字段追加一行 `路径 — 备注`，避免下次重复处理
 
-**Mascot compositing** (execute only when user explicitly requests adding a mascot):
-- Position defined by the template selected in step 4; size: height no more than 35% of canvas height, maintain original aspect ratio
-- Paste directly, no blend mode needed
+**吉祥物合成**（仅用户明确要求加吉祥物时执行）：
+- 位置由步骤 4 所选模板定义；尺寸：高度不超过画布高度的 35%，保持原比例
+- 直接 paste，无需混合模式
 
-**Error handling**:
+**报错处理**：
 
-| Error | Handling |
-|-------|----------|
-| `FileNotFoundError` | Check path; download URL to local first using requests |
-| `OSError: cannot open resource` | CJK font hardcoded to `/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc` |
-| Output file is empty | Check whether `canvas.save()` was executed |
-
----
-
-## Step 8 — Quality Review
-
-**Execute immediately after each slide is composited**, do not wait for all Carousel slides to be complete. Read the output image, strictly check each item. Fix the script and redo the current slide immediately upon finding any issue; only continue to the next slide after confirmation of pass.
-
-| Check Item | Pass Criteria | Fail Handling |
-|------------|--------------|---------------|
-| **Text contrast** | Each text element has clear contrast against its background area, small text is also legible | Adjust text color or darken overlay and redo |
-| **Text overflow** | No text is clipped beyond the canvas edge | Reduce font size or adjust position and redo |
-| **Text overlap** | No overlap between text layers, no tag stacking | Recalculate spacing and redo |
-| Text completeness | All copy confirmed in step 2 appears on the image | Add missing content and redo |
-| No garbled text | CJK text displays normally, no boxes | Check font path and redo |
-| No box characters | All decorative symbols display normally, no boxes | Switch to Pillow geometric shapes or NotoSansSymbols2 and redo |
-| Image not distorted | Background proportions are correct, subject is not cropped | Fix crop logic and redo |
-| Style consistency | Step 3 style is visually reflected; all Carousel slides are visually unified | — |
-| No redundant information | Same information does not appear in two places | — |
-
-Maximum 3 redo rounds. If issues remain after 3 rounds -> state which item is blocked and request further guidance.
+| 错误 | 处理 |
+|------|------|
+| `FileNotFoundError` | 检查路径；URL 先用 requests 下载到本地 |
+| `OSError: cannot open resource` | 中文字体写死 `/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc` |
+| 输出文件为空 | 检查 `canvas.save()` 是否执行 |
 
 ---
 
-## Output
+## 步骤 8 — 质量复查
 
-Call the `show_post_preview` tool to display the poster:
-- **Single poster**: `slides: [{ path: "/mnt/session/outputs/poster_{slug}.png", label: "Poster" }]`
-- **Carousel**: `slides` passes all paths in order, `label` indicates slide number and narrative role (e.g. "Slide 1 - Hook")
-- `caption`: one sentence describing the core layout decision
-- `hashtags`: `[]`
+**每张合成后立即执行**，不等 Carousel 全部完成。读取输出图片，严格逐项检查。发现任何问题立即修正脚本重做当前张，确认合格后再继续下一张。
+
+| 检查项 | 合格标准 | 不合格处理 |
+|--------|---------|----------|
+| **文字对比度** | 每条文字与其背景区域对比度明显，小字也清晰可读 | 调整文字颜色或加深遮罩后重做 |
+| **文字溢出** | 没有任何文字被裁切到画布外 | 缩小字号或调整位置后重做 |
+| **文字重叠** | 各文字层之间无覆盖，标签组无堆叠 | 重新计算间距后重做 |
+| 文字完整 | 步骤 2 确认的所有文案都出现在图上 | 补充缺失内容后重做 |
+| 无乱码 | 中文正常显示，无 □□□ | 检查字体路径后重做 |
+| 无方块字符 | 所有装饰符号正常显示，无 □ | 改用 Pillow 几何图形或 NotoSansSymbols2 后重做 |
+| 图片未变形 | 背景比例正常，主体未被裁切 | 修正 crop 逻辑后重做 |
+| 风格一致 | 步骤 3 的 style 在视觉上体现；Carousel 各张视觉统一 | — |
+| 信息不冗余 | 同一信息没有两处重复出现 | — |
+
+最多 3 轮重做。3 轮后仍有问题 → 说明卡在哪项，请求进一步指导。
+
+---
+
+## 输出
+
+调用 `show_post_preview` 工具展示海报：
+- **单张**：`slides: [{ path: "/mnt/session/outputs/poster_{slug}.png", label: "海报" }]`
+- **Carousel**：`slides` 按张传入所有路径，`label` 标注第几张及叙事角色（如"第 1 张 · Hook"）
+- `caption`：一句话说明核心排版决策
+- `hashtags`：`[]`

@@ -1,49 +1,49 @@
-# Twitter Comment Monitoring API
+# Twitter 评论监控 API
 
 ---
 
-## Fetching Mentions / Replies
+## 获取提及 / Reply
 
-Twitter does not support fetching reply lists directly by tweet_id. Instead, use full-text search to capture @mentions:
+Twitter 无法按 tweet_id 直接获取 reply 列表。改用全文搜索抓取 @提及：
 
 ```
 TWITTER_FULL_ARCHIVE_SEARCH(
   query       = "@{twitter_handle}",
-  start_time  = {last patrol time, ISO 8601, e.g. 2024-01-15T10:00:00Z},
+  start_time  = {上次巡查时间，ISO 8601，如 2024-01-15T10:00:00Z},
   max_results = 50
 )
-→ data[].id, data[].text, data[].author_id, data[].created_at
+→ data[].id、data[].text、data[].author_id、data[].created_at
 ```
 
-`twitter_handle` is read from `## Connected Platforms > Twitter` in `/workspace/marketing-context.md`.
+`twitter_handle` 从 `/workspace/marketing-context.md` 的 `## 已连接平台 → Twitter` 读取。
 
-Filter out tweets from your own account (`author_id` = own account ID); only process @mentions and replies from others.
+过滤掉自身账号发出的推文（`author_id` = 自身账号 ID），只处理他人的 @提及和 reply。
 
 ---
 
-## Replying to Tweets
+## 回复推文
 
 ```
 TWITTER_CREATION_OF_A_POST(
-  text                       = {reply content, ≤280 characters},
-  reply_in_reply_to_tweet_id = {original tweet id}
+  text                       = {回复内容，≤280 字},
+  reply_in_reply_to_tweet_id = {原推文 id}
 )
 ```
 
 ---
 
-## Notes
+## 注意
 
-- Cannot delete others' tweets; spam comments can only be left without a reply
-- Twitter API has rate limits; patrol intervals should be no shorter than 6 hours
+- 无法删除他人推文，垃圾评论只能选择不回复
+- Twitter API 有频率限制，巡查间隔建议不短于 6 小时
 
 ---
 
-## Error Handling
+## 错误处理
 
-| Error | Resolution |
+| 错误 | 处理方式 |
 |---|---|
-| Token expired | Inform admin that Twitter needs to be reconnected; guide them to run setup |
-| Search returns empty | Normal situation, no new mentions; skip silently |
-| Reply exceeds 280 characters | Truncate and retry |
-| Rate limited (429) | Record current progress; continue on next patrol |
+| token 过期 | 告知 admin 需重新连接 Twitter，引导运行 setup |
+| 搜索结果为空 | 正常情况，无新提及，静默跳过 |
+| 回复超过 280 字 | 截短后重试 |
+| 限流（429） | 记录当前进度，下次巡查继续 |

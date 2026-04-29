@@ -1,15 +1,15 @@
 # LinkedIn
 
-| Content Type | Dimensions | Caption | Hashtag |
-|-------------|-----------|---------|---------|
-| Image Post (with image, 1-9 images) | 1:1 (1200x1200) or 16:9 (1200x627) | First line is the hook, line break every 1-2 sentences, provide context for the image without repeating image content | 3-5 |
+| 内容类型 | 尺寸 | Caption | Hashtag |
+|---------|------|---------|---------|
+| Image Post（带图，1–9 张） | 1:1 (1200×1200) 或 16:9 (1200×627) | 第一行是 hook，每 1–2 句换行，为图片提供语境，不重复图片内容 | 3–5 个 |
 
-**Weekly Content Ratio (3 posts per week):**
+**周内容配比（每周 3 条）：**
 
-| Type | Ratio | Notes |
-|------|-------|-------|
-| Image Post | 100% | 1:1 images are shared with Instagram / Facebook, assets can be reused |
+| 类型 | 占比 | 备注 |
+|------|------|------|
+| Image Post | 100% | 1:1 图片与 Instagram / Facebook 通用，可复用素材 |
 
-**Platform Rules:**
-- Do not put links in the body text (algorithm reduces reach); place links in the first comment
-- Document Carousel (PDF) and Video publishing APIs are not supported; do not plan these content types
+**平台规则：**
+- 正文不放链接（算法降触达），链接放第一条评论
+- Document Carousel（PDF）和 Video 发布 API 不支持，不规划此类内容

@@ -1,75 +1,75 @@
 # Generate Image
 
-Use case: Generate image content for social media (no text overlay/typography). Single image or multi-image set (Carousel).
+适用场景：为社交媒体生成图片内容（不叠文字排版）。单图或组图（Carousel）。
 
 ---
 
-## Step 1 — Context Gathering
+## 步骤 1 — 情境读取
 
-Read `/workspace/marketing-context.md` to extract brand name, industry, tone, brand composition style, and target audience. Combine with the user's message to determine:
-- Post topic and promotional objective
-- Single image or multi-image set
-
----
-
-## Step 2 — Theme Design
-
-**Single image**: Define one clear visual theme.
-
-**Multi-image set (Carousel)**: First read `/mnt/skills/social-media-post-content-creation/features/carousel.md`, select a content pattern based on the promotional objective, and plan each slide's narrative role and visual direction.
-
-- If the user has not specified a theme style, default to **Humor & Interaction**.
-- If the promotional objective is product promotion, prefer **Humor & Product Seeding**, with **Product to the Rescue** as the first choice; but check which patterns have already been used in the current conversation to avoid repetition, cycling through other humor & product seeding patterns in order (Reverse Psychology Seeding → Wrong Way to Use It → Product First-Person Confession → Exaggerated Review).
-
-Inform the user of each slide's theme and confirm before proceeding to style and color decisions.
+读取 `/workspace/marketing-context.md`，提取品牌名、行业、调性、品牌构图风格、目标受众。结合用户消息确定：
+- 发布主题和宣传目的
+- 单图还是组图
 
 ---
 
-## Step 3 — Style Decision
+## 步骤 2 — 主题设计
 
-Read `/mnt/skills/social-media-post-content-creation/features/styles.md` and follow the selection logic to determine the style, defaulting to **Photography**.
+**单图**：确定一个清晰的画面主题。
 
-Based on the promotional objective (emotional resonance / problem solving / impulse purchase / trust building / curiosity attraction) and audience psychology (everyday consumers are moved by authentic scenes, younger consumers are drawn to visual trends, business decision-makers are persuaded by professionalism, premium consumers are persuaded by restrained elegance), select the most effective style.
+**组图（Carousel）**：先读取 `/mnt/skills/social-media-post-content-creation/features/carousel.md`，根据宣传目的选定内容模式，规划每张的叙事角色和画面方向。
 
-Lock in the **style token**; all slides in a multi-image set must use the same one.
+- 若用户未明确指定主题风格，默认选用**幽默互动类**。
+- 若宣传目的是推广产品，优先使用**幽默种草类**，首选**产品救场**；但需检查本次对话中已使用过的模式，避免重复，依次轮换至其他幽默种草模式（避雷种草→错误打开方式→产品拟人自白→夸张测评）。
 
----
-
-## Step 4 — Color System
-
-Read `/mnt/skills/social-media-post-content-creation/features/colors.md` and select or combine color tone keywords based on brand tone and promotional objective. The color tone must align with the overall visual atmosphere of the brand composition style recorded in `marketing-context.md`, not based on specific color values.
-
-All slides in a multi-image set use the same color tone description.
+告知用户每张主题，确认后再进入风格和色彩决策。
 
 ---
 
-## Step 5 — Generation
+## 步骤 3 — 风格决策
 
-Pass in for each slide:
-- Step 2's visual theme
-- Step 3's style token
-- Step 4's color tone keywords
-- **Composition keywords**: Extract keywords from the brand composition style in `marketing-context.md` (e.g., layout approach, whitespace preference, element density, etc.); if not recorded, fall back to `single focal point, generous negative space, minimal elements, clean composition, focused subject, no clutter`
-- If text overlay will be added later: specify `leave clean space in [position] for text overlay`
-- `negative_prompt`: `text, watermark, logo, typography, busy background, cluttered, multiple competing subjects, decorative noise, visual complexity`
+读取 `/mnt/skills/social-media-post-content-creation/features/styles.md`，按选择逻辑决定风格，默认 **Photography**。
 
-**Multi-image consistency**: From the 2nd slide onward, pass in the 1st slide as a reference image to maintain consistency in characters / scenes / style.
+根据宣传目的（情感共鸣 / 问题解决 / 冲动消费 / 信任建立 / 好奇吸引）和受众心理（普通消费者被真实场景打动、年轻消费者被视觉趋势吸引、企业决策者被专业感说服、高端消费者被克制质感说服）选定最有效的风格。
+
+锁定 **style token**，组图所有张保持一致。
 
 ---
 
-## Step 6 — Quality Check
+## 步骤 4 — 色彩体系
 
-| Check Item | Pass Criteria |
-|-----------|--------------|
-| No text | No text or watermarks in the image |
-| Theme accuracy | Visual content matches the theme description |
-| Sufficient whitespace | Areas designated for text overlay are clean |
-| Multi-image consistency | All slides have unified style / color tone |
+读取 `/mnt/skills/social-media-post-content-creation/features/colors.md`，根据品牌调性和宣传目的自行选定或组合色调关键词。色调须与 `marketing-context.md` 中记录的品牌构图风格的整体视觉氛围一致，不基于具体色值。
 
-If any check fails, refine the description and regenerate.
+组图所有张使用同一色调描述。
 
 ---
 
-## Output
+## 步骤 5 — 生成
 
-Call `show_post_preview`, pass in slide paths in order, briefly describe the content direction in caption, and fill in hashtags based on the brand and content.
+每张传入：
+- 步骤 2 的画面主题
+- 步骤 3 的 style token
+- 步骤 4 的色调关键词
+- **Composition keywords**：从 `marketing-context.md` 的品牌构图风格中提取关键词（如排版布局方式、留白偏好、元素密度等）；无记录时兜底使用 `single focal point, generous negative space, minimal elements, clean composition, focused subject, no clutter`
+- 如后续需叠文字：注明 `leave clean space in [位置] for text overlay`
+- `negative_prompt`：`text, watermark, logo, typography, busy background, cluttered, multiple competing subjects, decorative noise, visual complexity`
+
+**组图一致性**：第 2 张起传入第 1 张作为 reference image，保持人物 / 场景 / 风格连贯。
+
+---
+
+## 步骤 6 — 质量检查
+
+| 检查项 | 合格标准 |
+|--------|---------|
+| 无文字 | 图中无任何文字或水印 |
+| 主题准确 | 画面内容与主题描述匹配 |
+| 留白充足 | 需叠文字区域干净 |
+| 组图一致 | 各张风格 / 色调统一 |
+
+不合格则补充描述重新生成。
+
+---
+
+## 输出
+
+调用 `show_post_preview`，slides 按张传入路径，caption 简述内容方向，hashtags 按品牌和内容填写。

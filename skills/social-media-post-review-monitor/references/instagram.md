@@ -1,35 +1,35 @@
-# Instagram Comment Monitoring API
+# Instagram 评论监控 API
 
 ---
 
-## Fetching Comments
+## 获取评论
 
 ```
 INSTAGRAM_GET_IG_MEDIA_COMMENTS(
   media_id = {post_id}
 )
-→ data[].id, data[].text, data[].username, data[].timestamp
+→ data[].id、data[].text、data[].username、data[].timestamp
 ```
 
-Read post_ids from the last 30 days of posts in `/workspace/post-history/`, fetching one by one.
-Only process new comments after the last patrol time (`timestamp > last patrol time`).
+从 `/workspace/post-history/` 读取近 30 天帖子的 post_id，逐一拉取。  
+只处理上次巡查时间之后的新评论（`timestamp > 上次巡查时间`）。
 
 ---
 
-## Replying to Comments
+## 回复评论
 
 ```
 INSTAGRAM_POST_IG_COMMENT_REPLIES(
   comment_id = {comment_id},
-  message    = {reply content, ≤300 characters, ≤4 hashtags, ≤1 URL}
+  message    = {回复内容，≤300 字，≤4 个 hashtag，≤1 个 URL}
 )
 ```
 
 ---
 
-## Deleting Comments
+## 删除评论
 
-Limited to spam comments on your own posts; execute after admin confirmation:
+仅限自己帖子下的垃圾评论，admin 确认后执行：
 
 ```
 INSTAGRAM_DELETE_COMMENT(
@@ -39,17 +39,17 @@ INSTAGRAM_DELETE_COMMENT(
 
 ---
 
-## Notes
+## 注意
 
-- Instagram Story comments cannot be read via the API
-- DMs (direct messages) are outside the scope of this tool
+- Instagram Story 评论不可通过 API 读取
+- DM（私信）不在此工具范围内
 
 ---
 
-## Error Handling
+## 错误处理
 
-| Error | Resolution |
+| 错误 | 处理方式 |
 |---|---|
-| Token expired / insufficient permissions | Inform admin that Instagram needs to be reconnected; guide them to run setup |
-| Invalid media_id | Skip this post and continue processing other posts |
-| Reply exceeds 300 characters | Truncate and retry |
+| token 过期 / 权限不足 | 告知 admin 需重新连接 Instagram，引导运行 setup |
+| media_id 无效 | 跳过该帖子，继续处理其他帖子 |
+| 回复超过 300 字 | 截短后重试 |
