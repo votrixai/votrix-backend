@@ -3,7 +3,7 @@ Agent template routes — reads from agents/ directory on disk.
 
 GET    /agents                         list all agent templates
 GET    /agents/{agent_id}              get config
-POST   /agents/{agent_id}/reprovision  update-or-create agent on Anthropic + sync memory stores
+POST   /agents/{agent_id}/reprovision  update-or-create agent on Anthropic
 POST   /agents/{agent_id}/enable       enable agent for current user's workspace
 DELETE /agents/{agent_id}/enable       disable agent for current user's workspace
 """
