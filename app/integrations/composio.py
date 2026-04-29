@@ -68,7 +68,17 @@ async def create_composio_session(
     if connected_accounts:
         kwargs["connected_accounts"] = connected_accounts
 
-    session = await asyncio.to_thread(composio.create, **kwargs)
+    try:
+        session = await asyncio.to_thread(composio.create, **kwargs)
+    except Exception:
+        # Some toolkits may lack auth configs — fall back to a session with no toolkit filter.
+        logger.warning("composio: session with toolkits=%s failed, retrying with no filter", integrations)
+        try:
+            session = await asyncio.to_thread(composio.create, user_id=user_id)
+        except Exception as exc:
+            logger.error("composio: session creation failed: %s", exc)
+            return None
+
     logger.info(
         "composio: created session user=%s toolkits=%s shared=%s id=%s",
         user_id, integrations, list(connected_accounts or {}.keys()), session.session_id,

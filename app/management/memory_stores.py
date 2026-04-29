@@ -52,7 +52,6 @@ async def sync_memory_stores_for_blueprint(
         db_stores = await stores_q.list_by_employee(db, employee.id)
         db_store_by_name = {s.name: s for s in db_stores}
 
-        # Update existing stores whose name matches a config
         for name, store in db_store_by_name.items():
             if name not in config_names:
                 continue
@@ -65,7 +64,6 @@ async def sync_memory_stores_for_blueprint(
             stats["updated"] += 1
             logger.info("memory_store updated", store_id=store.provider_memory_store_id, name=name)
 
-        # Create new stores for configs not yet in DB
         for mc in memory_configs:
             if mc["name"] in db_store_by_name:
                 continue
@@ -77,7 +75,6 @@ async def sync_memory_stores_for_blueprint(
             stats["created"] += 1
             logger.info("memory_store created", store_id=store.id, name=mc["name"])
 
-        # Archive stores no longer in config
         for name, store in db_store_by_name.items():
             if name in config_names:
                 continue
