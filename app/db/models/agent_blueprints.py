@@ -1,20 +1,23 @@
 """Per-template provisioned Anthropic agent cache."""
 
 import enum
+import uuid
 
-from sqlalchemy import Text
+from sqlalchemy import Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.db.models._base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.db.models._base import Base, TimestampMixin
 
 
 class AgentProvider(str, enum.Enum):
     anthropic = "anthropic"
 
 
-class AgentBlueprint(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class AgentBlueprint(TimestampMixin, Base):
     __tablename__ = "agent_blueprints"
 
+    # Caller-provided UUID from config.agentId — stable, never auto-generated
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
     provider_agent_id: Mapped[str] = mapped_column(
         Text, unique=True, nullable=False, index=True
     )

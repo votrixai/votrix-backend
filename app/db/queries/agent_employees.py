@@ -3,7 +3,7 @@
 import uuid
 from typing import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.agent_employees import AgentEmployee
@@ -47,3 +47,10 @@ async def create(
     await db.commit()
     await db.refresh(row)
     return row
+
+
+async def delete(db: AsyncSession, employee_id: uuid.UUID) -> None:
+    await db.execute(
+        delete(AgentEmployee).where(AgentEmployee.id == employee_id)
+    )
+    await db.commit()

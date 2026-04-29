@@ -21,6 +21,7 @@ class Session(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         index=True,
     )
     title: Mapped[str | None] = mapped_column(Text, nullable=True)
+    composio_session_id: Mapped[str | None] = mapped_column(Text, nullable=True)
     agent_blueprint_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("agent_blueprints.id", ondelete="SET NULL"),
