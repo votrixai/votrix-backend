@@ -35,6 +35,7 @@ def _detect_image_mime(data: bytes, declared: str) -> str:
             return "image/heic"
     return declared
 
+
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/files", tags=["files"])

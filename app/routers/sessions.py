@@ -96,8 +96,11 @@ async def create_session_endpoint(
     try:
         blueprint_id = await _get_or_provision_blueprint(db, body.agent_slug)
     except RuntimeError as exc:
-        logger.exception("provisioning failed", agent_slug=body.agent_slug)
+        logger.exception("provisioning failed", agent_slug=body.agent_slug, user_id=str(current_user.id))
         raise HTTPException(status_code=422, detail=str(exc))
+    except Exception:
+        logger.exception("provisioning unexpected error", agent_slug=body.agent_slug, user_id=str(current_user.id))
+        raise
 
     employee_id = await _get_or_create_employee(db, workspace_id, blueprint_id)
 
@@ -110,7 +113,7 @@ async def create_session_endpoint(
     except (ValueError, FileNotFoundError) as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
-        logger.exception("file upload failed", agent_slug=body.agent_slug)
+        logger.exception("file upload failed", agent_slug=body.agent_slug, user_id=str(current_user.id))
         raise HTTPException(status_code=502, detail=f"Failed to upload configured files: {exc}")
 
     for mc in config.get("memoryConfigs", []):
