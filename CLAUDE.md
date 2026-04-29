@@ -36,13 +36,19 @@ skills/{skill_name}/
   .cache.json      # {skill_id, content_hash} — gitignored, written by build
 ```
 
-### Database (3 tables only)
+### Database (9 tables)
 
 | Table | Purpose |
 |---|---|
-| `users` | End users (id, display_name, agent_id) |
-| `sessions` | Conversation sessions (user_id, anthropic_session_id) |
-| `session_events` | Append-only event log (type, title, body) |
+| `users` | End users (display_name) |
+| `workspaces` | Tenant workspaces (display_name) |
+| `workspace_members` | User ↔ workspace membership (role) |
+| `agent_blueprints` | Provisioned Anthropic agents (provider_agent_id, display_name, provider) |
+| `agent_employees` | Blueprint hired into a workspace (workspace_id, agent_blueprint_id) |
+| `agent_employee_memory_stores` | Memory store per employee (provider_memory_store_id, name) |
+| `sessions` | Conversation sessions (provider_session_id, workspace_id, agent_blueprint_id, title) |
+| `session_events` | Append-only event log (event_index, event_type, title, body) |
+| `schedules` | Recurring cron jobs (cron_expression, timezone, message, is_active, next_run_at) |
 
 ## Running
 
@@ -55,7 +61,7 @@ uvicorn app.main:app --reload --port 8000
 
 ## Language
 
-- All text in this repo must be in English. Never write Mandarin or any non-English characters into any file.
+- All Python code and Python comments must be in English only. No non-English characters anywhere in `.py` files.
 
 ## Code Conventions
 
