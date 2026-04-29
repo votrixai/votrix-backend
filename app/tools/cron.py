@@ -19,13 +19,13 @@ DEFINITIONS = [
         "name": "cron_create",
         "description": (
             "Create a recurring scheduled job. "
-            "The platform will send `message` to this conversation at the times defined by `cron_expr`. "
+            "The platform will send `message` at the times defined by `cron_expression`. "
             "Returns a job_id for future management."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
-                "cron_expr": {
+                "cron_expression": {
                     "type": "string",
                     "description": (
                         "Standard 5-field cron expression. "
@@ -45,7 +45,7 @@ DEFINITIONS = [
                     "description": "Human-readable description of what this job does.",
                 },
             },
-            "required": ["cron_expr", "timezone", "message"],
+            "required": ["cron_expression", "timezone", "message"],
         },
     },
     {
@@ -63,7 +63,7 @@ DEFINITIONS = [
     {
         "type": "custom",
         "name": "cron_list",
-        "description": "List all active scheduled jobs for the current user.",
+        "description": "List all active scheduled jobs.",
         "input_schema": {
             "type": "object",
             "properties": {},
@@ -72,21 +72,18 @@ DEFINITIONS = [
 ]
 
 
-async def handle(name: str, input: dict, user_id: str, session_id: str | None = None) -> dict:
+async def handle(name: str, input: dict, **kwargs) -> dict:
     if name == "cron_create":
-        return await _create(input, user_id, session_id)
+        return await _create(input)
     if name == "cron_delete":
-        return await _delete(input, user_id)
+        return await _delete(input)
     if name == "cron_list":
-        return await _list(user_id)
+        return await _list()
     return {"error": f"Unknown cron tool: {name}"}
 
 
-async def _create(input: dict, user_id: str, session_id: str | None) -> dict:
-    if not session_id:
-        return {"error": "session_id is required to create a cron job"}
-
-    cron_expr = input["cron_expr"]
+async def _create(input: dict) -> dict:
+    cron_expression = input["cron_expression"]
     timezone_str = input["timezone"]
     message = input["message"]
     description = input.get("description")
@@ -98,7 +95,7 @@ async def _create(input: dict, user_id: str, session_id: str | None) -> dict:
 
     try:
         now_tz = datetime.now(tz)
-        next_run_local = croniter(cron_expr, now_tz).get_next(datetime)
+        next_run_local = croniter(cron_expression, now_tz).get_next(datetime)
         next_run_at = next_run_local.astimezone(timezone.utc)
     except Exception as e:
         return {"error": f"Invalid cron expression: {e}"}
@@ -106,9 +103,7 @@ async def _create(input: dict, user_id: str, session_id: str | None) -> dict:
     async with session_scope() as db:
         schedule = await schedules_q.create_schedule(
             db,
-            session_id=session_id,
-            user_id=uuid.UUID(user_id),
-            cron_expr=cron_expr,
+            cron_expression=cron_expression,
             timezone_str=timezone_str,
             message=message,
             description=description,
@@ -122,7 +117,7 @@ async def _create(input: dict, user_id: str, session_id: str | None) -> dict:
     }
 
 
-async def _delete(input: dict, user_id: str) -> dict:
+async def _delete(input: dict) -> dict:
     job_id = input["job_id"]
     try:
         schedule_id = uuid.UUID(job_id)
@@ -130,22 +125,22 @@ async def _delete(input: dict, user_id: str) -> dict:
         return {"error": f"Invalid job_id: {job_id}"}
 
     async with session_scope() as db:
-        deleted = await schedules_q.delete_schedule(db, schedule_id, uuid.UUID(user_id))
+        deleted = await schedules_q.delete_schedule(db, schedule_id)
 
     if not deleted:
-        return {"error": "Job not found or does not belong to this user"}
+        return {"error": "Job not found"}
     return {"deleted": job_id}
 
 
-async def _list(user_id: str) -> dict:
+async def _list() -> dict:
     async with session_scope() as db:
-        schedules = await schedules_q.list_by_user(db, uuid.UUID(user_id))
+        schedules = await schedules_q.list_active(db)
 
     return {
         "jobs": [
             {
                 "job_id": str(s.id),
-                "cron_expr": s.cron_expr,
+                "cron_expression": s.cron_expression,
                 "timezone": s.timezone,
                 "message": s.message,
                 "description": s.description,

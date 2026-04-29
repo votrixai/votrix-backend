@@ -1,3 +1,5 @@
+"""Session and event queries."""
+
 import uuid
 from typing import Sequence
 
@@ -9,16 +11,14 @@ from app.db.models.sessions import Session, SessionEvent
 
 async def create_session(
     db: AsyncSession,
-    session_id: str,
-    user_id: uuid.UUID,
-    agent_slug: str | None = None,
-    agent_id: str | None = None,
+    provider_session_id: str,
+    workspace_id: uuid.UUID,
+    agent_blueprint_id: uuid.UUID | None = None,
 ) -> Session:
     session = Session(
-        id=session_id,
-        user_id=user_id,
-        agent_slug=agent_slug,
-        agent_id=agent_id,
+        provider_session_id=provider_session_id,
+        workspace_id=workspace_id,
+        agent_blueprint_id=agent_blueprint_id,
     )
     db.add(session)
     await db.commit()
@@ -26,34 +26,41 @@ async def create_session(
     return session
 
 
-async def get_session(db: AsyncSession, session_id: str) -> Session | None:
+async def get_session(db: AsyncSession, session_id: uuid.UUID) -> Session | None:
     result = await db.execute(select(Session).where(Session.id == session_id))
     return result.scalar_one_or_none()
 
 
+async def get_session_by_provider_id(db: AsyncSession, provider_session_id: str) -> Session | None:
+    result = await db.execute(
+        select(Session).where(Session.provider_session_id == provider_session_id)
+    )
+    return result.scalar_one_or_none()
+
+
 async def list_sessions(
-    db: AsyncSession, user_id: uuid.UUID, agent_slug: str | None = None
+    db: AsyncSession,
+    workspace_id: uuid.UUID,
+    agent_blueprint_id: uuid.UUID | None = None,
 ) -> Sequence[Session]:
-    stmt = select(Session).where(Session.user_id == user_id)
-    if agent_slug is not None:
-        stmt = stmt.where(Session.agent_slug == agent_slug)
+    stmt = select(Session).where(Session.workspace_id == workspace_id)
+    if agent_blueprint_id is not None:
+        stmt = stmt.where(Session.agent_blueprint_id == agent_blueprint_id)
     result = await db.execute(stmt.order_by(Session.created_at.desc()))
     return result.scalars().all()
 
 
-async def update_provider_session_title(
-    db: AsyncSession, session_id: str, title: str
-) -> None:
+async def update_title(db: AsyncSession, session_id: uuid.UUID, title: str) -> None:
     session = await get_session(db, session_id)
     if not session:
         return
-    session.provider_session_title = title
+    session.title = title
     await db.commit()
 
 
 async def append_event(
     db: AsyncSession,
-    session_id: str,
+    session_id: uuid.UUID,
     event_type: str,
     body: str,
     title: str | None = None,
@@ -70,7 +77,7 @@ async def append_event(
     event = SessionEvent(
         session_id=session_id,
         event_index=next_index,
-        type=event_type,
+        event_type=event_type,
         title=title,
         body=body,
     )
@@ -80,7 +87,7 @@ async def append_event(
 
 
 async def get_events(
-    db: AsyncSession, session_id: str
+    db: AsyncSession, session_id: uuid.UUID
 ) -> Sequence[SessionEvent]:
     result = await db.execute(
         select(SessionEvent)
@@ -90,7 +97,7 @@ async def get_events(
     return result.scalars().all()
 
 
-async def delete_session(db: AsyncSession, session_id: str) -> bool:
+async def delete_session(db: AsyncSession, session_id: uuid.UUID) -> bool:
     session = await get_session(db, session_id)
     if not session:
         return False

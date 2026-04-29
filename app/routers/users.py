@@ -1,7 +1,7 @@
 """
 User management routes.
 
-GET    /users/me                    current user profile + their sessions
+GET    /users/me                    current user profile + workspaces
 PATCH  /users/me                    update current user profile (display_name)
 """
 
@@ -11,10 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import AuthedUser, require_user
 from app.db.engine import get_session
-from app.db.queries import sessions as sessions_q
 from app.db.queries import users as users_q
-from app.models.session import SessionResponse
-from app.models.user import UserResponse
+from app.db.queries import workspaces as workspaces_q
+from app.models.user import UserResponse, WorkspaceResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -31,20 +30,20 @@ async def get_me(
     user = await users_q.get_user(db, current_user.id)
     if not user:
         raise HTTPException(status_code=404, detail="User profile not found (trigger missed?)")
-    sessions = await sessions_q.list_sessions(db, current_user.id)
+    workspaces = await workspaces_q.get_user_workspaces(db, current_user.id)
+    memberships = {m.workspace_id: m.role for m in (user.workspace_memberships or [])}
     return UserResponse(
         id=user.id,
         display_name=user.display_name,
         created_at=user.created_at,
-        sessions=[
-            SessionResponse(
-                id=s.id,
-                user_id=s.user_id,
-                provider_session_title=s.provider_session_title,
-                agent_slug=s.agent_slug,
-                created_at=s.created_at,
+        workspaces=[
+            WorkspaceResponse(
+                id=w.id,
+                display_name=w.display_name,
+                role=memberships.get(w.id, "member"),
+                created_at=w.created_at,
             )
-            for s in sessions
+            for w in workspaces
         ],
     )
 
