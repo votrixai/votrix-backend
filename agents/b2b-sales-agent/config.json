@@ -1,5 +1,5 @@
 {
-  "agentId": "b2b-sales-agent",
+  "agentId": "227a945d-60f0-4b71-bd48-6a74085aeba9",
   "name": "B2B Sales Agent",
   "model": "claude-sonnet-4-6",
   "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
@@ -19,5 +19,5 @@
     {"slug": "tavily"},
     {"slug": "firecrawl"}
   ],
-  "tools": ["manage_connections", "download_file"]
+  "tools": ["download_file"]
 }

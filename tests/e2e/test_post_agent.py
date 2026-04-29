@@ -93,7 +93,7 @@ async def run_provision(force: bool = False) -> tuple[str, str]:
         print(f"  {slug} → {sid}")
 
     print(f"\n{'─'*60}\n[provision] creating agent for user: {USER_ID}\n{'─'*60}")
-    agent_id = await provisioning.create_user_agent(AGENT_SLUG, USER_ID, force=force)
+    agent_id = await provisioning.create_user_agent(AGENT_SLUG)
     print(f"  agent_id → {agent_id}")
 
     _save_cache(agent_id, env_id, session_id=None)

@@ -14,11 +14,13 @@ async def create_session(
     provider_session_id: str,
     workspace_id: uuid.UUID,
     agent_blueprint_id: uuid.UUID | None = None,
+    composio_session_id: str | None = None,
 ) -> Session:
     session = Session(
         provider_session_id=provider_session_id,
         workspace_id=workspace_id,
         agent_blueprint_id=agent_blueprint_id,
+        composio_session_id=composio_session_id,
     )
     db.add(session)
     await db.commit()
@@ -48,6 +50,15 @@ async def list_sessions(
         stmt = stmt.where(Session.agent_blueprint_id == agent_blueprint_id)
     result = await db.execute(stmt.order_by(Session.created_at.desc()))
     return result.scalars().all()
+
+
+async def update_composio_session_id(
+    db: AsyncSession, session_id: uuid.UUID, composio_session_id: str
+) -> None:
+    session = await get_session(db, session_id)
+    if session:
+        session.composio_session_id = composio_session_id
+        await db.commit()
 
 
 async def update_title(db: AsyncSession, session_id: uuid.UUID, title: str) -> None:

@@ -1,5 +1,5 @@
 {
-  "agentId": "post-agent",
+  "agentId": "8cf0ca00-fa66-47d1-b8bd-735c779e2dd8",
   "name": "Post Agent",
   "model": "claude-sonnet-4-6",
   "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
@@ -18,7 +18,7 @@
     {"slug": "facebook"},
     {"slug": "linkedin"}
   ],
-  "tools": ["cron_create", "cron_delete", "cron_list", "image_generate", "video_generate", "manage_connections", "search_tools", "download_file", "publish_file", "show_post_preview", "upload_file"],
+  "tools": ["cron_create", "cron_delete", "cron_list", "image_generate", "video_generate", "download_file", "publish_file", "show_post_preview", "upload_file"],
   "memoryConfigs": [
     {
       "name": "Post Agent Learnings",

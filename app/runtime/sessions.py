@@ -97,6 +97,7 @@ async def stream(
     message: str,
     user_id: str,
     attachments: list[FileAttachment] | None = None,
+    composio_session_id: str | None = None,
 ) -> AsyncGenerator[dict, None]:
     """Async generator — yields SSE event dicts, never blocks the event loop."""
     print(f"[stream] session_id={session_id!r} user_id={user_id!r} message={message!r} attachments={attachments!r}")
@@ -286,11 +287,9 @@ async def stream(
                                 logger.warning("[requires_action] missed tool error result send failed: %s", ce)
 
                         if to_execute:
-                            tool_inputs: dict[str, dict] = {eid: te.input for eid, te in to_execute}
-
                             async def _run_one(eid: str, te: Any) -> tuple[str, str, dict]:
                                 try:
-                                    return eid, te.name, await execute_tool(te.name, te.input, user_id, session_id=session_id)
+                                    return eid, te.name, await execute_tool(te.name, te.input, user_id, session_id=session_id, composio_session_id=composio_session_id)
                                 except Exception as exc:
                                     logger.error("tool execution error [%s]: %s", te.name, exc)
                                     return eid, te.name, {"error": str(exc)}

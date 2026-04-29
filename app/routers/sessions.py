@@ -1,7 +1,7 @@
 """
 Session routes.
 
-POST   /sessions                    create session (requires agent_slug)
+POST   /sessions                    create session (agent must be enabled for workspace)
 GET    /sessions                    list sessions for current user's workspace
 GET    /sessions/{session_id}       get session + events
 DELETE /sessions/{session_id}       delete session
@@ -17,14 +17,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import AuthedUser, require_user
 from app.db.engine import get_session
 from app.db.queries import agent_blueprints as blueprints_q
+from app.db.queries import agent_employee_memory_stores as stores_q
 from app.db.queries import agent_employees as employees_q
 from app.db.queries import sessions as sessions_q
 from app.db.queries import workspaces as workspaces_q
-from app.management.agent_files import upload_config_files
+from app.integrations.composio import create_composio_session
 from app.management import sessions as management_sessions
-from app.management.environments import create_session, get_or_create as create_env
-from app.management.memory_stores import get_or_create as get_or_create_memory_store
-from app.management.provisioning import create_user_agent, _read_config
+from app.management.environments import create_session
+from app.management.provisioning import _read_config
 from app.models.session import (
     SessionCreateRequest,
     SessionCreateResponse,
@@ -39,46 +39,6 @@ logger = structlog.get_logger()
 router = APIRouter(tags=["sessions"])
 
 
-async def _get_workspace_id(db: AsyncSession, user_id: uuid.UUID) -> uuid.UUID:
-    ws = await workspaces_q.get_user_default_workspace(db, user_id)
-    if not ws:
-        raise HTTPException(status_code=404, detail="No workspace found for user")
-    return ws.id
-
-
-async def _get_or_provision_blueprint(
-    db: AsyncSession,
-    agent_slug: str,
-) -> uuid.UUID:
-    config = _read_config(agent_slug)
-    existing_agent_id = config.get("agentId")
-
-    if existing_agent_id:
-        bp = await blueprints_q.get_by_provider_id(db, existing_agent_id)
-        if bp:
-            return bp.id
-
-    provider_agent_id = existing_agent_id or await create_user_agent(agent_slug)
-    bp = await blueprints_q.create(
-        db,
-        provider_agent_id=provider_agent_id,
-        display_name=config.get("name", agent_slug),
-    )
-    return bp.id
-
-
-async def _get_or_create_employee(
-    db: AsyncSession,
-    workspace_id: uuid.UUID,
-    agent_blueprint_id: uuid.UUID,
-) -> uuid.UUID:
-    existing = await employees_q.get(db, workspace_id, agent_blueprint_id)
-    if existing:
-        return existing.id
-    employee = await employees_q.create(db, workspace_id, agent_blueprint_id)
-    return employee.id
-
-
 @router.post("/sessions", response_model=SessionCreateResponse, status_code=201)
 async def create_session_endpoint(
     body: SessionCreateRequest,
@@ -90,49 +50,64 @@ async def create_session_endpoint(
     except FileNotFoundError:
         raise HTTPException(status_code=400, detail=f"Unknown agent '{body.agent_slug}'")
 
-    workspace_id = await _get_workspace_id(db, current_user.id)
-    env_id = config.get("envId") or await create_env()
-
+    raw_id = config.get("agentId")
+    if not raw_id:
+        raise HTTPException(status_code=422, detail=f"Agent '{body.agent_slug}' has no agentId in config.json")
     try:
-        blueprint_id = await _get_or_provision_blueprint(db, body.agent_slug)
-    except RuntimeError as exc:
-        logger.exception("provisioning failed", agent_slug=body.agent_slug, user_id=str(current_user.id))
-        raise HTTPException(status_code=422, detail=str(exc))
-    except Exception:
-        logger.exception("provisioning unexpected error", agent_slug=body.agent_slug, user_id=str(current_user.id))
-        raise
-
-    employee_id = await _get_or_create_employee(db, workspace_id, blueprint_id)
+        blueprint_id = uuid.UUID(raw_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Agent '{body.agent_slug}' has invalid agentId")
 
     bp = await blueprints_q.get(db, blueprint_id)
-    agent_id = bp.provider_agent_id
+    if not bp:
+        raise HTTPException(status_code=422, detail=f"Agent '{body.agent_slug}' has not been provisioned yet")
 
-    files_config = config.get("files", [])
-    try:
-        resources = await upload_config_files(body.agent_slug, files_config)
-    except (ValueError, FileNotFoundError) as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    except Exception as exc:
-        logger.exception("file upload failed", agent_slug=body.agent_slug, user_id=str(current_user.id))
-        raise HTTPException(status_code=502, detail=f"Failed to upload configured files: {exc}")
+    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="No workspace found for user")
 
-    for mc in config.get("memoryConfigs", []):
-        store_id = await get_or_create_memory_store(db, employee_id, mc)
-        if store_id:
-            resources.append({
-                "type": "memory_store",
-                "memory_store_id": store_id,
-                "access": "read_write",
-                "instructions": mc["instructions"],
-            })
+    employee = await employees_q.get(db, ws.id, blueprint_id)
+    if not employee:
+        raise HTTPException(status_code=422, detail=f"Agent '{body.agent_slug}' is not enabled for this workspace")
 
-    provider_session_id = await create_session(agent_id, env_id, resources=resources)
+    env_id = config.get("envId")
+    if not env_id:
+        raise HTTPException(status_code=422, detail=f"Agent '{body.agent_slug}' has no envId in config.json")
+
+    db_stores = await stores_q.list_by_employee(db, employee.id)
+    config_by_name = {mc["name"]: mc for mc in config.get("memoryConfigs", [])}
+    resources = [
+        {
+            "type": "memory_store",
+            "memory_store_id": s.provider_memory_store_id,
+            "access": "read_write",
+            "instructions": config_by_name[s.name]["instructions"],
+        }
+        for s in db_stores
+        if s.name in config_by_name
+    ]
+
+    provider_session_id = await create_session(bp.provider_agent_id, env_id, resources=resources)
+
+    raw_integrations = config.get("integrations", [])
+    integrations = [i["slug"] for i in raw_integrations]
+    connected_accounts = {
+        i["slug"]: i["connected_account_id"]
+        for i in raw_integrations
+        if i.get("connected_account_id")
+    }
+    composio_session_id = await create_composio_session(
+        str(current_user.id),
+        integrations,
+        connected_accounts=connected_accounts or None,
+    )
 
     db_session = await sessions_q.create_session(
         db,
         provider_session_id,
-        workspace_id,
+        ws.id,
         agent_blueprint_id=blueprint_id,
+        composio_session_id=composio_session_id,
     )
 
     return SessionCreateResponse(
@@ -149,8 +124,10 @@ async def list_sessions(
     db: AsyncSession = Depends(get_session),
     current_user: AuthedUser = Depends(require_user),
 ):
-    workspace_id = await _get_workspace_id(db, current_user.id)
-    rows = await sessions_q.list_sessions(db, workspace_id)
+    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
+    if not ws:
+        raise HTTPException(status_code=404, detail="No workspace found for user")
+    rows = await sessions_q.list_sessions(db, ws.id)
     return [
         SessionResponse(
             id=r.id,
