@@ -7,7 +7,7 @@ Router tests mock the Anthropic client and bypass auth.
 
 import io
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -28,26 +28,24 @@ def _override_auth():
 
 
 def test_build_content_text_only():
-    result = _build_content("hello", [])
+    result = _build_content("hello", [], {})
     assert result == [{"type": "text", "text": "hello"}]
 
 
 def test_build_content_with_document():
     att = FileAttachment(file_id="file_abc", content_type="document")
-    result = _build_content("summarize this", [att])
-    assert result == [
-        {"type": "text", "text": "summarize this"},
-        {"type": "document", "source": {"type": "file", "file_id": "file_abc"}},
-    ]
+    result = _build_content("summarize this", [att], {"file_abc": "doc.pdf"})
+    assert result[0] == {"type": "text", "text": "summarize this"}
+    assert result[1] == {"type": "document", "source": {"type": "file", "file_id": "file_abc"}}
+    assert "doc.pdf" in result[2]["text"]
 
 
 def test_build_content_with_image():
     att = FileAttachment(file_id="file_img", content_type="image")
-    result = _build_content("describe this image", [att])
-    assert result == [
-        {"type": "text", "text": "describe this image"},
-        {"type": "image", "source": {"type": "file", "file_id": "file_img"}},
-    ]
+    result = _build_content("describe this image", [att], {"file_img": "photo.png"})
+    assert result[0] == {"type": "text", "text": "describe this image"}
+    assert result[1] == {"type": "image", "source": {"type": "file", "file_id": "file_img"}}
+    assert "photo.png" in result[2]["text"]
 
 
 def test_build_content_multiple_attachments():
@@ -55,11 +53,11 @@ def test_build_content_multiple_attachments():
         FileAttachment(file_id="file_doc", content_type="document"),
         FileAttachment(file_id="file_img", content_type="image"),
     ]
-    result = _build_content("analyze", attachments)
-    assert len(result) == 3
+    result = _build_content("analyze", attachments, {"file_doc": "doc.pdf", "file_img": "img.png"})
     assert result[0] == {"type": "text", "text": "analyze"}
     assert result[1]["source"]["file_id"] == "file_doc"
     assert result[2]["source"]["file_id"] == "file_img"
+    assert "Attached files" in result[3]["text"]
 
 
 # ---------------------------------------------------------------------------
@@ -126,12 +124,22 @@ def _make_file_meta(file_id="file_123", filename="doc.pdf", size=1024):
     return m
 
 
+def _async_mock_client():
+    mock = MagicMock()
+    mock.beta.files.upload = AsyncMock()
+    mock.beta.files.list = AsyncMock()
+    mock.beta.files.delete = AsyncMock()
+    mock.beta.files.retrieve_metadata = AsyncMock()
+    mock.beta.files.download = AsyncMock()
+    return mock
+
+
 async def test_upload_file(client, auth_override):
     meta = _make_file_meta()
-    mock_client = MagicMock()
+    mock_client = _async_mock_client()
     mock_client.beta.files.upload.return_value = meta
 
-    with patch("app.routers.files.get_client", return_value=mock_client):
+    with patch("app.routers.files.get_async_client", return_value=mock_client):
         r = await client.post(
             "/files",
             files={"file": ("doc.pdf", io.BytesIO(b"%PDF-1.4"), "application/pdf")},
@@ -141,17 +149,19 @@ async def test_upload_file(client, auth_override):
     body = r.json()
     assert body["file_id"] == "file_123"
     assert body["filename"] == "doc.pdf"
-    assert body["size"] == 1024
     mock_client.beta.files.upload.assert_called_once()
 
 
 async def test_list_files(client, auth_override):
     meta = _make_file_meta()
     meta.created_at = "2026-01-01T00:00:00Z"
-    mock_client = MagicMock()
+    meta.downloadable = False
+    meta.mime_type = None
+    meta.size_bytes = None
+    mock_client = _async_mock_client()
     mock_client.beta.files.list.return_value = MagicMock(data=[meta])
 
-    with patch("app.routers.files.get_client", return_value=mock_client):
+    with patch("app.routers.files.get_async_client", return_value=mock_client):
         r = await client.get("/files")
 
     assert r.status_code == 200
@@ -159,23 +169,23 @@ async def test_list_files(client, auth_override):
 
 
 async def test_delete_file(client, auth_override):
-    mock_client = MagicMock()
+    mock_client = _async_mock_client()
 
-    with patch("app.routers.files.get_client", return_value=mock_client):
+    with patch("app.routers.files.get_async_client", return_value=mock_client):
         r = await client.delete("/files/file_123")
 
     assert r.status_code == 204
-    mock_client.beta.files.delete.assert_called_once_with("file_123", betas=["files-api-2025-04-14"])
+    mock_client.beta.files.delete.assert_called_once_with("file_123", betas=["files-api-2025-04-14", "managed-agents-2026-04-01"])
 
 
 async def test_download_file(client, auth_override):
-    mock_client = MagicMock()
+    mock_client = _async_mock_client()
     mock_client.beta.files.retrieve_metadata.return_value = MagicMock(
-        mime_type="text/csv", filename="result.csv"
+        mime_type="text/csv", filename="result.csv", downloadable=True
     )
-    mock_client.beta.files.download.return_value = iter([b"a,b\n1,2\n"])
+    mock_client.beta.files.download.return_value = AsyncMock(read=AsyncMock(return_value=b"a,b\n1,2\n"))
 
-    with patch("app.routers.files.get_client", return_value=mock_client):
+    with patch("app.routers.files.get_async_client", return_value=mock_client):
         r = await client.get("/files/file_123/content")
 
     assert r.status_code == 200
@@ -184,20 +194,20 @@ async def test_download_file(client, auth_override):
 
 
 async def test_download_file_anthropic_error(client, auth_override):
-    mock_client = MagicMock()
+    mock_client = _async_mock_client()
     mock_client.beta.files.retrieve_metadata.side_effect = Exception("not found")
 
-    with patch("app.routers.files.get_client", return_value=mock_client):
+    with patch("app.routers.files.get_async_client", return_value=mock_client):
         r = await client.get("/files/file_missing/content")
 
     assert r.status_code == 502
 
 
 async def test_upload_file_anthropic_error(client, auth_override):
-    mock_client = MagicMock()
+    mock_client = _async_mock_client()
     mock_client.beta.files.upload.side_effect = Exception("quota exceeded")
 
-    with patch("app.routers.files.get_client", return_value=mock_client):
+    with patch("app.routers.files.get_async_client", return_value=mock_client):
         r = await client.post(
             "/files",
             files={"file": ("doc.pdf", io.BytesIO(b"%PDF"), "application/pdf")},

@@ -1,0 +1,11 @@
+{
+  "agentId": "poster-designer",
+  "name": "Poster Designer",
+  "model": "claude-sonnet-4-6",
+  "envId": "env_01PPUjhf6YgDa2SVK4KjNkYU",
+  "skills": [
+    "poster-design"
+  ],
+  "integrations": [],
+  "tools": ["image_generate", "download_file", "publish_file", "show_post_preview"]
+}

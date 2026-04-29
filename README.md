@@ -45,11 +45,17 @@ scripts/
 
 ### Database tables
 
-| Table | Columns |
+| Table | Key columns |
 |---|---|
-| `users` | id, display_name, created_at |
-| `sessions` | id, user_id, display_name, session_id (Anthropic), created_at |
-| `session_events` | id, session_id, event_index, type, title, body |
+| `users` | id, display_name |
+| `workspaces` | id, display_name |
+| `workspace_members` | workspace_id, user_id, role |
+| `agent_blueprints` | id, provider_agent_id, display_name, provider |
+| `agent_employees` | id, workspace_id, agent_blueprint_id |
+| `agent_employee_memory_stores` | id, agent_employee_id, provider_memory_store_id, name |
+| `sessions` | id, provider_session_id, workspace_id, agent_blueprint_id, title |
+| `session_events` | id, session_id, event_index, event_type, title, body |
+| `schedules` | id, cron_expression, timezone, message, is_active, next_run_at |
 
 ### Available agents
 
@@ -195,5 +201,5 @@ GET /agents/{agent_id}   get agent config
 
 # in another terminal
 .venv/bin/python scripts/test_marketing_session.py
-.venv/bin/python scripts/test_marketing_session.py --message "帮我起草一封推广邮件"
+.venv/bin/python scripts/test_marketing_session.py --message "Help me draft a promotional email"
 ```
