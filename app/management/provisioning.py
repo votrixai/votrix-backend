@@ -1,7 +1,7 @@
 """
 Per-user agent provisioning.
 
-create_user_agent(agent_id, user_id, force) → anthropic_agent_id
+create_user_agent(agent_id) → anthropic_agent_id
 
 Steps:
   1. Read agents/{agent_id}/config.json
@@ -25,7 +25,7 @@ import structlog
 from app.management import skills
 from app.client import get_async_client
 from app.config import get_settings
-from app.integrations import composio
+from app.integrations.composio import create_mcp_server, get_auth_config, mcp_url
 from app.tools import TOOL_DEFINITIONS
 
 logger = structlog.get_logger()
@@ -107,7 +107,7 @@ async def _auto_connect_api_key_integrations(integrations: list[dict], entity_id
 
     for i in integrations:
         slug = i["slug"]
-        ac = await composio.get_auth_config(slug)
+        ac = await get_auth_config(slug)
         if ac is None:
             raise RuntimeError(
                 f"No auth_config found in Composio for integration '{slug}'. "
@@ -151,18 +151,16 @@ def _skill_entries(skill_ids: dict[str, str]) -> list[dict]:
 
 async def create_user_agent(
     agent_id: str,
-    user_id: str,
-    composio_user_id: str | None = None,
-    force: bool = False,
+    composio_entity_id: str | None = None,
 ) -> str:
     """
-    Provision a per-user Anthropic managed agent.
+    Provision an Anthropic managed agent from a template.
     Returns the Anthropic agent_id (caller must persist to DB).
     """
     config = _read_config(agent_id)
-    composio_id = composio_user_id or user_id
+    composio_id = composio_entity_id or agent_id
 
-    skill_ids = await skills.get_or_upload_all(config.get("skills", []), force=force)
+    skill_ids = await skills.get_or_upload_all(config.get("skills", []))
     custom_tools = [TOOL_DEFINITIONS[t] for t in config.get("tools", []) if t in TOOL_DEFINITIONS]
 
     integrations = config.get("integrations", [])
@@ -177,12 +175,12 @@ async def create_user_agent(
     # Composio MCP server (only when integrations are configured)
     if integrations:
         await _auto_connect_api_key_integrations(integrations, composio_id)
-        mcp_server_id = await composio.get_or_create_mcp_server(agent_id, integrations, force=force)
+        mcp_server_id = await create_mcp_server(agent_id, integrations)
         if mcp_server_id:
             mcp_servers.append({
                 "type": "url",
                 "name": f"composio-{agent_id}",
-                "url": composio.mcp_url(mcp_server_id, composio_id),
+                "url": mcp_url(mcp_server_id, composio_id),
             })
 
     system = _build_user_system(agent_id)

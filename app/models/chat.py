@@ -1,3 +1,4 @@
+import uuid
 from typing import Literal
 
 from pydantic import BaseModel
@@ -10,6 +11,6 @@ class FileAttachment(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    session_id: str
+    session_id: uuid.UUID
     message: str
     attachments: list[FileAttachment] = []

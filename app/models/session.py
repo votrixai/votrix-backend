@@ -9,31 +9,32 @@ class SessionCreateRequest(BaseModel):
 
 
 class SessionCreateResponse(BaseModel):
-    id: str  # Anthropic provider session ID
-    user_id: uuid.UUID
-    agent_slug: str | None
+    id: uuid.UUID
+    workspace_id: uuid.UUID
+    provider_session_id: str
+    agent_blueprint_id: uuid.UUID | None = None
     created_at: datetime
 
 
 class SessionResponse(BaseModel):
-    id: str
-    user_id: uuid.UUID
-    provider_session_title: str | None = None
-    agent_slug: str | None = None
+    id: uuid.UUID
+    workspace_id: uuid.UUID
+    title: str | None = None
+    agent_blueprint_id: uuid.UUID | None = None
     created_at: datetime
 
 
 class SessionEventResponse(BaseModel):
     event_index: int
-    type: str
+    event_type: str
     title: str | None
     body: str
 
 
 class SessionDetailResponse(BaseModel):
-    id: str
-    user_id: uuid.UUID
-    agent_slug: str | None = None
+    id: uuid.UUID
+    workspace_id: uuid.UUID
+    agent_blueprint_id: uuid.UUID | None = None
     created_at: datetime
     events: list[SessionEventResponse]
 

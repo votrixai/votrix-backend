@@ -1,6 +1,7 @@
 import importlib
 import os
 import tempfile
+import uuid
 from unittest.mock import patch
 
 import pytest
@@ -18,8 +19,14 @@ _TEST_DB_URL = f"sqlite+aiosqlite:///{_tmp_db_path}"
 os.environ["DATABASE_URL"] = _TEST_DB_URL
 
 app = importlib.import_module("app.main").app
-Base = importlib.import_module("app.db.models.base").Base
+Base = importlib.import_module("app.db.models._base").Base
 db_engine_module = importlib.import_module("app.db.engine")
+
+from app.auth import AuthedUser, require_user
+
+
+_TEST_USER_ID = uuid.uuid4()
+_TEST_USER = AuthedUser(id=_TEST_USER_ID, email="test@example.com")
 
 
 def _make_nullpool_engine():
@@ -64,22 +71,38 @@ async def isolate_db():
 
 @pytest.fixture
 async def client():
+    app.dependency_overrides[require_user] = lambda: _TEST_USER
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
+    app.dependency_overrides.pop(require_user, None)
 
 
 @pytest.fixture
-async def user(client):
-    r = await client.post("/users", json={"display_name": "Test User"})
-    assert r.status_code == 201
-    data = r.json()
-    yield data
-    await client.delete(f"/users/{data['id']}")
+async def db_user(client):
+    """Create a User row + workspace in DB matching the auth override."""
+    from app.db.engine import session_scope
+    from app.db.models.users import User
+    from app.db.models.workspaces import Workspace, WorkspaceMember
 
+    async with session_scope() as db:
+        user = User(id=_TEST_USER_ID, display_name="Test User")
+        db.add(user)
+        await db.commit()
 
-@pytest.fixture
-async def provisioned_user(client, user):
-    with patch("app.routers.users.provisioning.create_user_agent", return_value="agt_test123"):
-        r = await client.post(f"/users/{user['id']}/provision?agent_id=marketing-agent")
-    assert r.status_code == 200
-    yield {**user, "agent_id": "agt_test123"}
+        ws = Workspace(display_name="Test User")
+        db.add(ws)
+        await db.commit()
+        await db.refresh(ws)
+
+        member = WorkspaceMember(workspace_id=ws.id, user_id=user.id, role="owner")
+        db.add(member)
+        await db.commit()
+
+    yield {"id": str(_TEST_USER_ID), "workspace_id": str(ws.id)}
+
+    async with session_scope() as db:
+        from sqlalchemy import delete
+        await db.execute(delete(WorkspaceMember).where(WorkspaceMember.user_id == _TEST_USER_ID))
+        await db.execute(delete(Workspace).where(Workspace.id == ws.id))
+        await db.execute(delete(User).where(User.id == _TEST_USER_ID))
+        await db.commit()

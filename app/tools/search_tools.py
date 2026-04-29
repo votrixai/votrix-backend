@@ -7,8 +7,8 @@ returned slugs exist in its own available tools to determine supportability.
 
 from __future__ import annotations
 
-import structlog
 import httpx
+import structlog
 
 from app.config import get_settings
 

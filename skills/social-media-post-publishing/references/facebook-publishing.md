@@ -73,15 +73,7 @@ FACEBOOK_CREATE_VIDEO_POST(
 
 ## Story
 
-Facebook Story 目前不在 Composio 工具集内，**无法通过 API 自动发布**。
-
-处理方式：告知 admin「Facebook Story 需要手动在 Facebook 应用内发布，已为你准备好视觉内容描述（见草稿文件的 `## 视觉内容` 字段）」。
-
----
-
-## 链接处理
-
-Facebook 正文直接放链接，平台自动生成预览卡，无需额外处理。
+不支持。
 
 ---
 

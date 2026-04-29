@@ -9,15 +9,6 @@
 - 个人账号：`urn:li:person:{person_id}`
 - 公司主页：`urn:li:organization:{org_id}`
 
-如需获取：
-```
-LINKEDIN_GET_MY_INFO()
-→ 返回 person_id
-
-LINKEDIN_GET_COMPANY_INFO(role="ADMINISTRATOR")
-→ 返回 organization_id
-```
-
 ---
 
 ## Text Post（纯文字）
@@ -39,69 +30,50 @@ LINKEDIN_CREATE_LINKED_IN_POST(
 
 ## Image Post（图文）
 
-`LINKEDIN_CREATE_LINKED_IN_POST` 支持直接传图片 URL 数组，内部自动处理上传：
+**必须走两步流程**——先用 `upload_file` 把图片传到 Composio 的 S3，再发帖：
 
 ```
+Step 1 — 上传图片到 Composio S3：
+upload_file(
+  file_path    = "/mnt/session/outputs/{图片文件名}",  # 必须在 outputs/
+  toolkit_slug = "linkedin",
+  tool_slug    = "LINKEDIN_CREATE_LINKED_IN_POST"
+)
+→ 返回 {s3key, name, mimetype}
+
+注意：image_generate 生成的图片在 /mnt/session/uploads/，需先复制到 outputs/：
+bash(command='cp /mnt/session/uploads/{generated_xxx.jpeg} /mnt/session/outputs/{filename.jpeg}')
+
+Step 2 — 创建帖子，images 里用 Step 1 返回的 s3key、name、mimetype：
 LINKEDIN_CREATE_LINKED_IN_POST(
-  author      = "urn:li:organization:{org_id}",
-  commentary  = {正文},
-  images      = [{url: {image_url}, alt_text: ""}],  # 1–20 张
-  visibility  = "PUBLIC",
+  author         = "urn:li:organization:{org_id}",
+  commentary     = {正文},
+  images         = [{s3key: "{s3key}", name: "{name}", mimetype: "{mimetype}"}],
+  visibility     = "PUBLIC",
   lifecycleState = "PUBLISHED"
 )
-→ data = ugcPost URN
+→ data = ugcPost URN（post_id，写入 post-history）
 ```
 
-如 `images` 参数不支持直接传 URL，则走两步流程：
-
-```
-Step 1 — 初始化上传：
-LINKEDIN_INITIALIZE_IMAGE_UPLOAD(
-  owner = "urn:li:organization:{org_id}"
-)
-→ upload_url, image_urn
-
-Step 2 — 上传图片（PUT 请求到 upload_url，传图片二进制）
-
-Step 3 — 创建帖子：
-LINKEDIN_CREATE_LINKED_IN_POST(
-  author     = "urn:li:organization:{org_id}",
-  commentary = {正文},
-  images     = [{id: image_urn}],
-  visibility = "PUBLIC"
-)
-→ data = ugcPost URN
-```
+**注意：** images 参数只接受 `{s3key, name, mimetype}`，不能用 URL 或 URN。
 
 ---
 
 ## Document Carousel（PDF 轮播）
 
-当前 Composio LinkedIn 工具集中**不包含 PDF 上传工具**，无法通过 API 自动发布 Document Carousel。
-
-处理方式：告知 admin「LinkedIn Document Carousel 需要手动在 LinkedIn 平台上传 PDF 发布，已为你准备好分页大纲（见草稿文件的 `## 分页大纲` 字段）」。
+不支持。
 
 ---
 
 ## Video Post
 
-```
-LINKEDIN_CREATE_LINKED_IN_POST(
-  author      = "urn:li:organization:{org_id}",
-  commentary  = {正文},
-  visibility  = "PUBLIC",
-  lifecycleState = "PUBLISHED"
-  # 视频上传需通过 LinkedIn Video API，当前 Composio 工具集暂不支持
-)
-```
-
-视频发布如 Composio 不支持，告知 admin 需手动在 LinkedIn 上传视频。
+不支持。
 
 ---
 
 ## Article
 
-Article 使用 LinkedIn 独立编辑器，**不走普通发布 API**，告知 admin 需手动在 LinkedIn 平台排版发布。草稿文件的 `## 正文大纲` 包含完整内容结构供参考。
+不支持。
 
 ---
 
@@ -130,5 +102,6 @@ LINKEDIN_CREATE_COMMENT_ON_POST(
 | token 过期 / 权限不足 | 告知 admin 需重新连接 LinkedIn，引导运行 setup |
 | 429 rate limit | LinkedIn 共享 OAuth app 限流严格，建议稍后重试，或提示 admin 使用自有 OAuth 凭证 |
 | 正文超过 3000 字 | 截短至 3000 字，告知 admin |
-| 图片上传失败 | 确认图片 URL 可公开访问，格式为 JPEG/PNG |
+| upload_file 失败 | 检查 file_path 是否在 /mnt/session/outputs/；image_generate 的图片需先 cp 到 outputs/ |
+| LINKEDIN_CREATE_LINKED_IN_POST 图片 404 | 确认 images 参数用的是 upload_file 返回的 s3key，不是 URL 或 URN |
 | 内容违反平台政策 | 返回 LinkedIn 原始错误，建议修改后重试 |

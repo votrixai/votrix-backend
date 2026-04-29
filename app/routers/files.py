@@ -15,6 +15,27 @@ from pydantic import BaseModel
 from app.auth import AuthedUser, require_user
 from app.client import get_async_client
 
+
+
+def _detect_image_mime(data: bytes, declared: str) -> str:
+    """Return the actual image MIME type based on magic bytes, falling back to declared."""
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:6] in (b"GIF87a", b"GIF89a"):
+        return "image/gif"
+    if len(data) > 12 and data[4:8] == b"ftyp":
+        brand = data[8:12]
+        if brand in (b"avif", b"avis"):
+            return "image/avif"
+        if brand in (b"heic", b"heix", b"hevc", b"hevx"):
+            return "image/heic"
+    return declared
+
+
 logger = structlog.get_logger()
 
 router = APIRouter(prefix="/files", tags=["files"])
@@ -43,6 +64,8 @@ async def upload_file(
 ):
     data = await file.read()
     mime = file.content_type or "application/octet-stream"
+    if mime.startswith("image/"):
+        mime = _detect_image_mime(data, mime)
     filename = file.filename or "upload"
     # Anthropic only accepts PDF or plaintext for document blocks;
     # browsers often send octet-stream for text-based extensions.
