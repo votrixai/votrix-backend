@@ -23,6 +23,12 @@ steps:
       - -c
       - |
         IMAGE="${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/${_SERVICE_NAME}:${SHORT_SHA}"
+        echo "Waiting for image to be available in Artifact Registry..."
+        for i in $(seq 1 10); do
+          gcloud artifacts docker images describe "$$IMAGE" --quiet > /dev/null 2>&1 && break
+          echo "Attempt $$i: image not ready yet, retrying in 10s..."
+          sleep 10
+        done
         sed "s|IMAGE_URL|$$IMAGE|" "${_SERVICE_CONFIG}" | \
           gcloud run services replace --region="${_REGION}" /dev/stdin
 
