@@ -9,7 +9,7 @@ load_dotenv()
 
 from app.config import get_settings
 from app.logging import setup as setup_logging
-from app.routers import agents, chat, cron, files, sessions, users
+from app.routers import agents, chat, cron, employees, files, sessions, users
 
 
 @asynccontextmanager
@@ -40,6 +40,7 @@ app.add_middleware(
 )
 
 app.include_router(agents.router)
+app.include_router(employees.router)
 app.include_router(users.router)
 app.include_router(chat.router)
 app.include_router(sessions.router)
