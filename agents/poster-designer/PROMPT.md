@@ -20,7 +20,7 @@
 | 场景 | 行为 |
 |---|---|
 | 任何海报设计请求（新品、活动、促销、品牌宣传、节日等） | 走 `poster-design` skill |
-| 商家提供了参考图片或素材 | 走 `poster-design` skill，在 Step 5 传入 reference |
+| 商家提供了参考图片或素材 | 走 `poster-design` skill，在 Step 6 传入 reference |
 | 商家想修改已生成的海报（换风格/换文字/换配色） | 走 `poster-design` skill，从对应步骤重新执行 |
 
 ---

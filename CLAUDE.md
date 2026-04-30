@@ -9,31 +9,29 @@ Agent templates are defined as local files; Anthropic hosts execution.
 
 ### Two phases
 
-**Build** (admin, one-time per agent change):
-```
-python -m app.build.run                        # provision all agents
-python -m app.build.run --agent marketing-agent
-python -m app.build.run --agent marketing-agent --force
-```
-Reads `agents/{agent_id}/` → uploads skills → creates Anthropic managed agent → writes `.cache.json`.
+**Provision** (admin, one-time per agent change):
+- `POST /agents/{agent_id}/reprovision` — uploads skills, creates or updates Anthropic managed agent, persists `provider_agent_id` to DB
+- `POST /agents/{agent_id}/enable` — links the provisioned agent to a workspace (creates `agent_employees` record)
+
+Skill upload state is tracked in `.skills_registry.json` at project root (gitignored):
+`{skill_name: {skill_id, content_hash}}` — skips re-upload if content unchanged.
 
 **Runtime** (per chat request):
-- `POST /agents/{agent_id}/chat` reads `.cache.json` for `agent_id + env_id`
-- Creates Anthropic session → relays SSE stream
+- `POST /sessions` — creates Anthropic session from DB-stored `provider_agent_id`
+- `POST /chat` — relays SSE stream from Anthropic session
 
 ### Local file layout
 
 ```
 agents/{agent_id}/
-  config.json      # name, model, skills[], integrations[]
-  IDENTITY.md      # system prompt component
-  SOUL.md          # system prompt component
-  .cache.json      # {agent_id, env_id, version} — gitignored, written by build
+  config.json      # name, model, skills[], integrations[], tools[], memoryConfigs[]
+  PROMPT.md        # system prompt
 
 skills/{skill_name}/
   SKILL.md         # required — uploaded to Anthropic Skills API
-  REFERENCE.md     # optional extra context zipped with SKILL.md
-  .cache.json      # {skill_id, content_hash} — gitignored, written by build
+  (any other files in the directory are zipped and uploaded together)
+
+.skills_registry.json   # {skill_name: {skill_id, content_hash}} — gitignored
 ```
 
 ### Database (9 tables)
@@ -68,6 +66,6 @@ uvicorn app.main:app --reload --port 8000
 - All DB access via `app/db/queries/*.py` — DAO functions take `AsyncSession` as first arg
 - ORM models in `app/db/models/` — one file per table
 - Pydantic request/response schemas in `app/models/`
-- `app/build/` = provision-time only (no FastAPI dependencies)
+- `app/management/` = provision-time logic (skills upload, agent create/update, session create)
 - `app/runtime/` = chat-time SSE relay
 - `app/client.py` = shared Anthropic singleton via `get_client()`

@@ -105,6 +105,7 @@ async def stream(
     pending_tools: dict[str, Any] = {}  # event_id → agent.custom_tool_use event
     sent_results: set[str] = set()      # IDs we already sent results for
     mcp_tool_ids: set[str] = set()      # IDs from agent.mcp_tool_use (Anthropic-executed)
+    _needs_resend: bool = False         # True when recovery interrupted a stuck session
 
     mount_names: dict[str, str] = {}
     if attachments:
@@ -128,29 +129,20 @@ async def stream(
                 return
             if "waiting on responses to events" in str(exc):
                 pending_ids = re.findall(r'sevt_\w+', str(exc))
-                logger.warning("[send] session stuck requires_action, pending=%r, resolving...", pending_ids)
+                logger.warning("[send] session stuck requires_action, pending=%r, interrupting...", pending_ids)
+                # Send user.interrupt to cleanly abort the stuck agent turn.
+                # Do NOT immediately resend user.message — wait for session.status_idle
+                # in the event loop below, then resend. Sending the message right after
+                # interrupt is a race: the agent may still be winding down and issue
+                # another requires_action before it goes idle.
                 try:
-                    if pending_ids:
-                        dummy_results = [
-                            {
-                                "type": "user.custom_tool_result",
-                                "custom_tool_use_id": eid,
-                                "content": [{"type": "text", "text": json.dumps({"error": "Connection was interrupted; retrying."})}],
-                            }
-                            for eid in pending_ids
-                        ]
-                        await client.beta.sessions.events.send(session_id, events=dummy_results)
-                    else:
-                        await client.beta.sessions.events.send(
-                            session_id, events=[{"type": "user.interrupt"}]
-                        )
                     await client.beta.sessions.events.send(
-                        session_id,
-                        events=[{"type": "user.message", "content": content}],
+                        session_id, events=[{"type": "user.interrupt"}]
                     )
-                except Exception as retry_exc:
-                    logger.error("[send] recovery failed: %s", retry_exc)
-                    yield {"type": "error", "message": f"Session recovery failed, please refresh and try again: {retry_exc}"}
+                    _needs_resend = True
+                except Exception as interrupt_exc:
+                    logger.error("[send] interrupt failed: %s", interrupt_exc)
+                    yield {"type": "error", "message": f"Session recovery failed, please refresh and try again: {interrupt_exc}"}
                     return
             else:
                 logger.error("[send] bad request: %s", exc)
@@ -253,7 +245,21 @@ async def stream(
                     }
 
                 case "session.status_idle":
-                    if event.stop_reason.type == "requires_action":
+                    if _needs_resend:
+                        # Session just became idle after our interrupt — resend the original message.
+                        _needs_resend = False
+                        logger.info("[send] session idle after interrupt, resending message")
+                        try:
+                            await client.beta.sessions.events.send(
+                                session_id,
+                                events=[{"type": "user.message", "content": content}],
+                            )
+                        except Exception as resend_exc:
+                            logger.error("[send] resend after recovery failed: %s", resend_exc)
+                            yield {"type": "error", "message": f"Session recovery failed, please refresh and try again: {resend_exc}"}
+                            return
+                        # Continue consuming the stream — agent will now respond.
+                    elif event.stop_reason.type == "requires_action":
                         logger.info("[requires_action] event_ids=%r", event.stop_reason.event_ids)
 
                         # Compute missed_ids BEFORE popping from pending_tools.

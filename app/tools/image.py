@@ -59,10 +59,11 @@ DEFINITIONS = [
                 "style": {
                     "type": "string",
                     "description": (
-                        "Visual style token. Supported values: "
-                        "3d-model, analog-film, anime, cinematic, comic-book, digital-art, "
+                        "Visual style token. Always default to photographic (photorealistic) — this is the standard and produces the best results. "
+                        "Supported values: "
+                        "photographic, 3d-model, analog-film, anime, cinematic, comic-book, digital-art, "
                         "enhance, fantasy-art, isometric, line-art, low-poly, neon-punk, "
-                        "origami, photographic, pixel-art, tile-texture."
+                        "origami, pixel-art, tile-texture."
                     ),
                 },
                 "mood": {

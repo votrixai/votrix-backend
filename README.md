@@ -146,6 +146,16 @@ Update `envId` in every `agents/*/config.json` with the returned ID.
 .venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 
+> **WSL 开发注意（中国大陆网络）**
+> Anthropic API 需要走代理。启动 uvicorn 之前，在 WSL 终端里设置：
+> ```bash
+> export https_proxy=http://172.29.0.1:7890
+> export http_proxy=http://172.29.0.1:7890
+> ```
+> `172.29.0.1` 是 Windows 主机在 WSL 里的 IP（通过 `ip route | grep default` 确认），
+> `7890` 是 Clash for Windows 的默认端口。
+> 可以加到 `~/.bashrc` 里避免每次手动设置。
+
 ---
 
 ## API
