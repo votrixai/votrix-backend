@@ -14,4 +14,3 @@ dist/
 agents/**/.cache.json
 skills/**/.cache.json
 
-scripts/
