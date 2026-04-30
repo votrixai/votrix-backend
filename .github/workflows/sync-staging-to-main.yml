@@ -16,5 +16,5 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: |
           git checkout staging
-          git merge --ff-only origin/main
-          git push origin staging
+          git reset --hard origin/main
+          git push --force origin staging
