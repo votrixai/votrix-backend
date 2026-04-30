@@ -9,6 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.models.agent_employees import AgentEmployee
 
 
+async def list_by_workspace(
+    db: AsyncSession, workspace_id: uuid.UUID
+) -> Sequence[AgentEmployee]:
+    result = await db.execute(
+        select(AgentEmployee).where(AgentEmployee.workspace_id == workspace_id)
+    )
+    return result.scalars().all()
+
+
 async def list_by_blueprint(
     db: AsyncSession, agent_blueprint_id: uuid.UUID
 ) -> Sequence[AgentEmployee]:
