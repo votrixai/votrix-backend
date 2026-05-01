@@ -1,0 +1,113 @@
+{
+  "template_id": "saas-starter",
+  "brand": {
+    "primary_color": "#2563EB",
+    "secondary_color": "#1E293B",
+    "accent_color": "#10B981",
+    "logo_url": "https://assets.cloudsync.io/logo.svg",
+    "font_family": "Inter",
+    "font_heading": "Inter"
+  },
+  "pages": {
+    "home": {
+      "title": "CloudSync - Sync Your Data Everywhere",
+      "meta_description": "CloudSync keeps your databases, warehouses, and APIs in perfect harmony. No code required. Start free.",
+      "sections": [
+        {
+          "type": "hero",
+          "headline": "Sync Your Data Everywhere, Instantly",
+          "subheadline": "CloudSync keeps your databases, warehouses, and APIs in perfect harmony — no code required.",
+          "cta_text": "Book a Demo",
+          "cta_url": "/contact",
+          "image_url": "/images/hero-dashboard.png"
+        },
+        {
+          "type": "features",
+          "headline": "Everything you need to keep data in sync",
+          "items": [
+            { "title": "200+ Connectors", "description": "Connect databases, warehouses, SaaS tools, and APIs out of the box." },
+            { "title": "Real-Time Sync", "description": "Bidirectional, sub-second data synchronization across all sources." },
+            { "title": "No Code Required", "description": "Point-and-click setup. No engineering time needed." },
+            { "title": "SOC 2 Compliant", "description": "Enterprise-grade security with full audit trails." }
+          ]
+        },
+        {
+          "type": "testimonials",
+          "headline": "Trusted by data teams everywhere",
+          "items": [
+            { "quote": "CloudSync replaced 6 custom ETL scripts for us. It just works.", "author": "Sarah Chen", "title": "VP of Engineering", "company": "Acme Corp" }
+          ]
+        },
+        {
+          "type": "cta",
+          "headline": "Ready to simplify your data stack?",
+          "body": "Join 500+ companies using CloudSync to keep their data in perfect harmony.",
+          "cta_text": "Book a Demo",
+          "cta_url": "/contact"
+        }
+      ]
+    },
+    "pricing": {
+      "title": "Pricing - CloudSync",
+      "meta_description": "Simple, transparent pricing. Start free, scale as you grow.",
+      "sections": [
+        {
+          "type": "pricing",
+          "headline": "Simple, Transparent Pricing",
+          "subheadline": "Start free. Scale as you grow.",
+          "items": [
+            { "name": "Starter", "price": "Free", "features": ["5 connectors", "10K records/mo", "Community support"] },
+            { "name": "Pro", "price": "$99/mo", "features": ["Unlimited connectors", "1M records/mo", "Priority support", "Custom transforms"] },
+            { "name": "Enterprise", "price": "Custom", "features": ["Unlimited everything", "SSO/SAML", "Dedicated support", "SLA guarantee"] }
+          ]
+        }
+      ]
+    }
+  },
+  "navigation": {
+    "nav_items": [
+      { "label": "Features", "path": "/features" },
+      { "label": "Pricing", "path": "/pricing" },
+      { "label": "Blog", "path": "/blog" },
+      { "label": "About", "path": "/about" },
+      { "label": "Book a Demo", "path": "/contact", "cta": true }
+    ]
+  },
+  "metadata": {
+    "site_name": "CloudSync",
+    "title_template": "%s | CloudSync",
+    "default_description": "CloudSync keeps your databases, warehouses, and APIs in perfect harmony. No code required.",
+    "og_image_url": "https://assets.cloudsync.io/og-image.png",
+    "favicon_url": "https://assets.cloudsync.io/favicon.ico",
+    "language": "en"
+  },
+  "features": {
+    "contact_form": {
+      "enabled": true,
+      "recipient_email": "sales@cloudsync.io",
+      "fields": ["name", "email", "company", "message"],
+      "success_message": "Thanks! We'll be in touch within 24 hours."
+    },
+    "newsletter": {
+      "enabled": true,
+      "provider": "static"
+    },
+    "analytics": {
+      "enabled": true,
+      "ga_id": "G-XXXXXXXXXX"
+    },
+    "social_links": {
+      "twitter": "https://twitter.com/cloudsync",
+      "linkedin": "https://linkedin.com/company/cloudsync",
+      "github": "https://github.com/cloudsync"
+    }
+  },
+  "tailwind_overrides": {
+    "colors": {
+      "primary": "#2563EB",
+      "secondary": "#1E293B",
+      "accent": "#10B981"
+    }
+  },
+  "configured_at": "2026-04-27T15:00:00Z"
+}

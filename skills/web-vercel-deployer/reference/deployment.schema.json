@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Deployment",
+  "description": "Vercel deployment details",
+  "type": "object",
+  "required": ["project_id", "deployment_id", "preview_url", "deployment_status", "deployed_at"],
+  "properties": {
+    "project_id": {
+      "type": "string",
+      "description": "Vercel project ID (prj_xxxx)"
+    },
+    "deployment_id": {
+      "type": "string",
+      "description": "Vercel deployment ID (dpl_xxxx)"
+    },
+    "preview_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Preview URL on vercel.app"
+    },
+    "deployment_status": {
+      "type": "string",
+      "enum": ["QUEUED", "BUILDING", "READY", "ERROR", "CANCELED"],
+      "description": "Current deployment status"
+    },
+    "deployed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp of deployment"
+    },
+    "build_time_seconds": {
+      "type": "integer",
+      "description": "Build duration in seconds"
+    },
+    "framework": {
+      "type": "string",
+      "default": "nextjs",
+      "description": "Framework detected by Vercel"
+    },
+    "deploy_repo": {
+      "type": "string",
+      "format": "uri",
+      "description": "GitHub repo URL in votrix-site-deploys"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if deployment_status is ERROR"
+    }
+  },
+  "additionalProperties": false
+}

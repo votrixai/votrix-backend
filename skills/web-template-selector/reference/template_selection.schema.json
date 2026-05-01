@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Template Selection",
+  "description": "Records the selected template and its capabilities",
+  "type": "object",
+  "required": ["template_id", "template_name", "template_repo", "fit_score", "supported_pages", "styling_system", "selected_at"],
+  "properties": {
+    "template_id": {
+      "type": "string",
+      "description": "Unique identifier from the templates catalog"
+    },
+    "template_name": {
+      "type": "string",
+      "description": "Human-readable template name"
+    },
+    "template_repo": {
+      "type": "string",
+      "format": "uri",
+      "description": "Git repository URL for the template"
+    },
+    "fit_score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Computed fit score (0-100)"
+    },
+    "supported_pages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Pages available as pre-built layouts in this template"
+    },
+    "unsupported_pages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Requested pages that need custom work"
+    },
+    "supported_features": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Features the template supports out of the box"
+    },
+    "unsupported_features": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Requested features not supported by the template"
+    },
+    "styling_system": {
+      "type": "string",
+      "enum": ["tailwind", "css_modules", "styled_components"],
+      "description": "CSS framework used by the template"
+    },
+    "selected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp when the selection was made"
+    }
+  },
+  "additionalProperties": false
+}

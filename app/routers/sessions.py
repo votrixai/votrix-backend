@@ -62,9 +62,11 @@ async def create_session_endpoint(
     if not bp:
         raise HTTPException(status_code=422, detail=f"Agent '{body.agent_slug}' has not been provisioned yet")
 
-    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
+    ws = await workspaces_q.get_workspace(db, body.workspace_id)
     if not ws:
-        raise HTTPException(status_code=404, detail="No workspace found for user")
+        raise HTTPException(status_code=404, detail="Workspace not found")
+    if not await workspaces_q.is_member(db, ws.id, current_user.id):
+        raise HTTPException(status_code=403, detail="Not a member of this workspace")
 
     employee = await employees_q.get(db, ws.id, blueprint_id)
     if not employee:
@@ -97,7 +99,7 @@ async def create_session_endpoint(
         if i.get("connected_account_id")
     }
     composio_session_id = await create_composio_session(
-        str(current_user.id),
+        str(ws.id),
         integrations,
         connected_accounts=connected_accounts or None,
     )

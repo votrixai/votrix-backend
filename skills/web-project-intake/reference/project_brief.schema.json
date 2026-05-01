@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Project Brief",
+  "description": "Captures website project requirements",
+  "type": "object",
+  "required": ["business_name", "business_type", "site_purpose", "pages", "project_slug"],
+  "properties": {
+    "business_name": {
+      "type": "string",
+      "description": "Name of the business or brand"
+    },
+    "business_type": {
+      "type": "string",
+      "enum": ["saas", "restaurant", "portfolio", "ecommerce", "agency", "medical", "real_estate", "nonprofit", "blog", "other"],
+      "description": "Type of business — drives template recommendation"
+    },
+    "business_type_detail": {
+      "type": "string",
+      "description": "Additional detail if business_type is 'other'"
+    },
+    "site_purpose": {
+      "type": "string",
+      "description": "What the site needs to accomplish"
+    },
+    "pages": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["home", "about", "services", "pricing", "contact", "blog", "faq", "testimonials", "team", "portfolio", "menu", "gallery", "shop", "booking", "features", "custom"]
+      },
+      "minItems": 1,
+      "description": "Pages to include in the site"
+    },
+    "brand": {
+      "type": "object",
+      "properties": {
+        "primary_color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "secondary_color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "accent_color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "logo_url": { "type": "string", "format": "uri" },
+        "font_preference": {
+          "type": "string",
+          "enum": ["modern", "classic", "playful", "minimal", "custom"]
+        }
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "headline": { "type": "string" },
+          "subheadline": { "type": "string" },
+          "body": { "type": "string" },
+          "cta_text": { "type": "string" },
+          "cta_url": { "type": "string" }
+        }
+      },
+      "description": "Per-page content keyed by page name"
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["contact_form", "booking_system", "newsletter_signup", "social_links", "analytics", "seo_meta", "blog_cms", "image_gallery", "testimonials_carousel", "pricing_table", "faq_accordion", "map_embed", "chat_widget", "cookie_banner"]
+      },
+      "description": "Special features to include"
+    },
+    "domain_preference": {
+      "type": "string",
+      "enum": ["connect_domain", "skip_domain"],
+      "description": "Whether to connect a Cloudflare domain or skip"
+    },
+    "domain_name": {
+      "type": "string",
+      "description": "Customer's domain on Cloudflare (e.g., joespizza.com)"
+    },
+    "project_slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "description": "Slug-style project name for output directory naming"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Any additional context"
+    }
+  },
+  "additionalProperties": false
+}

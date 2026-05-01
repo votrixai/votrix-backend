@@ -1,0 +1,10 @@
+{
+  "project_id": "prj_a1b2c3d4e5f6",
+  "deployment_id": "dpl_x7y8z9w0v1u2",
+  "preview_url": "https://cloudsync-site-a1b2c3d4.vercel.app",
+  "deploy_repo": "https://github.com/votrix-site-deploys/cloudsync-site-20260427",
+  "deployment_status": "READY",
+  "deployed_at": "2026-04-27T15:15:00Z",
+  "build_time_seconds": 52,
+  "framework": "nextjs"
+}

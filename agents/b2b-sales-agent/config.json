@@ -6,18 +6,15 @@
   "skills": [
     "business-context",
     "icp-builder",
-    "market-intel",
-    "apollo-prospector",
-    "human-calibration",
-    "lead-scorer",
-    "account-deep-dive",
-    "lead-intel",
-    "quality-gate"
+    "lead-prospecting",
+    "lead-enrichment",
+    "lead-export"
   ],
   "integrations": [
     {"slug": "apollo"},
-    {"slug": "tavily"},
-    {"slug": "firecrawl"}
+    {"slug": "composio_search"},
+    {"slug": "firecrawl"},
+    {"slug": "googlesheets"}
   ],
   "tools": ["download_file"]
 }

@@ -1,0 +1,21 @@
+{
+  "agentId": "15d7b9a7-5728-4125-92ea-fa14c5cb5a86",
+  "name": "Website Builder",
+  "model": "claude-sonnet-4-6",
+  "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
+  "skills": [
+    "web-project-intake",
+    "web-template-selector",
+    "web-site-customizer",
+    "web-vercel-deployer",
+    "web-preview-gate",
+    "web-domain-manager",
+    "web-dns-binder",
+    "web-launch-verifier"
+  ],
+  "integrations": [
+    {"slug": "vercel"},
+    {"slug": "cloudflare"}
+  ],
+  "tools": []
+}
