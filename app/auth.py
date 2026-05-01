@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
 from app.db.engine import get_session
-from app.db.queries.workspaces import is_member
+from app.db.queries.workspaces import get_member_role, get_user_workspaces, is_member
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -31,7 +31,9 @@ class AuthedUser:
 
 @dataclass(frozen=True)
 class WorkspaceContext:
+    user_id: uuid.UUID
     workspace_id: uuid.UUID
+    role: str
 
 
 @lru_cache
@@ -96,21 +98,32 @@ async def require_workspace(
     x_workspace_id: str | None = Header(None, alias="X-Workspace-Id"),
     db: AsyncSession = Depends(get_session),
 ) -> WorkspaceContext:
-    if not x_workspace_id:
+    if x_workspace_id is not None:
+        try:
+            workspace_id = uuid.UUID(x_workspace_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="X-Workspace-Id must be a valid UUID",
+            )
+        if not await is_member(db, workspace_id, user.id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not a member of this workspace",
+            )
+        role = await get_member_role(db, workspace_id, user.id)
+        if role is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not a member of this workspace",
+            )
+        return WorkspaceContext(user_id=user.id, workspace_id=workspace_id, role=role)
+
+    workspaces = await get_user_workspaces(db, user.id)
+    if len(workspaces) != 1:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="X-Workspace-Id header required",
         )
-    try:
-        workspace_id = uuid.UUID(x_workspace_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="X-Workspace-Id must be a valid UUID",
-        )
-    if not await is_member(db, workspace_id, user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this workspace",
-        )
-    return WorkspaceContext(workspace_id=workspace_id)
+    workspace, role = workspaces[0]
+    return WorkspaceContext(user_id=user.id, workspace_id=workspace.id, role=role)

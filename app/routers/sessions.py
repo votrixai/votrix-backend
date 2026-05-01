@@ -1,7 +1,8 @@
 """
 Session routes.
 
-All endpoints require the X-Workspace-Id header (resolved by require_workspace).
+All endpoints are scoped through require_workspace. X-Workspace-Id is optional
+only when the authenticated user belongs to exactly one workspace.
 Cross-tenant access returns 404 — we do not distinguish "missing" from "not yours".
 
 POST   /sessions                    create session (agent must be enabled for workspace)
@@ -39,6 +40,18 @@ from app.models.session import (
 logger = structlog.get_logger()
 
 router = APIRouter(tags=["sessions"])
+
+
+async def _session_list_title(db: AsyncSession, session) -> str | None:
+    title = management_sessions.usable_provider_title(
+        session.title,
+        session.provider_session_id,
+    )
+    if title:
+        return title
+
+    first_message = await sessions_q.get_first_user_message(db, session.id)
+    return management_sessions.fallback_session_title(first_message)
 
 
 @router.post("/sessions", response_model=SessionCreateResponse, status_code=201)
@@ -123,16 +136,16 @@ async def list_sessions(
     ctx: WorkspaceContext = Depends(require_workspace),
 ):
     rows = await sessions_q.list_sessions(db, ctx.workspace_id)
-    return [
-        SessionResponse(
+    result: list[SessionResponse] = []
+    for r in rows:
+        result.append(SessionResponse(
             id=r.id,
             workspace_id=r.workspace_id,
-            title=r.title,
+            title=await _session_list_title(db, r),
             agent_blueprint_id=r.agent_blueprint_id,
             created_at=r.created_at,
-        )
-        for r in rows
-    ]
+        ))
+    return result
 
 
 @router.get("/sessions/{session_id}", response_model=SessionDetailResponse)

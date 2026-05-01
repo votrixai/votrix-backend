@@ -31,7 +31,11 @@ class Session(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     workspace: Mapped["Workspace"] = relationship("Workspace", back_populates="sessions")
     blueprint: Mapped["AgentBlueprint | None"] = relationship("AgentBlueprint", back_populates="sessions")
-    events: Mapped[list["SessionEvent"]] = relationship("SessionEvent", back_populates="session")
+    events: Mapped[list["SessionEvent"]] = relationship(
+        "SessionEvent",
+        back_populates="session",
+        cascade="all, delete-orphan",
+    )
 
 
 class SessionEvent(UUIDPrimaryKeyMixin, TimestampMixin, Base):

@@ -16,7 +16,7 @@ from app.models.chat import FileAttachment
 from app.runtime.sessions import _build_content
 
 _TEST_USER = AuthedUser(id=uuid.uuid4(), email="test@example.com")
-_TEST_WORKSPACE = WorkspaceContext(workspace_id=uuid.uuid4())
+_TEST_WORKSPACE = WorkspaceContext(user_id=_TEST_USER.id, workspace_id=uuid.uuid4(), role="owner")
 
 
 def _override_auth():

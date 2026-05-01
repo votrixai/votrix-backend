@@ -20,7 +20,11 @@ from app.main import app
 
 @app.get("/__test_workspace_echo__")
 async def _echo_workspace(ctx: WorkspaceContext = Depends(require_workspace)):
-    return {"workspace_id": str(ctx.workspace_id)}
+    return {
+        "user_id": str(ctx.user_id),
+        "workspace_id": str(ctx.workspace_id),
+        "role": ctx.role,
+    }
 
 
 _PATH = "/__test_workspace_echo__"
@@ -60,10 +64,14 @@ async def second_workspace(db_user):
         await db.commit()
 
 
-async def test_missing_header_returns_400(client, db_user):
+async def test_missing_header_with_one_workspace_uses_it(client, db_user):
     r = await client.get(_PATH)
-    assert r.status_code == 400
-    assert "X-Workspace-Id" in r.json()["detail"]
+    assert r.status_code == 200
+    assert r.json() == {
+        "user_id": db_user["id"],
+        "workspace_id": db_user["workspace_id"],
+        "role": "owner",
+    }
 
 
 async def test_malformed_uuid_returns_400(client, db_user):
@@ -92,7 +100,9 @@ async def test_non_member_workspace_returns_403(client, db_user, foreign_workspa
 async def test_member_returns_200_with_workspace_id(client, db_user):
     r = await client.get(_PATH, headers={"X-Workspace-Id": db_user["workspace_id"]})
     assert r.status_code == 200
+    assert r.json()["user_id"] == db_user["id"]
     assert r.json()["workspace_id"] == db_user["workspace_id"]
+    assert r.json()["role"] == "owner"
 
 
 async def test_user_with_two_workspaces_can_target_either(client, db_user, second_workspace):
@@ -105,11 +115,7 @@ async def test_user_with_two_workspaces_can_target_either(client, db_user, secon
     assert r2.json()["workspace_id"] == str(second_workspace)
 
 
-async def test_no_fallback_to_default_workspace(client, db_user):
-    """A user with exactly one workspace still cannot omit the header.
-
-    This locks in the strict-no-fallback decision: there is no implicit "default
-    workspace" resolution. Every authenticated request must declare its tenant.
-    """
+async def test_missing_header_with_multiple_workspaces_returns_400(client, db_user, second_workspace):
     r = await client.get(_PATH)
     assert r.status_code == 400
+    assert "X-Workspace-Id" in r.json()["detail"]

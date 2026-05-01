@@ -25,6 +25,16 @@ async def get_user_workspaces(db: AsyncSession, user_id: uuid.UUID) -> Sequence[
     return result.all()
 
 
+async def get_member_role(db: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID) -> str | None:
+    result = await db.execute(
+        select(WorkspaceMember.role).where(
+            WorkspaceMember.workspace_id == workspace_id,
+            WorkspaceMember.user_id == user_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 async def is_member(db: AsyncSession, workspace_id: uuid.UUID, user_id: uuid.UUID) -> bool:
     result = await db.execute(
         select(WorkspaceMember).where(

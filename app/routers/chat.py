@@ -107,7 +107,7 @@ async def chat(
                             provider_session_id,
                         )
                         if not title:
-                            title = body.message[:100]
+                            title = management_sessions.title_from_message(body.message)
                         if title:
                             async with session_scope() as s:
                                 await sessions_q.update_title(s, session_id, title)
