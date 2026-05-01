@@ -2,6 +2,7 @@
 Agent template routes — reads from agents/ directory on disk.
 
 GET    /agents                         list all agent templates
+GET    /agents/blueprints              list provisioned blueprints with hire status
 GET    /agents/{agent_id}              get config
 POST   /agents/{agent_id}/reprovision  update-or-create agent on Anthropic
 POST   /agents/{agent_id}/enable       enable agent for current user's workspace
@@ -22,7 +23,7 @@ from app.db.queries import agent_employees as employees_q
 from app.db.queries import workspaces as workspaces_q
 from app.management.memory_stores import create_for_employee, sync_memory_stores_for_blueprint
 from app.management.provisioning import create_user_agent, update_user_agent, _read_config
-from app.models.agent import AgentConfig
+from app.models.agent import AgentBlueprintResponse, AgentConfig
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -56,6 +57,54 @@ async def list_agents():
         if d.is_dir() and d.name not in EXCLUDED_AGENT_DIRS
     )
     return [_load_config(agent_id) for agent_id in agent_ids]
+
+
+@router.get("/blueprints", response_model=list[AgentBlueprintResponse])
+async def list_blueprints(
+    db: AsyncSession = Depends(get_session),
+    current_user: AuthedUser = Depends(require_user),
+):
+    agent_ids = sorted(
+        d.name for d in AGENTS_DIR.iterdir()
+        if d.is_dir() and d.name not in EXCLUDED_AGENT_DIRS
+    )
+
+    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
+
+    result = []
+    for agent_id in agent_ids:
+        config_path = AGENTS_DIR / agent_id / "config.json"
+        if not config_path.exists():
+            continue
+        config = json.loads(config_path.read_text())
+        raw_id = config.get("agentId")
+        if not raw_id:
+            continue
+        try:
+            blueprint_id = uuid.UUID(raw_id)
+        except ValueError:
+            continue
+
+        bp = await blueprints_q.get(db, blueprint_id)
+        if not bp:
+            continue
+
+        employee = None
+        if ws:
+            employee = await employees_q.get(db, ws.id, bp.id)
+
+        result.append(AgentBlueprintResponse(
+            id=str(bp.id),
+            display_name=bp.display_name,
+            provider=bp.provider,
+            slug=agent_id,
+            skills=config.get("skills", []),
+            model=config.get("model", ""),
+            is_hired=employee is not None,
+            employee_id=str(employee.id) if employee else None,
+        ))
+
+    return result
 
 
 @router.get("/{agent_id}", response_model=AgentConfig)

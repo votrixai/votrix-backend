@@ -1,10 +1,9 @@
 {
-  "agentId": "13e1b083-451d-4212-b82b-f01102877918",
-  "name": "Poster Designer",
+  "agentId": "11f90364-4472-4dbb-8dc5-1dde145cfd10",
+  "name": "Image Generator",
   "model": "claude-sonnet-4-6",
-  "envId": "env_01PPUjhf6YgDa2SVK4KjNkYU",
+  "envId": "env_0181Ut9dZc5RU1r8jzowYKhJ",
   "skills": [
-    "poster-design",
     "generate-image"
   ],
   "integrations": [],

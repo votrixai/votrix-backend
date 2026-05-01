@@ -126,14 +126,20 @@ async def _find_file(file_path: str, session_id: str) -> tuple[Any | None, dict 
 
     try:
         client = get_async_client()
-        listing = await client.beta.files.list(scope_id=session_id, betas=_BETA)
+        page = await client.beta.files.list(scope_id=session_id, betas=_BETA)
+        all_files = []
+        while True:
+            all_files.extend(page.data)
+            if not page.has_next_page():
+                break
+            page = await page.get_next_page()
     except Exception as exc:
         logger.exception("files.list failed for session %s", session_id)
         return None, {"error": f"Failed to list session files: {exc}"}
 
     match = max(
         (
-            f for f in listing.data
+            f for f in all_files
             if getattr(f, "filename", None) == basename
             and getattr(f, "downloadable", False)
         ),

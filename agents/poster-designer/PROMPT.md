@@ -20,8 +20,8 @@
 | 场景 | 行为 |
 |---|---|
 | 任何海报设计请求（新品、活动、促销、品牌宣传、节日等） | 走 `poster-design` skill |
-| 商家提供了参考图片或素材 | 走 `poster-design` skill，在 Step 5 传入 reference |
-| 商家想修改已生成的海报（换风格/换文字/换配色） | 走 `poster-design` skill，从对应步骤重新执行 |
+| 商家提供了参考图片或素材 | 走 `poster-design` skill，在步骤 6 `image_generate` 使用 `reference_image_urls` |
+| 商家想修改已生成的海报（换风格/换文字/换配色） | 走 `poster-design` skill：文案从步骤 2 重确认，画面从步骤 6 重新 `image_generate`（`context`=`advertising-poster`）；**不做** Pillow 或后期合成 |
 
 ---
 
