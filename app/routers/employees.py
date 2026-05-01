@@ -1,5 +1,5 @@
 """
-Employee routes — hired agent employees for the current user's workspace.
+Employee routes — hired agent employees for the active workspace.
 
 GET    /employees                  list hired employees
 DELETE /employees/{employee_id}    fire an employee
@@ -13,12 +13,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import AuthedUser, require_user
+from app.auth import WorkspaceContext, require_workspace
 from app.db.engine import get_session
 from app.db.models.agent_blueprints import AgentBlueprint
 from app.db.models.agent_employees import AgentEmployee
 from app.db.queries import agent_employees as employees_q
-from app.db.queries import workspaces as workspaces_q
 from app.models.agent import AgentEmployeeResponse
 
 router = APIRouter(prefix="/employees", tags=["employees"])
@@ -54,16 +53,12 @@ def _build_blueprint_config_map() -> dict[uuid.UUID, dict]:
 @router.get("", response_model=list[AgentEmployeeResponse])
 async def list_employees(
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
-    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
-    if not ws:
-        return []
-
     rows = await db.execute(
         select(AgentEmployee, AgentBlueprint)
         .join(AgentBlueprint, AgentEmployee.agent_blueprint_id == AgentBlueprint.id)
-        .where(AgentEmployee.workspace_id == ws.id)
+        .where(AgentEmployee.workspace_id == ctx.workspace_id)
     )
     pairs = rows.all()
     if not pairs:
@@ -89,14 +84,10 @@ async def list_employees(
 async def fire_employee(
     employee_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
-    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
-    if not ws:
-        raise HTTPException(status_code=404, detail="No workspace found for user")
-
     emp = await db.get(AgentEmployee, employee_id)
-    if not emp or emp.workspace_id != ws.id:
+    if not emp or emp.workspace_id != ctx.workspace_id:
         raise HTTPException(status_code=404, detail="Employee not found")
 
     await employees_q.delete(db, employee_id)

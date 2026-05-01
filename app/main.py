@@ -9,7 +9,8 @@ load_dotenv()
 
 from app.config import get_settings
 from app.logging import setup as setup_logging
-from app.routers import agents, chat, cron, employees, files, sessions, users
+from app.routers import agents, chat, employees, files, sessions, users  # noqa: I001 — cron deferred (see below)
+# from app.routers import cron  # TODO: schedules need workspace_id before re-enabling
 
 
 @asynccontextmanager
@@ -38,7 +39,7 @@ app.include_router(users.router)
 app.include_router(chat.router)
 app.include_router(sessions.router)
 app.include_router(files.router)
-app.include_router(cron.router)
+# app.include_router(cron.router)  # TODO: schedules need workspace_id before re-enabling
 
 
 @app.get("/health")

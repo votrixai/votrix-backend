@@ -5,8 +5,8 @@ GET    /agents                         list all agent templates
 GET    /agents/blueprints              list provisioned blueprints with hire status
 GET    /agents/{agent_id}              get config
 POST   /agents/{agent_id}/reprovision  update-or-create agent on Anthropic
-POST   /agents/{agent_id}/enable       enable agent for current user's workspace
-DELETE /agents/{agent_id}/enable       disable agent for current user's workspace
+POST   /agents/{agent_id}/enable       enable agent for the active workspace
+DELETE /agents/{agent_id}/enable       disable agent for the active workspace
 """
 
 import json
@@ -16,11 +16,10 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import AuthedUser, require_user
+from app.auth import WorkspaceContext, require_workspace
 from app.db.engine import get_session
 from app.db.queries import agent_blueprints as blueprints_q
 from app.db.queries import agent_employees as employees_q
-from app.db.queries import workspaces as workspaces_q
 from app.management.memory_stores import create_for_employee, sync_memory_stores_for_blueprint
 from app.management.provisioning import create_user_agent, update_user_agent, _read_config
 from app.models.agent import AgentBlueprintResponse, AgentConfig
@@ -62,14 +61,12 @@ async def list_agents():
 @router.get("/blueprints", response_model=list[AgentBlueprintResponse])
 async def list_blueprints(
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
     agent_ids = sorted(
         d.name for d in AGENTS_DIR.iterdir()
         if d.is_dir() and d.name not in EXCLUDED_AGENT_DIRS
     )
-
-    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
 
     result = []
     for agent_id in agent_ids:
@@ -89,9 +86,7 @@ async def list_blueprints(
         if not bp:
             continue
 
-        employee = None
-        if ws:
-            employee = await employees_q.get(db, ws.id, bp.id)
+        employee = await employees_q.get(db, ctx.workspace_id, bp.id)
 
         result.append(AgentBlueprintResponse(
             id=str(bp.id),
@@ -151,7 +146,7 @@ async def reprovision_agent(
 async def enable_agent(
     agent_id: str,
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
     _load_config(agent_id)
     blueprint_id = _parse_blueprint_id(agent_id)
@@ -163,23 +158,19 @@ async def enable_agent(
             detail=f"Agent '{agent_id}' has not been provisioned yet. Run reprovision first.",
         )
 
-    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
-    if not ws:
-        raise HTTPException(status_code=404, detail="No workspace found for user")
-
-    existing = await employees_q.get(db, ws.id, blueprint_id)
+    existing = await employees_q.get(db, ctx.workspace_id, blueprint_id)
     if existing:
-        return {"employee_id": str(existing.id), "workspace_id": str(ws.id), "blueprint_id": str(blueprint_id)}
+        return {"employee_id": str(existing.id), "workspace_id": str(ctx.workspace_id), "blueprint_id": str(blueprint_id)}
 
     config = _read_config(agent_id)
-    employee = await employees_q.create(db, ws.id, blueprint_id)
+    employee = await employees_q.create(db, ctx.workspace_id, blueprint_id)
 
     for mc in config.get("memoryConfigs", []):
         await create_for_employee(db, employee.id, mc)
 
     return {
         "employee_id": str(employee.id),
-        "workspace_id": str(ws.id),
+        "workspace_id": str(ctx.workspace_id),
         "blueprint_id": str(blueprint_id),
     }
 
@@ -188,15 +179,11 @@ async def enable_agent(
 async def disable_agent(
     agent_id: str,
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
     blueprint_id = _parse_blueprint_id(agent_id)
 
-    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
-    if not ws:
-        raise HTTPException(status_code=404, detail="No workspace found for user")
-
-    existing = await employees_q.get(db, ws.id, blueprint_id)
+    existing = await employees_q.get(db, ctx.workspace_id, blueprint_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Agent not enabled for this workspace")
 

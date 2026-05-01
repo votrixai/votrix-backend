@@ -156,7 +156,7 @@ async def _find_file(file_path: str, session_id: str) -> tuple[Any | None, dict 
     return match, None
 
 
-async def _handle_download(input: dict, user_id: str, session_id: str) -> dict:
+async def _handle_download(input: dict, workspace_id: str, session_id: str) -> dict:
     file_path = (input.get("file_path") or "").strip()
     if not file_path:
         return {"error": "file_path is required"}
@@ -174,7 +174,7 @@ async def _handle_download(input: dict, user_id: str, session_id: str) -> dict:
     }
 
 
-async def _handle_publish(input: dict, user_id: str, session_id: str) -> dict:
+async def _handle_publish(input: dict, workspace_id: str, session_id: str) -> dict:
     file_path = (input.get("file_path") or "").strip()
     if not file_path:
         return {"error": "file_path is required"}
@@ -195,7 +195,7 @@ async def _handle_publish(input: dict, user_id: str, session_id: str) -> dict:
 
     mime = getattr(match, "mime_type", None) or "application/octet-stream"
     try:
-        url = await storage_upload(data, mime, user_id, match.filename)
+        url = await storage_upload(data, mime, workspace_id, match.filename)
     except Exception as exc:
         logger.exception("Supabase upload failed for %s", match.filename)
         return {"error": f"Failed to upload to cloud storage: {exc}"}
@@ -203,7 +203,7 @@ async def _handle_publish(input: dict, user_id: str, session_id: str) -> dict:
     return {"url": url, "filename": match.filename, "mime_type": mime}
 
 
-async def _handle_upload(input: dict, user_id: str, session_id: str) -> dict:
+async def _handle_upload(input: dict, workspace_id: str, session_id: str) -> dict:
     file_path = (input.get("file_path") or "").strip()
     toolkit_slug = (input.get("toolkit_slug") or "").strip()
     tool_slug = (input.get("tool_slug") or "").strip()
@@ -276,11 +276,11 @@ async def _handle_upload(input: dict, user_id: str, session_id: str) -> dict:
     return {"s3key": s3key, "name": filename, "mimetype": mimetype}
 
 
-async def handle(name: str, input: dict, user_id: str, session_id: str | None = None) -> dict:
+async def handle(name: str, input: dict, workspace_id: str, session_id: str | None = None) -> dict:
     if name == "download_file":
-        return await _handle_download(input, user_id, session_id)
+        return await _handle_download(input, workspace_id, session_id)
     if name == "publish_file":
-        return await _handle_publish(input, user_id, session_id)
+        return await _handle_publish(input, workspace_id, session_id)
     if name == "upload_file":
-        return await _handle_upload(input, user_id, session_id)
+        return await _handle_upload(input, workspace_id, session_id)
     return {"error": f"Unknown file tool: {name}"}
