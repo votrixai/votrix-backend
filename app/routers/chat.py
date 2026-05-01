@@ -22,10 +22,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import AuthedUser, require_user
+from app.auth import WorkspaceContext, require_workspace
 from app.db.engine import get_session, session_scope
 from app.db.queries import sessions as sessions_q
-from app.db.queries import workspaces as workspaces_q
 from app.management import sessions as management_sessions
 from app.models.chat import ChatRequest
 from app.runtime import sessions as runtime
@@ -39,16 +38,14 @@ router = APIRouter(tags=["chat"])
 async def chat(
     body: ChatRequest,
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
     db_session = await sessions_q.get_session(db, body.session_id)
-    if db_session is None:
+    if db_session is None or db_session.workspace_id != ctx.workspace_id:
         raise HTTPException(
             status_code=404,
             detail="Session not found — call POST /sessions first",
         )
-    if not await workspaces_q.is_member(db, db_session.workspace_id, current_user.id):
-        raise HTTPException(status_code=403, detail="Not a member of this workspace")
 
     await sessions_q.append_event(db, body.session_id, "user_message", body.message)
     if body.attachments:
@@ -70,7 +67,7 @@ async def chat(
             async for event in runtime.stream(
                 provider_session_id,
                 body.message,
-                str(current_user.id),
+                str(ctx.workspace_id),
                 body.attachments,
                 composio_session_id=composio_session_id,
             ):

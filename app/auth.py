@@ -14,8 +14,11 @@ import jwt
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWKClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.db.engine import get_session
+from app.db.queries.workspaces import is_member
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -24,6 +27,11 @@ _bearer = HTTPBearer(auto_error=False)
 class AuthedUser:
     id: uuid.UUID
     email: str | None = None
+
+
+@dataclass(frozen=True)
+class WorkspaceContext:
+    workspace_id: uuid.UUID
 
 
 @lru_cache
@@ -81,3 +89,28 @@ def require_user(
     except (KeyError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid sub claim")
     return AuthedUser(id=user_id, email=claims.get("email"))
+
+
+async def require_workspace(
+    user: AuthedUser = Depends(require_user),
+    x_workspace_id: str | None = Header(None, alias="X-Workspace-Id"),
+    db: AsyncSession = Depends(get_session),
+) -> WorkspaceContext:
+    if not x_workspace_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="X-Workspace-Id header required",
+        )
+    try:
+        workspace_id = uuid.UUID(x_workspace_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="X-Workspace-Id must be a valid UUID",
+        )
+    if not await is_member(db, workspace_id, user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this workspace",
+        )
+    return WorkspaceContext(workspace_id=workspace_id)

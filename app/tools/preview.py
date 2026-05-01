@@ -54,7 +54,7 @@ DEFINITIONS = [
 ]
 
 
-async def handle(name: str, input: dict, user_id: str, session_id: str | None = None) -> dict:
+async def handle(name: str, input: dict, workspace_id: str, session_id: str | None = None) -> dict:
     if name != "show_post_preview":
         return {"error": f"Unknown preview tool: {name}"}
     if not session_id:

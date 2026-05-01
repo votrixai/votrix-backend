@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 
 class SessionCreateRequest(BaseModel):
     agent_slug: str = Field(..., description="Agent template slug, e.g. 'marketing-agent'")
-    workspace_id: uuid.UUID = Field(..., description="Workspace to create the session in")
 
 
 class SessionCreateResponse(BaseModel):
