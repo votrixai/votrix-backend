@@ -111,8 +111,9 @@ async def chat(
                         )
                         if not title:
                             title = body.message[:100]
-                        async with session_scope() as s:
-                            await sessions_q.update_title(s, session_id, title)
+                        if title:
+                            async with session_scope() as s:
+                                await sessions_q.update_title(s, session_id, title)
                             db_session.title = title
 
                 raw = json.dumps(event)

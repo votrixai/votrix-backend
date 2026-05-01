@@ -14,6 +14,16 @@ class AgentConfig(BaseModel):
     integrations: list[IntegrationConfig] = []
 
 
+class AgentEmployeeResponse(BaseModel):
+    id: str
+    workspace_id: str
+    agent_blueprint_id: str
+    display_name: str
+    slug: str
+    model: str
+    created_at: str
+
+
 class AgentBlueprintResponse(BaseModel):
     id: str
     display_name: str
@@ -23,13 +33,3 @@ class AgentBlueprintResponse(BaseModel):
     model: str
     is_hired: bool
     employee_id: str | None
-
-
-class AgentEmployeeResponse(BaseModel):
-    id: str
-    workspace_id: str
-    agent_blueprint_id: str
-    display_name: str
-    slug: str
-    model: str
-    created_at: str
