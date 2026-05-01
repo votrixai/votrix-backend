@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DNS Records",
+  "description": "DNS records created to connect the domain to the Vercel deployment",
+  "type": "object",
+  "required": ["domain_name", "zone_id", "records_created", "vercel_domain_added", "created_at"],
+  "properties": {
+    "domain_name": {
+      "type": "string",
+      "description": "The domain name"
+    },
+    "zone_id": {
+      "type": "string",
+      "description": "Cloudflare zone ID"
+    },
+    "records_created": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "name", "content", "proxied"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["A", "AAAA", "CNAME", "TXT"],
+            "description": "DNS record type"
+          },
+          "name": {
+            "type": "string",
+            "description": "Record name (@ for root, www for subdomain)"
+          },
+          "content": {
+            "type": "string",
+            "description": "Record value"
+          },
+          "proxied": {
+            "type": "boolean",
+            "description": "Whether Cloudflare proxy is enabled"
+          },
+          "record_id": {
+            "type": "string",
+            "description": "Cloudflare DNS record ID"
+          }
+        }
+      },
+      "description": "DNS records that were created"
+    },
+    "vercel_domain_added": {
+      "type": "boolean",
+      "description": "Whether the domain was added to the Vercel project"
+    },
+    "ssl_mode": {
+      "type": "string",
+      "enum": ["dns_only", "full_strict"],
+      "description": "Cloudflare SSL/proxy configuration"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp when records were created"
+    }
+  },
+  "additionalProperties": false
+}

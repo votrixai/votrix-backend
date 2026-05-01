@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Domain Config",
+  "description": "Customer's Cloudflare domain configuration",
+  "type": "object",
+  "required": ["domain_source", "connected_at"],
+  "properties": {
+    "domain_name": {
+      "type": "string",
+      "description": "The customer's domain name (e.g., example.com)"
+    },
+    "domain_source": {
+      "type": "string",
+      "enum": ["customer_cloudflare", "skipped"],
+      "description": "Domain source — customer's own Cloudflare or skipped"
+    },
+    "cloudflare_account_id": {
+      "type": "string",
+      "description": "Customer's Cloudflare account ID"
+    },
+    "zone_id": {
+      "type": "string",
+      "description": "Cloudflare zone ID for the domain"
+    },
+    "zone_status": {
+      "type": "string",
+      "enum": ["active", "pending", "moved", "deactivated"],
+      "description": "Cloudflare zone status"
+    },
+    "nameservers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Cloudflare nameservers assigned to the zone"
+    },
+    "connected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp of when the domain was connected"
+    }
+  },
+  "additionalProperties": false
+}

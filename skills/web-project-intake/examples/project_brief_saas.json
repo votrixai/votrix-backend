@@ -1,0 +1,31 @@
+{
+  "business_name": "CloudSync",
+  "business_type": "saas",
+  "site_purpose": "Generate demo bookings for our cloud data sync platform",
+  "pages": ["home", "about", "pricing", "features", "contact", "blog", "faq"],
+  "brand": {
+    "primary_color": "#2563EB",
+    "secondary_color": "#1E293B",
+    "accent_color": "#10B981",
+    "logo_url": "https://assets.cloudsync.io/logo.svg",
+    "font_preference": "modern"
+  },
+  "content": {
+    "home": {
+      "headline": "Sync Your Data Everywhere, Instantly",
+      "subheadline": "CloudSync keeps your databases, warehouses, and APIs in perfect harmony — no code required.",
+      "body": "Stop wasting engineering time on custom data pipelines. CloudSync connects 200+ data sources with real-time, bidirectional sync that just works.",
+      "cta_text": "Book a Demo",
+      "cta_url": "/contact"
+    },
+    "pricing": {
+      "headline": "Simple, Transparent Pricing",
+      "subheadline": "Start free. Scale as you grow."
+    }
+  },
+  "features": ["contact_form", "newsletter_signup", "analytics", "seo_meta", "pricing_table", "faq_accordion", "testimonials_carousel"],
+  "domain_preference": "connect_domain",
+  "domain_name": "cloudsync.io",
+  "project_slug": "cloudsync-site",
+  "notes": "Focus on enterprise use cases. Highlight SOC 2 compliance."
+}

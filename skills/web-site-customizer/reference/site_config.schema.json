@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Site Config",
+  "description": "Complete site customization configuration to be applied to the template",
+  "type": "object",
+  "required": ["template_id", "brand", "pages", "navigation", "metadata"],
+  "properties": {
+    "template_id": {
+      "type": "string",
+      "description": "Template being customized"
+    },
+    "brand": {
+      "type": "object",
+      "required": ["primary_color", "secondary_color", "font_family"],
+      "properties": {
+        "primary_color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "secondary_color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "accent_color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" },
+        "logo_url": { "type": "string" },
+        "font_family": { "type": "string" },
+        "font_heading": { "type": "string" }
+      }
+    },
+    "pages": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "meta_description": { "type": "string" },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": { "type": "string" },
+                "headline": { "type": "string" },
+                "subheadline": { "type": "string" },
+                "body": { "type": "string" },
+                "cta_text": { "type": "string" },
+                "cta_url": { "type": "string" },
+                "items": { "type": "array" },
+                "image_url": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "description": "Per-page configuration keyed by page slug"
+    },
+    "navigation": {
+      "type": "object",
+      "properties": {
+        "nav_items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "path"],
+            "properties": {
+              "label": { "type": "string" },
+              "path": { "type": "string" },
+              "cta": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "site_name": { "type": "string" },
+        "title_template": { "type": "string" },
+        "default_description": { "type": "string" },
+        "og_image_url": { "type": "string" },
+        "favicon_url": { "type": "string" },
+        "language": { "type": "string", "default": "en" }
+      }
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "contact_form": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "recipient_email": { "type": "string" },
+            "fields": { "type": "array", "items": { "type": "string" } },
+            "success_message": { "type": "string" }
+          }
+        },
+        "newsletter": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "provider": { "type": "string", "enum": ["mailchimp", "convertkit", "static"] }
+          }
+        },
+        "analytics": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "ga_id": { "type": "string" }
+          }
+        },
+        "social_links": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "booking": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "provider": { "type": "string" },
+            "booking_url": { "type": "string" }
+          }
+        }
+      }
+    },
+    "tailwind_overrides": {
+      "type": "object",
+      "description": "Direct overrides for tailwind.config.js extend section"
+    },
+    "configured_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

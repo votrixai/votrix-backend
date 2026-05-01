@@ -1,0 +1,16 @@
+{
+  "domain_name": "cloudsync.io",
+  "preview_url": "https://cloudsync-site-a1b2c3d4.vercel.app",
+  "verification_results": {
+    "dns_a_record": { "status": "pass", "value": "76.76.21.21" },
+    "dns_cname_www": { "status": "pass", "value": "cname.vercel-dns.com" },
+    "ssl_certificate": { "status": "pass", "issuer": "Let's Encrypt", "expires": "2026-07-27" },
+    "https_redirect": { "status": "pass" },
+    "site_loads": { "status": "pass", "http_status": 200, "response_time_ms": 285 },
+    "www_redirect": { "status": "pass" }
+  },
+  "overall_status": "live",
+  "verified_at": "2026-04-27T15:45:00Z",
+  "live_url": "https://cloudsync.io",
+  "issues": []
+}

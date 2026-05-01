@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Preview Feedback",
+  "description": "User feedback from reviewing the site preview",
+  "type": "object",
+  "required": ["preview_url", "reviewed_at", "verdict", "approved_for_domain_setup"],
+  "properties": {
+    "preview_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "The preview URL that was reviewed"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp of the review"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["approved", "needs_changes", "start_over"],
+      "description": "User's overall verdict"
+    },
+    "feedback": {
+      "type": "object",
+      "properties": {
+        "design": {
+          "type": ["string", "null"],
+          "description": "Feedback on colors, layout, typography"
+        },
+        "content": {
+          "type": ["string", "null"],
+          "description": "Feedback on text content"
+        },
+        "features": {
+          "type": ["string", "null"],
+          "description": "Feedback on features and functionality"
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Any additional feedback"
+        }
+      }
+    },
+    "approved_for_domain_setup": {
+      "type": "boolean",
+      "description": "Whether the user approved proceeding to domain setup"
+    },
+    "revision_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of revision cycles completed"
+    }
+  },
+  "additionalProperties": false
+}
