@@ -95,12 +95,12 @@ async def _mount_attachments(session_id: str, attachments: list[FileAttachment])
 async def stream(
     session_id: str,
     message: str,
-    user_id: str,
+    workspace_id: str,
     attachments: list[FileAttachment] | None = None,
     composio_session_id: str | None = None,
 ) -> AsyncGenerator[dict, None]:
     """Async generator — yields SSE event dicts, never blocks the event loop."""
-    print(f"[stream] session_id={session_id!r} user_id={user_id!r} message={message!r} attachments={attachments!r}")
+    print(f"[stream] session_id={session_id!r} workspace_id={workspace_id!r} message={message!r} attachments={attachments!r}")
     client = get_async_client()
     pending_tools: dict[str, Any] = {}  # event_id → agent.custom_tool_use event
     sent_results: set[str] = set()      # IDs we already sent results for
@@ -295,7 +295,7 @@ async def stream(
                         if to_execute:
                             async def _run_one(eid: str, te: Any) -> tuple[str, str, dict]:
                                 try:
-                                    return eid, te.name, await execute_tool(te.name, te.input, user_id, session_id=session_id, composio_session_id=composio_session_id)
+                                    return eid, te.name, await execute_tool(te.name, te.input, workspace_id, session_id=session_id, composio_session_id=composio_session_id)
                                 except Exception as exc:
                                     logger.error("tool execution error [%s]: %s", te.name, exc)
                                     return eid, te.name, {"error": str(exc)}

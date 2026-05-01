@@ -60,7 +60,7 @@ async def _resolve_auth_configs(slugs: list[str]) -> dict[str, str]:
 
 
 async def create_composio_session(
-    user_id: str,
+    workspace_id: str,
     integrations: list[str],
     connected_accounts: dict[str, str] | None = None,
 ) -> str | None:
@@ -81,7 +81,8 @@ async def create_composio_session(
         return None
 
     session_resource = get_async_session_resource()
-    kwargs: dict = dict(user_id=user_id)
+    # NB: Composio SDK expects `user_id` as the kwarg name; we pass our workspace_id as the value.
+    kwargs: dict = dict(user_id=workspace_id)
     if integrations:
         kwargs["toolkits"] = {"enable": integrations}
         auth_configs = await _resolve_auth_configs(integrations)
@@ -93,8 +94,8 @@ async def create_composio_session(
     session = await session_resource.create(**kwargs)
 
     logger.info(
-        "composio: created session user=%s toolkits=%s auth_configs=%s shared=%s id=%s",
-        user_id, integrations, list((kwargs.get("auth_configs") or {}).keys()),
+        "composio: created session workspace=%s toolkits=%s auth_configs=%s shared=%s id=%s",
+        workspace_id, integrations, list((kwargs.get("auth_configs") or {}).keys()),
         list(connected_accounts or {}.keys()), session.session_id,
     )
     return session.session_id

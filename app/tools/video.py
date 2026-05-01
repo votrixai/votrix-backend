@@ -61,7 +61,7 @@ DEFINITIONS = [
 ]
 
 
-async def handle(name: str, input: dict, user_id: str) -> dict:
+async def handle(name: str, input: dict, workspace_id: str) -> dict:
     settings = get_settings()
     if not settings.gemini_api_key:
         return {"status": False, "message": "Gemini API key not configured"}
@@ -108,7 +108,7 @@ async def handle(name: str, input: dict, user_id: str) -> dict:
         video_bytes = await _download_video(video_uri, settings.gemini_api_key)
 
         # Upload to Supabase Storage
-        url = await upload_video(video_bytes, "video/mp4", user_id)
+        url = await upload_video(video_bytes, "video/mp4", workspace_id)
         return {"status": True, "url": url, "aspect_ratio": aspect_ratio, "duration_seconds": duration_seconds}
 
     except Exception as exc:

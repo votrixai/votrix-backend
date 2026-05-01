@@ -69,6 +69,19 @@ async def update_title(db: AsyncSession, session_id: uuid.UUID, title: str) -> N
     await db.commit()
 
 
+async def get_first_user_message(db: AsyncSession, session_id: uuid.UUID) -> str | None:
+    result = await db.execute(
+        select(SessionEvent.body)
+        .where(
+            SessionEvent.session_id == session_id,
+            SessionEvent.event_type == "user_message",
+        )
+        .order_by(SessionEvent.event_index)
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
 async def append_event(
     db: AsyncSession,
     session_id: uuid.UUID,

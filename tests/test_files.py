@@ -11,15 +11,20 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from app.auth import AuthedUser, require_user
+from app.auth import AuthedUser, WorkspaceContext, require_user, require_workspace
 from app.models.chat import FileAttachment
 from app.runtime.sessions import _build_content
 
 _TEST_USER = AuthedUser(id=uuid.uuid4(), email="test@example.com")
+_TEST_WORKSPACE = WorkspaceContext(user_id=_TEST_USER.id, workspace_id=uuid.uuid4(), role="owner")
 
 
 def _override_auth():
     return _TEST_USER
+
+
+def _override_workspace():
+    return _TEST_WORKSPACE
 
 
 # ---------------------------------------------------------------------------
@@ -108,12 +113,14 @@ def test_file_attachment_invalid_content_type():
 
 @pytest.fixture(autouse=False)
 def auth_override():
-    """Bypass Supabase JWT auth for files router tests."""
+    """Bypass Supabase JWT auth and workspace membership lookup for files router tests."""
     import importlib
     app = importlib.import_module("app.main").app
     app.dependency_overrides[require_user] = _override_auth
+    app.dependency_overrides[require_workspace] = _override_workspace
     yield
     app.dependency_overrides.pop(require_user, None)
+    app.dependency_overrides.pop(require_workspace, None)
 
 
 def _make_file_meta(file_id="file_123", filename="doc.pdf", size=1024):
