@@ -16,38 +16,56 @@ integrations: []
 
 ---
 
+## 平台规格
+
+**Instagram**（每周 4–5 条 feed + 每日 Story）
+
+| 类型 | 尺寸 | Caption | Hashtag | 配比 |
+|------|------|---------|---------|------|
+| 单图 | 1:1 或 4:5 | 前 125 字显示 | 10–15 个 | 20% |
+| Carousel | 1:1，2–10 张 | 引导「左滑 →」 | 10–15 个 | 40% |
+| Reels | 9:16，30–60s | 30 字以内 | 3–5 个 | 30% |
+| Story | 9:16，上下留 14% | 无持久 caption | — | 每日 1–2 条 |
+
+注：链接不可点击，统一写「链接在主页 Bio」。
+
+**Facebook**（每周 3–4 条，可直接复用 IG 素材）
+
+| 类型 | 尺寸 | Caption | Hashtag | 配比 |
+|------|------|---------|---------|------|
+| Feed Post / Carousel | 1:1 或 16:9，最多 10 张 | 40–80 字 | 3–5 个 | 60% |
+| Reels | 9:16，30–60s | 50 字以内 | 3–5 个 | 40% |
+
+注：贴链接自动生成预览卡，正文无需重复；原生上传视频比贴链接触达更广。
+
+**LinkedIn**（每周 3 条）
+
+| 类型 | 尺寸 | Caption | Hashtag | 配比 |
+|------|------|---------|---------|------|
+| Image Post，1–9 张 | 1:1 或 16:9 | 第一行是 hook，为图片补语境 | 3–5 个 | 100% |
+
+注：正文不放链接（降触达），链接放第一条评论。Document Carousel 和 Video 发布 API 不支持，不规划。
+
+**Twitter / X**（每周 5–7 条）
+
+| 类型 | 媒体 | 字数 | Hashtag | 配比 |
+|------|------|------|---------|------|
+| Single Tweet | 图片最多 4 张，16:9 | 280 字（链接占 23） | 1–2 个 | 70% |
+| Thread | 首条可带图 | 每条 ≤280 字，3–8 条 | 1–2 个（首条） | 30% |
+
+注：强观点 > 中性陈述；视频不支持，规划时不安排视频类型。
+
+---
+
 ## 阶段 1 — 内容计划
 
-读取 `/workspace/marketing-context.md`，了解品牌名称、行业、调性、已连接平台、发布节奏、内容方向。
+读取 `/workspace/marketing-context.md`，了解品牌调性、已连接平台、发布节奏、内容方向。
 
-根据已连接平台，读取对应 reference 文件了解尺寸规格、Caption 限制、Hashtag 数量及周内容配比：
-`/mnt/skills/social-media-post-content-creation/references/{platform}.md`
+结合上方平台规格，为本周每条待发内容起草：日期、平台、内容类型、主题（一句话）、素材需求（AI 生成 / 需用户提供）。
 
-根据本周日期为每条待发内容起草条目：
+内容类型参考：多卖点 / 步骤教程 → Carousel；单强视觉 / 公告 → 单图；有视频素材 → Reels；快速互动限时（仅 IG）→ Story。配比不均时补足占比低的类型。
 
-| 字段 | 说明 |
-|------|------|
-| 日期 | 计划发布日 |
-| 平台 | Instagram / LinkedIn / Twitter 等 |
-| 内容类型 | 单图海报 / Carousel / Reels / Story（仅 Instagram）|
-| 主题 | 这条内容讲什么，一句话 |
-| 素材需求 | AI 生成 / 需用户提供图片 / 需用户提供视频 |
-
-**内容类型判断：**
-
-| 场景 | 类型 |
-|------|------|
-| 多产品 / 多卖点 / 步骤教程 / 前后对比 | Carousel |
-| 单个强视觉 / 简单公告 / 节日海报 | 单图海报 |
-| 幕后故事 / 制作过程 / 有视频素材 | Reels |
-| 快速互动 / 限时优惠（仅 Instagram） | Story |
-
-不确定选哪种类型时，参照对应平台 reference 文件中的周配比，补足当周比例较低的类型。
-
-**跨平台素材复用：**
-同周如多平台发同主题内容，合并为一个素材任务，在计划表"素材需求"里注明复用关系：
-- 1:1 图片 → Instagram 单图 / Facebook Feed Post / LinkedIn Image Post 三平台通用
-- 9:16 视频 → Instagram Reels + Facebook Reels 直接跨发，无需重新生成
+同主题跨平台时合并素材任务：1:1 图片三平台通用，9:16 视频 IG + FB 直接跨发。
 
 ---
 
@@ -68,10 +86,9 @@ integrations: []
 
 | 内容类型 | 路由 |
 |---------|------|
-| 单图海报 | `poster-design` skill |
-| Carousel 海报 | 先读 `/mnt/skills/social-media-post-content-creation/features/carousel.md` 规划叙事结构，再用 `poster-design` skill 逐张设计 |
-| 纯图片 / Carousel 组图（不叠文字） | `/mnt/skills/social-media-post-content-creation/features/generate-image.md` |
-| 视频 | `/mnt/skills/social-media-post-content-creation/features/generate-video.md` |
+| 单图海报 / Carousel 海报 | `poster-design` skill |
+| 纯图片 / Carousel 组图（不叠文字） | `generate-image` skill |
+| 视频 | `generate-video` skill |
 
 ---
 
