@@ -19,7 +19,7 @@ integrations: []
 - **模式**：单张海报 or Carousel 组图（从用户消息或平台推断）
 - **宣传目的**：说服谁做什么
 - **目标受众**：他们的审美习惯和决策心理
-- **发布尺寸**：单张从平台推断，推断不出默认 1080×1080；Carousel 固定 1080×1350px
+- **发布尺寸**：单张从平台推断，推断不出默认 1024×1024；Carousel 固定 896×1120px（4:5）
 - **品牌素材**：读取 `marketing-context.md` 的「品牌素材」节，提取 Logo 和吉祥物路径列表（可为空）
 
 唯一需要追问的情况：主题完全缺失，无法判断这张海报在宣传什么。
@@ -133,19 +133,19 @@ integrations: []
 无法判断                           → T1 Top-image Bottom-text
 ```
 
-> 所有坐标基于 1080×1080 画布。其他尺寸按比例缩放。安全边距：40px。
+> 所有坐标基于 1024×1024 画布。其他尺寸按比例缩放。安全边距：40px。
 
 ### T1 — Top-image Bottom-text
-图片填满顶部 60%（y:0–648）。文字区域填满底部 40%（y:648–1080，纯色填充）。文字从上到下：主标题 → 副标题 → 价格 → 标签组 → CTA。图片不需要为文字留白。
+图片填满顶部 60%（y:0–614）。文字区域填满底部 40%（y:614–1024，纯色填充）。文字从上到下：主标题 → 副标题 → 价格 → 标签组 → CTA。图片不需要为文字留白。
 
 ### T2 — Left-image Right-text
-左侧 50% 为产品图（x:0–540）。右侧 50% 为文字区域（x:540–1080，纯色）。文字左对齐，从上到下：主标题 → 副标题 → 特性列表 → 价格 → CTA。
+左侧 50% 为产品图（x:0–512）。右侧 50% 为文字区域（x:512–1024，纯色）。文字左对齐，从上到下：主标题 → 副标题 → 特性列表 → 价格 → CTA。
 
 ### T3 — Full Bleed
 图片填满 100% 画布。底部 35% 加渐变遮罩（透明 → 黑色或品牌色）。文字放在遮罩上，白色/浅色。生成图片时注意底部 35% 将被遮罩覆盖。
 
 ### T4 — Centered Frame
-纯色或渐变背景。产品图居中（约 600×500，需透明背景）。主标题在上方，价格和 CTA 在下方。
+纯色或渐变背景。产品图居中（约 570×475，需透明背景）。主标题在上方，价格和 CTA 在下方。
 
 ### T5 — Overlay Card
 背景图填满画布（可模糊处理）。半透明圆角矩形（60–80% 不透明度）置于中下区域。所有文字排列在卡片内。
@@ -161,13 +161,13 @@ integrations: []
 
 ---
 
-> Carousel 画布：1080×1350px（4:5）。安全边距：40px。
+> Carousel 画布：896×1120px（4:5）。安全边距：40px。
 
 ### C1 — Bold Hero
-图片填满全画布。底部 40%（y:810–1350）加渐变遮罩（透明 → 品牌深色）。主标题放在遮罩上：大字 80–100px，白色或浅色。可选副标题在主标题下方，32–40px。生成图片时注意：底部 40% 将被覆盖，顶部 60% 的构图要足够强。
+图片填满全画布。底部 40%（y:672–1120）加渐变遮罩（透明 → 品牌深色）。主标题放在遮罩上：大字 80–100px，白色或浅色。可选副标题在主标题下方，32–40px。生成图片时注意：底部 40% 将被覆盖，顶部 60% 的构图要足够强。
 
 ### C2 — Split Content
-顶部 55%（y:0–742）：图片填充，无文字。底部 45%（y:742–1350）：纯品牌色或近白色填充。文字从上到下排列在底部区域：单点主标题（56–72px）→ 正文 1–2 行（32–36px）→ 可选小标签。每张只传递一个核心信息，不堆叠多个内容。
+顶部 55%（y:0–616）：图片填充，无文字。底部 45%（y:616–1120）：纯品牌色或近白色填充。文字从上到下排列在底部区域：单点主标题（56–72px）→ 正文 1–2 行（32–36px）→ 可选小标签。每张只传递一个核心信息，不堆叠多个内容。
 
 ### C3 — CTA Focus
 纯品牌色背景（无主图，或右上角小点缀图，最多占画布 30%）。居中对齐文字：品牌名/Logo 占位（顶部）→ CTA 主标题 60–72px → 行动指引 34–40px（如：点击关注 / 收藏备用 / 点击跳转）→ 可选二维码或账号。高对比度，极简视觉。
@@ -183,17 +183,19 @@ integrations: []
 - 深底色：主标题用 #FFFFFF，价格/CTA 用强调色
 - 叠图上（T3/T5）：检测背景亮度 → 暗区（<100）用白色，亮区（>180）用深色，中间调加半透明遮罩后用白色
 
+**对比度要求**：所有文字颜色必须满足 WCAG 4.5:1 对比度（正文及小字）；大标题（L1/L2，≥18pt 或粗体 ≥14pt）允许放宽至 3:1。对比度 = `(L1 + 0.05) / (L2 + 0.05)`，L 为相对亮度。选色后心算或计算验证：白底黑字约 21:1，白底 #767676 灰约 4.5:1 为最低深色线。若品牌色对比度不达标，在该色基础上加深（HSL 降低 L）直至达标，不得直接用不达标颜色。
+
 ---
 
 ## 步骤 6 — 素材生成
 
-### 6a. 主图素材
+统一调用 generate-image skill。生成图输出全画布尺寸，构图已通过 `composition` 约束将主体置于正确位置，合成时直接铺满画布，不裁切——文字区域由步骤 7 的色块或渐变遮罩覆盖。
 
-**用户有 Reference Image 且清晰** → 直接用于合成，跳过生成。
+**用户有参考图** → 传入 `reference_image_urls`，prompt 写明 `reproduce this product faithfully`，内容与参考图保持一致，仅调整为海报构图。
 
-**用户有 Reference Image 但模糊或质量差** → 以 reference 为参考重新生成，提升质量和风格一致性。
+**用户无参考图** → 直接生成。
 
-**用户无 Reference Image** → 将以下参数交给 generate-image skill 执行生成。generate-image skill 负责参数锁定、风格锚提取、逐张生成与每张审查的完整流程。
+generate-image skill 负责参数锁定、风格锚提取、逐张生成与每张审查的完整流程。
 
 ---
 
@@ -201,41 +203,34 @@ integrations: []
 
 | generate-image 参数 | 取值来源 |
 |---|---|
-| `prompt` | 步骤 2 确认的文案主题 + 下方模板区域约束 |
+| `prompt` | 步骤 2 确认的文案主题；有参考图时加 `reproduce this product faithfully` |
 | `style` | 步骤 3 的 style token |
-| `mood` | 步骤 5 的 Image Tone Keywords——整套图共用同一描述，不因每张主题不同而改变 |
-| `composition` | 下方模板区域约束（含留白指令） |
-| `context` | 步骤 1 的用途（`poster-background` / `social-media` 等） |
-| `aspect_ratio` | 步骤 1 的发布尺寸 |
+| `mood` | 步骤 5 的图片色调关键词——整套图共用，不因每张主题不同而改变 |
+| `composition` | 下方模板生成表中对应的 composition 约束 |
+| `context` | `poster-background` |
+| `aspect_ratio` | 步骤 1 的画布比例（单张从平台推断，默认 `1:1`；Carousel 为 `4:5`） |
 | `negative_elements` | `text, typography, letters, numbers, watermark, busy background, cluttered, decorative noise` |
-| `reference_image_urls` | 用户上传的风格参考图（如有） |
+| `reference_image_urls` | 用户提供的参考图（如有） |
 
 > `negative_elements` 始终包含 `text` 和 `typography`：图片生成模型无法可靠渲染文字，任何生成出来的文字都会变形或乱码。文字统一在步骤 7 Pillow 合成阶段写入。
 
 ---
 
-#### 模板区域约束（传入 `composition`）
+#### 模板生成表
 
-| 模板 | composition 约束 |
-|------|----------------|
-| T1 | subject fills top 60% of frame, composed for 1080×648, subject fully visible within this area |
-| T2 | subject fills left 50% of frame, composed for 540×1080 |
-| T3 | full frame 1080×1080, subject in top 65%, leave clean space in bottom 35% for gradient overlay |
-| T4 | transparent background, centered subject, approximately 600×500 area |
-| T5 | full frame, keep subject toward top or side, center-bottom area will be covered by a card overlay |
-| T6 | full frame, diagonal split composition, subject on one side |
-| T7 | multiple small images, unified background color and framing across each |
-| T8 | small optional image, not the visual focal point |
-| C1 | full frame 1080×1350, subject in top 60%, leave clean space in bottom 40% for gradient overlay |
-| C2 | subject fills top 55% of frame, composed for 1080×742 |
-| C3 | no main image needed — skip generation |
-
-### 6b. 背景图
-
-| 模板 | 处理方式 |
-|------|---------|
-| T3（全出血）/ T5（叠层卡片）/ C1（Bold Hero） | 生成纹理或渐变背景图 |
-| T1 / T2 / T4 / T6 / T7 / T8 / C2 / C3 | 用步骤 5 的底色在 Pillow 中直接绘制，无需生成 |
+| 模板 | 生成张数 | composition 约束 | 步骤 7 如何处理文字区域 |
+|------|---------|----------------|----------------------|
+| T1 | 1 | subject in top 60%, leave bottom 40% clean | 底部40%画纯色色块 |
+| T2 | 1 | subject in left 50%, leave right 50% clean | 右侧50%画纯色色块 |
+| T3 | 1 | full canvas, subject centered or upper area, dramatic composition | 底部35%加渐变遮罩 |
+| T4 | 1 | centered subject, clean minimal background | 四周画纯色背景色块 |
+| T5 | 1 | full canvas, subject toward top or side, center-bottom area will be covered | 中下区域叠半透明圆角卡片 |
+| T6 | 1 | full canvas, subject on one side of a diagonal split | 另一侧画纯色色块 |
+| T7 | N（每格1张） | centered product, clean unified background, each image consistent | 顶部标题栏 + 底部信息栏画色块 |
+| T8 | 0或1 | small accent image, not the focal point | 整体为纯色背景，文字为主角 |
+| C1 | 1 | full canvas, subject in top 60%, leave bottom 40% clean | 底部40%加渐变遮罩 |
+| C2 | 1 | subject in top 55%, leave bottom 45% clean | 底部45%画纯色色块 |
+| C3 | 0 | 跳过生成 | 整体为纯色背景 |
 
 ---
 
@@ -308,11 +303,11 @@ brightness = sum(region.getdata()) / (region.width * region.height)
 1. **防溢出**：绘制任何文字前用 `getbbox` 检查宽度，超出 `canvas_width - 80px` 则逐步缩小字号
 2. **防重叠**：追踪每个文字元素的边界框（x0, y0, x1, y1），后续文字不得与之相交
 3. **透明合成**：粘贴含 alpha 的图片时，始终传入第三个 mask 参数：`canvas.paste(img, pos, img)`
-4. **图片填充**：用等比缩放 + 居中裁切（cover 模式），不得用 raw resize 拉伸
+4. **图片填充**：生成图已是全画布尺寸，直接贴入画布，不得缩放或裁切。
 5. **颜色格式**：Pillow fill 使用 RGB 元组 `(R, G, B)`，不用 hex 字符串
 6. **标签组换行**：横向排列标签，用 `getbbox` 计算每个标签宽度，超出右边界则换行
 7. **渐变遮罩**：逐行绘制，alpha 从 0 渐变到目标值，避免色带
-8. **画布尺寸**：在脚本顶部硬编码 `(1080, 1080)`，不从图片尺寸推导
+8. **画布尺寸**：在脚本顶部按步骤 1 的画布尺寸硬编码（单张默认 `(1024, 1024)`，Carousel `(896, 1120)`），不从图片尺寸推导
 9. **符号安全**：不用装饰性 Unicode 符号（✦ ✿ ★ ◆ ❤ ✔ 等）作为文字字符——NotoSansCJK 不覆盖这些字符会渲染为 □。改用 Pillow 几何图形，或加载 `/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf` 作为专用符号字体
 10. **图片模式规范化**：每次 `paste()` 前用 `img.convert("RGBA")` 转换源图；所有合成完成后用 `canvas.convert("RGB")` 转换最终画布再保存
 11. **多行文字换行**：不能只靠缩小字号处理长文本。实现逐字换行：逐字符累加直到 `getbbox` 宽度超过允许区域，再换行。在字号缩小之前先执行换行
@@ -354,7 +349,7 @@ brightness = sum(region.getdata()) / (region.width * region.height)
 
 | 检查项 | 合格标准 | 不合格处理 |
 |--------|---------|----------|
-| **文字对比度** | 每条文字与其背景区域对比度明显，小字也清晰可读 | 调整文字颜色或加深遮罩后重做 |
+| **文字对比度** | 正文/小字对比度 ≥ 4.5:1；大标题（≥18pt 或粗体 ≥14pt）≥ 3:1 | 加深文字色或加深遮罩后重做 |
 | **文字溢出** | 没有任何文字被裁切到画布外 | 缩小字号或调整位置后重做 |
 | **文字重叠** | 各文字层之间无覆盖，标签组无堆叠 | 重新计算间距后重做 |
 | 文字完整 | 步骤 2 确认的所有文案都出现在图上 | 补充缺失内容后重做 |
