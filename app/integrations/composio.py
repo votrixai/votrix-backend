@@ -10,7 +10,6 @@ session_id — avoids creating a new Composio session on every chat request.
 from __future__ import annotations
 
 import structlog
-
 from composio_client import AsyncComposio
 
 from app.config import get_settings

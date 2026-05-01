@@ -19,7 +19,7 @@
     {"slug": "facebook"},
     {"slug": "linkedin"}
   ],
-  "tools": ["cron_create", "cron_delete", "cron_list", "image_generate", "download_file", "publish_file", "show_post_preview", "upload_file"],
+  "tools": ["cron_create", "cron_delete", "cron_list", "image_generate", "video_generate", "download_file", "publish_file", "show_post_preview", "upload_file"],
   "memoryConfigs": [
     {
       "name": "Post Agent Learnings",

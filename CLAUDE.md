@@ -69,3 +69,33 @@ uvicorn app.main:app --reload --port 8000
 - `app/management/` = provision-time logic (skills upload, agent create/update, session create)
 - `app/runtime/` = chat-time SSE relay
 - `app/client.py` = shared Anthropic singleton via `get_client()`
+
+## Agent Skill Design
+
+### Composio tool pattern
+
+All external tools (Apollo, Google Sheets, Firecrawl, etc.) are accessed through Composio's `ToolRouterSession`, NOT through MCP. The old MCP approach does not work with Claude Managed Agents (see `COMPOSIO.md`).
+
+**How it works:**
+1. Agent `config.json` declares toolkit slugs in `integrations` (e.g., `apollo`, `googlesheets`, `firecrawl`, `composio_search`)
+2. At runtime, a Composio session is created scoped to those toolkits — all tools from those toolkits become directly callable by slug
+3. Skills call tools by exact slug (e.g., `APOLLO_PEOPLE_SEARCH`, `FIRECRAWL_SCRAPE`, `COMPOSIO_SEARCH_TAVILY`, `GOOGLESHEETS_BATCH_GET`)
+4. No MCP involved — tools flow through Composio's ToolRouterSession
+5. Slugs are known and hardcoded in reference files — no runtime discovery needed
+
+**Rules:**
+- All agent skills MUST reference Composio tools by exact slug — NEVER use generic descriptions like "search with Tavily" or "scrape with Firecrawl"
+- Document tool slugs and parameters in `skills/{skill}/reference/tools.md`
+- Reference these files inline at the phase where they are used
+- Use `COMPOSIO_MANAGE_CONNECTIONS` only for connection management
+- Use `COMPOSIO_MULTI_EXECUTE_TOOL` only for parallel execution of multiple independent tool calls
+
+### Skill file structure
+
+- YAML frontmatter: `name`, `description` (trigger phrases + anti-triggers), `integrations` list
+- Startup check: read workspace state, gate on prerequisites
+- Phase-based flow: numbered phases with clear inputs/outputs, decision tables over prose
+- Inline references: point to reference files at the exact phase they are used
+- Error handling table at the bottom of every skill
+- Handoff: each skill ends by naming the next skill in the pipeline
+- Target 90-200 lines per skill; one coherent responsibility per skill

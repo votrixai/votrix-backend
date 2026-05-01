@@ -109,9 +109,12 @@ async def chat(
                         title = await management_sessions.get_provider_session_title(
                             provider_session_id,
                         )
+                        if not title:
+                            title = body.message[:100]
                         if title:
                             async with session_scope() as s:
                                 await sessions_q.update_title(s, session_id, title)
+                            db_session.title = title
 
                 raw = json.dumps(event)
                 logger.debug("[stream] %s", raw[:50])
