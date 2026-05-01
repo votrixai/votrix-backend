@@ -1,0 +1,12 @@
+{
+  "template_id": "saas-starter",
+  "template_name": "SaaS Starter",
+  "template_repo": "https://github.com/votrix-templates/saas-starter",
+  "fit_score": 92,
+  "supported_pages": ["home", "about", "pricing", "contact", "blog", "faq", "features"],
+  "unsupported_pages": [],
+  "supported_features": ["contact_form", "newsletter_signup", "seo_meta", "analytics", "pricing_table", "faq_accordion", "testimonials_carousel"],
+  "unsupported_features": [],
+  "styling_system": "tailwind",
+  "selected_at": "2026-04-27T14:30:00Z"
+}

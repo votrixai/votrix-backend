@@ -1,67 +1,141 @@
 ---
 name: business-context
-description: Interactive setup to capture the user's business profile, product, value proposition, and campaign goals. This is always the first step in a lead generation run — invoke it when the user wants to start or resume a B2B lead gen campaign and no business_context.json exists yet.
+description: "Initial setup for a B2B lead generation campaign. Triggered when the user wants to start a new campaign, says 'setup', 'new campaign', 'get started', or when no campaign-context.md exists yet. Also triggered when the user wants to update business info or reconnect Google Sheets."
+integrations:
+  - composio_search
+  - firecrawl
+  - googlesheets
 ---
 
 # Business Context Setup
 
-You are setting up the business context for a B2B lead generation campaign. This is the first stage in the pipeline.
+## Startup Check
 
-## Your Job
+Read `/workspace/campaign-context.md`:
 
-Interactively gather the user's business information and produce a validated `business_context.json` file in the session working directory.
+- **Does not exist** → run the full flow from Phase 1
+- **Exists but has empty fields** → only fill in the missing parts
+- **User specifies a section** (e.g. "reconnect Google Sheets") → jump directly to that phase
 
-## Process
+---
 
-1. **Check for existing context.** Look for an existing `business_context.json` (either in the session working directory or in any `output/<campaign>-<date>/` subdirectory). If found, ask the user whether to reuse it or start fresh.
+## Phase 1 — Business Information
 
-2. **Gather information** by asking the user each of the following. Use structured multiple-choice prompts for enumerated options, and free-form questions for everything else:
-   - **Company name** — what the company is called
-   - **Product / service description** — 2–3 sentences on what it does
-   - **Value proposition** — why customers choose it over alternatives
-   - **Target customer description** — ideal customer in plain language
-   - **Pain points solved** — 3–5 bullet points
-   - **Competitors** — main competitors (optional but helpful)
-   - **Outreach goal** — one of: `demo_booking`, `free_trial`, `consultation`, `partnership`, `other`
-   - **Campaign name** — a short slug, e.g. `q2-saas-push`
+Ask the user one question: "What is your business name?"
 
-3. **Validate and confirm.** Show the user a plain-text summary and ask for explicit confirmation before saving.
+Once you have the business name, ask if they have a business website they can share.
 
-4. **Save output.** Use jq to construct and write `output/<campaign-name>-<YYYY-MM-DD>/business_context.json`:
-   ```bash
-   mkdir -p "output/<campaign-name>-<YYYY-MM-DD>"
-   jq -n \
-     --arg company "$COMPANY" \
-     --arg product "$PRODUCT" \
-     --arg value_prop "$VALUE_PROP" \
-     --arg target "$TARGET" \
-     --argjson pain_points "$PAIN_POINTS_ARRAY" \
-     --argjson competitors "$COMPETITORS_ARRAY" \
-     --arg goal "$GOAL" \
-     --arg campaign "$CAMPAIGN_NAME" \
-     '{company_name: $company, product_description: $product, value_proposition: $value_prop, target_customer: $target, pain_points: $pain_points, competitors: $competitors, outreach_goal: $goal, campaign_name: $campaign}' \
-     > "output/<campaign-name>-<YYYY-MM-DD>/business_context.json"
-   ```
+Refer to `/mnt/skills/business-context/reference/tools.md` for tool slugs and parameters.
 
-5. **Initialize pipeline state.** Use jq to write `output/<campaign-name>-<YYYY-MM-DD>/pipeline_state.json`:
-   ```json
-   {
-     "campaign_name": "<campaign-name>",
-     "campaign_dir": "output/<campaign-name>-<YYYY-MM-DD>",
-     "started_at": "<ISO timestamp>",
-     "current_step": 0,
-     "completed_steps": [0],
-     "company_scale": null,
-     "credits_used": { "apollo": 0, "tavily": 0, "firecrawl": 0 }
-   }
-   ```
+**If website URL is provided:**
 
-6. **Report.** Tell the user the `campaign_dir` path and hand off — the next stage is the `icp-builder` skill.
+1. Immediately call `FIRECRAWL_SCRAPE` with the website URL to extract core business information
+2. From the scraped content, extract:
+   - Industry and market segment
+   - Products / services offered
+   - Value proposition
+   - Target audience (if detectable)
+   - Key differentiators
+3. Regardless of whether scraping succeeded, also call `COMPOSIO_SEARCH_TAVILY` with the business name to gather:
+   - Additional product details
+   - Recent news or announcements
+   - Customer reviews or testimonials
+   - Competitor landscape
+4. Present all gathered information to the user for confirmation — only ask about fields you could not find
 
-## Schema
+**If no website URL is provided:**
 
-The output must conform to the business_context schema. Validate against `reference/business_context.schema.json` (bundled with this skill).
+1. Call `COMPOSIO_SEARCH_TAVILY` to search for the business name
+2. If useful results are found, extract relevant business info and present for confirmation
+3. **Only if nothing useful is found online**, apologize and ask the user to provide:
+   - Product / service description (2–3 sentences)
+   - Value proposition
+   - Target customer description
+   - Pain points solved (3–5 items)
+   - Main competitors (optional)
 
-## Example
+**Outreach goal** — ask which goal fits best:
 
-See `examples/business_context_example.json` for a complete example output.
+| Goal | Description |
+|------|-------------|
+| Demo booking | Schedule a product demo |
+| Free trial | Get prospects to try the product |
+| Consultation | Book a discovery call |
+| Partnership | Explore partnership opportunities |
+| Other | Custom goal (user specifies) |
+
+---
+
+## Phase 2 — Campaign Naming
+
+Ask the user for a campaign name (short slug, e.g. `q2-saas-push`).
+
+If the user has no preference, generate one from the business name and current context (e.g. `acme-outbound-2024`).
+
+---
+
+## Phase 3 — Google Sheets Connection
+
+Before proceeding, ask the user to connect their Google Sheets integration:
+
+1. Call `COMPOSIO_MANAGE_CONNECTIONS(toolkits=["googlesheets"])` to check if Google Sheets is connected
+2. If not connected, show the user the redirect URL to authenticate
+3. **Do not continue until Google Sheets is successfully connected**
+
+Once connected, ask the user if they have a preferred name for the campaign spreadsheet. If not, use: `{campaign-name}-{unix-epoch}` (e.g. `q2-saas-push-1706745600`).
+
+Call `GOOGLESHEETS_CREATE_GOOGLE_SHEET1(title="{sheet-name}")` to create the spreadsheet, then call `GOOGLESHEETS_ADD_SHEET` for each tab:
+
+| Tab | Purpose |
+|-----|---------|
+| Leads | Main lead data (filled by lead-prospecting) |
+| Enrichment | Scoring and intel data (filled by lead-enrichment) |
+| Summary | Campaign summary (filled by lead-export) |
+
+Record the spreadsheet ID and URL.
+
+---
+
+## Phase 4 — Save & Handoff
+
+Write all gathered information to `/workspace/campaign-context.md`:
+
+```
+## Business Profile
+- **Company:** {name}
+- **Industry:** {industry}
+- **Products/Services:** {description}
+- **Value Proposition:** {value prop}
+- **Target Customer:** {target}
+- **Pain Points:** {bullet list}
+- **Competitors:** {list}
+- **Outreach Goal:** {goal}
+- **Source:** {website URL / online research / user-provided}
+
+## Campaign
+- **Name:** {campaign-name}
+- **Started:** {YYYY-MM-DD}
+
+## Google Sheet
+- **Sheet Name:** {name}
+- **Sheet ID:** {id}
+- **Sheet URL:** {url}
+
+## ICP
+(to be filled by icp-builder)
+
+## Market Intelligence
+(to be filled by lead-enrichment)
+
+## Pipeline Status
+- **Current Step:** business-context complete
+- **Credits Used:** Apollo: 0 | Composio Search: {n} | Firecrawl: {n}
+```
+
+Tell the user the setup is complete and hand off to the `icp-builder` skill.
+
+---
+
+## Subsequent Updates
+
+When the user wants to update business info, read the current file, only modify the requested section. If Google Sheets needs reconnection, jump to Phase 3.

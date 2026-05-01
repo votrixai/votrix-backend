@@ -1,0 +1,30 @@
+{
+  "business_name": "Joe's Pizzeria",
+  "business_type": "restaurant",
+  "site_purpose": "Showcase our menu and accept online reservations",
+  "pages": ["home", "about", "menu", "gallery", "contact", "booking"],
+  "brand": {
+    "primary_color": "#DC2626",
+    "secondary_color": "#1C1917",
+    "accent_color": "#F59E0B",
+    "logo_url": "https://joespizzeria.com/logo.png",
+    "font_preference": "classic"
+  },
+  "content": {
+    "home": {
+      "headline": "Authentic Wood-Fired Pizza Since 1987",
+      "subheadline": "Family recipes, locally sourced ingredients, unforgettable taste.",
+      "cta_text": "View Our Menu",
+      "cta_url": "/menu"
+    },
+    "about": {
+      "headline": "Our Story",
+      "body": "Joe's Pizzeria has been a neighborhood staple for over 35 years. Founded by Giuseppe Rossi, we've been serving handcrafted, wood-fired pizzas using recipes passed down through three generations."
+    }
+  },
+  "features": ["contact_form", "booking_system", "social_links", "map_embed", "image_gallery", "seo_meta"],
+  "domain_preference": "connect_domain",
+  "domain_name": "joespizzeria.com",
+  "project_slug": "joes-pizza-site",
+  "notes": "We use OpenTable for reservations. Hours: Tue-Sun 11am-10pm."
+}

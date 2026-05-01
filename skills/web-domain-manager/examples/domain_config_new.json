@@ -1,0 +1,9 @@
+{
+  "domain_name": "cloudsync.io",
+  "domain_source": "customer_cloudflare",
+  "cloudflare_account_id": "abc123def456",
+  "zone_id": "zone_abc123def456",
+  "zone_status": "active",
+  "nameservers": ["aria.ns.cloudflare.com", "craig.ns.cloudflare.com"],
+  "connected_at": "2026-04-27T15:30:00Z"
+}

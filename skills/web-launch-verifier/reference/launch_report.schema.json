@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Launch Report",
+  "description": "Final verification report for the deployed site",
+  "type": "object",
+  "required": ["overall_status", "verified_at"],
+  "properties": {
+    "domain_name": {
+      "type": ["string", "null"],
+      "description": "Custom domain (null if deferred)"
+    },
+    "preview_url": {
+      "type": "string",
+      "format": "uri",
+      "description": "Vercel preview URL"
+    },
+    "verification_results": {
+      "type": "object",
+      "properties": {
+        "dns_a_record": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+            "value": { "type": "string" }
+          }
+        },
+        "dns_cname_www": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+            "value": { "type": "string" }
+          }
+        },
+        "ssl_certificate": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+            "issuer": { "type": "string" },
+            "expires": { "type": "string" }
+          }
+        },
+        "https_redirect": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pass", "fail", "skipped"] }
+          }
+        },
+        "site_loads": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pass", "fail", "skipped"] },
+            "http_status": { "type": "integer" },
+            "response_time_ms": { "type": "integer" }
+          }
+        },
+        "www_redirect": {
+          "type": "object",
+          "properties": {
+            "status": { "type": "string", "enum": ["pass", "fail", "skipped"] }
+          }
+        }
+      }
+    },
+    "overall_status": {
+      "type": "string",
+      "enum": ["live", "partial", "failed", "deferred"],
+      "description": "Overall launch status"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp of verification"
+    },
+    "live_url": {
+      "type": "string",
+      "description": "Final live URL (custom domain or preview)"
+    },
+    "issues": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Any issues found during verification"
+    }
+  },
+  "additionalProperties": false
+}
