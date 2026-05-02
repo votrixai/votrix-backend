@@ -3,7 +3,7 @@
 import uuid
 from typing import Sequence
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete as sqlalchemy_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.agent_employees import AgentEmployee
@@ -43,6 +43,16 @@ async def get(
     return result.scalar_one_or_none()
 
 
+async def get_by_id(
+    db: AsyncSession,
+    employee_id: uuid.UUID,
+) -> AgentEmployee | None:
+    result = await db.execute(
+        select(AgentEmployee).where(AgentEmployee.id == employee_id)
+    )
+    return result.scalar_one_or_none()
+
+
 async def create(
     db: AsyncSession,
     workspace_id: uuid.UUID,
@@ -60,6 +70,6 @@ async def create(
 
 async def delete(db: AsyncSession, employee_id: uuid.UUID) -> None:
     await db.execute(
-        delete(AgentEmployee).where(AgentEmployee.id == employee_id)
+        sqlalchemy_delete(AgentEmployee).where(AgentEmployee.id == employee_id)
     )
     await db.commit()

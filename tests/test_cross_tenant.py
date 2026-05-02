@@ -196,3 +196,20 @@ async def test_fire_employee_in_other_workspace_returns_404(
         headers={"X-Workspace-Id": str(two_workspaces["b"])},
     )
     assert r.status_code == 404
+
+
+async def test_fire_employee_in_active_workspace_deletes_employee(
+    client, two_workspaces, blueprint_and_employees
+):
+    r = await client.delete(
+        f"/employees/{blueprint_and_employees['employee_in_a']}",
+        headers={"X-Workspace-Id": str(two_workspaces["a"])},
+    )
+    assert r.status_code == 204
+
+    listed = await client.get(
+        "/employees",
+        headers={"X-Workspace-Id": str(two_workspaces["a"])},
+    )
+    assert listed.status_code == 200
+    assert listed.json() == []
