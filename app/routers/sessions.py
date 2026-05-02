@@ -1,8 +1,12 @@
 """
 Session routes.
 
+All endpoints are scoped through require_workspace. X-Workspace-Id is optional
+only when the authenticated user belongs to exactly one workspace.
+Cross-tenant access returns 404 — we do not distinguish "missing" from "not yours".
+
 POST   /sessions                    create session (agent must be enabled for workspace)
-GET    /sessions                    list sessions for current user's workspace
+GET    /sessions                    list sessions for the active workspace
 GET    /sessions/{session_id}       get session + events
 DELETE /sessions/{session_id}       delete session
 """
@@ -14,13 +18,12 @@ import structlog
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth import AuthedUser, require_user
+from app.auth import WorkspaceContext, require_workspace
 from app.db.engine import get_session
 from app.db.queries import agent_blueprints as blueprints_q
 from app.db.queries import agent_employee_memory_stores as stores_q
 from app.db.queries import agent_employees as employees_q
 from app.db.queries import sessions as sessions_q
-from app.db.queries import workspaces as workspaces_q
 from app.integrations.composio import create_composio_session
 from app.management import sessions as management_sessions
 from app.management.environments import create_session
@@ -39,11 +42,23 @@ logger = structlog.get_logger()
 router = APIRouter(tags=["sessions"])
 
 
+async def _session_list_title(db: AsyncSession, session) -> str | None:
+    title = management_sessions.usable_provider_title(
+        session.title,
+        session.provider_session_id,
+    )
+    if title:
+        return title
+
+    first_message = await sessions_q.get_first_user_message(db, session.id)
+    return management_sessions.fallback_session_title(first_message)
+
+
 @router.post("/sessions", response_model=SessionCreateResponse, status_code=201)
 async def create_session_endpoint(
     body: SessionCreateRequest,
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
     try:
         config = _read_config(body.agent_slug)
@@ -62,13 +77,7 @@ async def create_session_endpoint(
     if not bp:
         raise HTTPException(status_code=422, detail=f"Agent '{body.agent_slug}' has not been provisioned yet")
 
-    ws = await workspaces_q.get_workspace(db, body.workspace_id)
-    if not ws:
-        raise HTTPException(status_code=404, detail="Workspace not found")
-    if not await workspaces_q.is_member(db, ws.id, current_user.id):
-        raise HTTPException(status_code=403, detail="Not a member of this workspace")
-
-    employee = await employees_q.get(db, ws.id, blueprint_id)
+    employee = await employees_q.get(db, ctx.workspace_id, blueprint_id)
     if not employee:
         raise HTTPException(status_code=422, detail=f"Agent '{body.agent_slug}' is not enabled for this workspace")
 
@@ -99,7 +108,7 @@ async def create_session_endpoint(
         if i.get("connected_account_id")
     }
     composio_session_id = await create_composio_session(
-        str(ws.id),
+        str(ctx.workspace_id),
         integrations,
         connected_accounts=connected_accounts or None,
     )
@@ -107,7 +116,7 @@ async def create_session_endpoint(
     db_session = await sessions_q.create_session(
         db,
         provider_session_id,
-        ws.id,
+        ctx.workspace_id,
         agent_blueprint_id=blueprint_id,
         composio_session_id=composio_session_id,
     )
@@ -124,35 +133,30 @@ async def create_session_endpoint(
 @router.get("/sessions", response_model=list[SessionResponse])
 async def list_sessions(
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
-    ws = await workspaces_q.get_user_default_workspace(db, current_user.id)
-    if not ws:
-        raise HTTPException(status_code=404, detail="No workspace found for user")
-    rows = await sessions_q.list_sessions(db, ws.id)
-    return [
-        SessionResponse(
+    rows = await sessions_q.list_sessions(db, ctx.workspace_id)
+    result: list[SessionResponse] = []
+    for r in rows:
+        result.append(SessionResponse(
             id=r.id,
             workspace_id=r.workspace_id,
-            title=r.title,
+            title=await _session_list_title(db, r),
             agent_blueprint_id=r.agent_blueprint_id,
             created_at=r.created_at,
-        )
-        for r in rows
-    ]
+        ))
+    return result
 
 
 @router.get("/sessions/{session_id}", response_model=SessionDetailResponse)
 async def get_session_detail(
     session_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
     session = await sessions_q.get_session(db, session_id)
-    if not session:
+    if not session or session.workspace_id != ctx.workspace_id:
         raise HTTPException(status_code=404, detail="Session not found")
-    if not await workspaces_q.is_member(db, session.workspace_id, current_user.id):
-        raise HTTPException(status_code=403, detail="Not a member of this workspace")
     events = await sessions_q.get_events(db, session_id)
     return SessionDetailResponse(
         id=session.id,
@@ -175,13 +179,11 @@ async def get_session_detail(
 async def list_session_files(
     session_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
     session = await sessions_q.get_session(db, session_id)
-    if not session:
+    if not session or session.workspace_id != ctx.workspace_id:
         raise HTTPException(status_code=404, detail="Session not found")
-    if not await workspaces_q.is_member(db, session.workspace_id, current_user.id):
-        raise HTTPException(status_code=403, detail="Not a member of this workspace")
 
     events = await sessions_q.get_events(db, session_id)
     files: list[SessionFileResponse] = []
@@ -206,12 +208,10 @@ async def list_session_files(
 async def delete_session(
     session_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
-    current_user: AuthedUser = Depends(require_user),
+    ctx: WorkspaceContext = Depends(require_workspace),
 ):
     session = await sessions_q.get_session(db, session_id)
-    if not session:
+    if not session or session.workspace_id != ctx.workspace_id:
         raise HTTPException(status_code=404, detail="Session not found")
-    if not await workspaces_q.is_member(db, session.workspace_id, current_user.id):
-        raise HTTPException(status_code=403, detail="Not a member of this workspace")
     await management_sessions.delete_provider_session(session.provider_session_id)
     await sessions_q.delete_session(db, session_id)

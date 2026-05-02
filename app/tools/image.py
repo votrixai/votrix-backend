@@ -183,7 +183,7 @@ def _build_enhanced_prompt(raw_input: dict) -> str:
     return " ".join(parts)
 
 
-async def handle(name: str, input: dict, user_id: str, session_id: str | None = None) -> dict:
+async def handle(name: str, input: dict, workspace_id: str, session_id: str | None = None) -> dict:
     settings = get_settings()
     if not settings.gemini_api_key:
         return {"status": False, "message": "Gemini API key not configured"}
@@ -236,7 +236,7 @@ async def handle(name: str, input: dict, user_id: str, session_id: str | None = 
 
                 # Upload to Supabase for permanent URL
                 try:
-                    public_url = await upload_image(img_data, img_mime, user_id)
+                    public_url = await upload_image(img_data, img_mime, workspace_id)
                 except Exception as upload_exc:
                     import traceback
                     logger.warning("Supabase upload failed — %s\n%s", upload_exc, traceback.format_exc())

@@ -18,21 +18,21 @@ TOOL_DEFINITIONS: dict[str, dict] = {
 async def execute(
     name: str,
     input: dict,
-    user_id: str,
+    workspace_id: str,
     session_id: str | None = None,
     composio_session_id: str | None = None,
 ) -> dict:
     """Dispatch a custom tool call to the correct handler."""
     if name in ("cron_create", "cron_delete", "cron_list"):
-        return await cron.handle(name, input, user_id, session_id=session_id)
+        return await cron.handle(name, input, workspace_id, session_id=session_id)
     if name in ("download_file", "publish_file", "upload_file"):
-        return await file.handle(name, input, user_id, session_id=session_id)
+        return await file.handle(name, input, workspace_id, session_id=session_id)
     if name == "image_generate":
-        return await image.handle(name, input, user_id, session_id=session_id)
+        return await image.handle(name, input, workspace_id, session_id=session_id)
     if name == "video_generate":
-        return await video.handle(name, input, user_id)
+        return await video.handle(name, input, workspace_id)
     if name == "show_post_preview":
-        return await preview.handle(name, input, user_id, session_id=session_id)
+        return await preview.handle(name, input, workspace_id, session_id=session_id)
 
     # Composio tool fallback — handles all COMPOSIO_* meta tools and any action slugs
     if composio_session_id:

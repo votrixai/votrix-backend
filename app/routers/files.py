@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel
 
-from app.auth import AuthedUser, require_user
+from app.auth import WorkspaceContext, require_workspace
 from app.client import get_async_client
 
 
@@ -60,7 +60,7 @@ class FileMetaResponse(BaseModel):
 @router.post("", response_model=FileUploadResponse)
 async def upload_file(
     file: UploadFile,
-    _: AuthedUser = Depends(require_user),
+    _: WorkspaceContext = Depends(require_workspace),
 ):
     data = await file.read()
     mime = file.content_type or "application/octet-stream"
@@ -93,7 +93,7 @@ async def upload_file(
 
 @router.get("", response_model=list[FileMetaResponse])
 async def list_files(
-    _: AuthedUser = Depends(require_user),
+    _: WorkspaceContext = Depends(require_workspace),
 ):
     client = get_async_client()
     try:
@@ -118,7 +118,7 @@ async def list_files(
 @router.delete("/{file_id}", status_code=204)
 async def delete_file(
     file_id: str,
-    _: AuthedUser = Depends(require_user),
+    _: WorkspaceContext = Depends(require_workspace),
 ):
     client = get_async_client()
     try:
@@ -131,7 +131,7 @@ async def delete_file(
 @router.get("/{file_id}/content")
 async def download_file(
     file_id: str,
-    _: AuthedUser = Depends(require_user),
+    _: WorkspaceContext = Depends(require_workspace),
 ):
     """Download a file. Only works for agent-generated files — user uploads are
     not downloadable by Anthropic's design (one-way API)."""
