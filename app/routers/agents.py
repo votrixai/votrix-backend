@@ -5,8 +5,6 @@ GET    /agents                         list all agent templates
 GET    /agents/blueprints              list provisioned blueprints with hire status
 GET    /agents/{agent_id}              get config
 POST   /agents/{agent_id}/reprovision  update-or-create agent on Anthropic
-POST   /agents/{agent_id}/enable       enable agent for the active workspace
-DELETE /agents/{agent_id}/enable       disable agent for the active workspace
 """
 
 import json
@@ -20,7 +18,7 @@ from app.auth import WorkspaceContext, require_workspace
 from app.db.engine import get_session
 from app.db.queries import agent_blueprints as blueprints_q
 from app.db.queries import agent_employees as employees_q
-from app.management.memory_stores import create_for_employee, sync_memory_stores_for_blueprint
+from app.management.memory_stores import sync_memory_stores_for_blueprint
 from app.management.provisioning import create_user_agent, update_user_agent, _read_config
 from app.models.agent import AgentBlueprintResponse, AgentConfig
 
@@ -140,51 +138,3 @@ async def reprovision_agent(
         "provider_agent_id": bp.provider_agent_id,
         "memory_stores": memory_stats,
     }
-
-
-@router.post("/{agent_id}/enable", status_code=201)
-async def enable_agent(
-    agent_id: str,
-    db: AsyncSession = Depends(get_session),
-    ctx: WorkspaceContext = Depends(require_workspace),
-):
-    _load_config(agent_id)
-    blueprint_id = _parse_blueprint_id(agent_id)
-
-    bp = await blueprints_q.get(db, blueprint_id)
-    if not bp:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Agent '{agent_id}' has not been provisioned yet. Run reprovision first.",
-        )
-
-    existing = await employees_q.get(db, ctx.workspace_id, blueprint_id)
-    if existing:
-        return {"employee_id": str(existing.id), "workspace_id": str(ctx.workspace_id), "blueprint_id": str(blueprint_id)}
-
-    config = _read_config(agent_id)
-    employee = await employees_q.create(db, ctx.workspace_id, blueprint_id)
-
-    for mc in config.get("memoryConfigs", []):
-        await create_for_employee(db, employee.id, mc)
-
-    return {
-        "employee_id": str(employee.id),
-        "workspace_id": str(ctx.workspace_id),
-        "blueprint_id": str(blueprint_id),
-    }
-
-
-@router.delete("/{agent_id}/enable", status_code=204)
-async def disable_agent(
-    agent_id: str,
-    db: AsyncSession = Depends(get_session),
-    ctx: WorkspaceContext = Depends(require_workspace),
-):
-    blueprint_id = _parse_blueprint_id(agent_id)
-
-    existing = await employees_q.get(db, ctx.workspace_id, blueprint_id)
-    if not existing:
-        raise HTTPException(status_code=404, detail="Agent not enabled for this workspace")
-
-    await employees_q.delete(db, existing.id)

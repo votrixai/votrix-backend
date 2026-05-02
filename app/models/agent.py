@@ -24,6 +24,10 @@ class AgentEmployeeResponse(BaseModel):
     created_at: str
 
 
+class AgentEmployeeCreateRequest(BaseModel):
+    agent_slug: str
+
+
 class AgentBlueprintResponse(BaseModel):
     id: str
     display_name: str

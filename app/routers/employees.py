@@ -2,6 +2,7 @@
 Employee routes — hired agent employees for the active workspace.
 
 GET    /employees                  list hired employees
+POST   /employees                  hire an employee from an agent template
 DELETE /employees/{employee_id}    fire an employee
 """
 
@@ -17,8 +18,11 @@ from app.auth import WorkspaceContext, require_workspace
 from app.db.engine import get_session
 from app.db.models.agent_blueprints import AgentBlueprint
 from app.db.models.agent_employees import AgentEmployee
+from app.db.queries import agent_blueprints as blueprints_q
 from app.db.queries import agent_employees as employees_q
-from app.models.agent import AgentEmployeeResponse
+from app.management.memory_stores import create_for_employee
+from app.management.provisioning import _read_config
+from app.models.agent import AgentEmployeeCreateRequest, AgentEmployeeResponse
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 
@@ -50,6 +54,30 @@ def _build_blueprint_config_map() -> dict[uuid.UUID, dict]:
     return result
 
 
+def _load_config(agent_slug: str) -> dict:
+    config_path = AGENTS_DIR / agent_slug / "config.json"
+    if not config_path.exists():
+        raise HTTPException(status_code=404, detail=f"Agent '{agent_slug}' not found")
+    return json.loads(config_path.read_text())
+
+
+def _parse_blueprint_id(agent_slug: str) -> uuid.UUID:
+    config = _read_config(agent_slug)
+    raw = config.get("agentId")
+    if not raw:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Agent '{agent_slug}' has no agentId in config.json",
+        )
+    try:
+        return uuid.UUID(raw)
+    except ValueError:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Agent '{agent_slug}' has invalid agentId (must be UUID)",
+        )
+
+
 @router.get("", response_model=list[AgentEmployeeResponse])
 async def list_employees(
     db: AsyncSession = Depends(get_session),
@@ -78,3 +106,54 @@ async def list_employees(
         )
         for emp, bp in pairs
     ]
+
+
+@router.post("", status_code=201)
+async def hire_employee(
+    body: AgentEmployeeCreateRequest,
+    db: AsyncSession = Depends(get_session),
+    ctx: WorkspaceContext = Depends(require_workspace),
+):
+    agent_slug = body.agent_slug
+
+    config = _load_config(agent_slug)
+    blueprint_id = _parse_blueprint_id(agent_slug)
+
+    bp = await blueprints_q.get(db, blueprint_id)
+    if not bp:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Agent '{agent_slug}' has not been provisioned yet. Run reprovision first.",
+        )
+
+    existing = await employees_q.get(db, ctx.workspace_id, blueprint_id)
+    if existing:
+        return {
+            "employee_id": str(existing.id),
+            "workspace_id": str(ctx.workspace_id),
+            "blueprint_id": str(blueprint_id),
+        }
+
+    employee = await employees_q.create(db, ctx.workspace_id, blueprint_id)
+
+    for mc in config.get("memoryConfigs", []):
+        await create_for_employee(db, employee.id, mc)
+
+    return {
+        "employee_id": str(employee.id),
+        "workspace_id": str(ctx.workspace_id),
+        "blueprint_id": str(blueprint_id),
+    }
+
+
+@router.delete("/{employee_id}", status_code=204)
+async def fire_employee(
+    employee_id: uuid.UUID,
+    db: AsyncSession = Depends(get_session),
+    ctx: WorkspaceContext = Depends(require_workspace),
+):
+    employee = await employees_q.get_by_id(db, employee_id)
+    if not employee or employee.workspace_id != ctx.workspace_id:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    await employees_q.delete(db, employee.id)

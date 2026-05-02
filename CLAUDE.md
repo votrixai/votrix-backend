@@ -11,7 +11,7 @@ Agent templates are defined as local files; Anthropic hosts execution.
 
 **Provision** (admin, one-time per agent change):
 - `POST /agents/{agent_id}/reprovision` — uploads skills, creates or updates Anthropic managed agent, persists `provider_agent_id` to DB
-- `POST /agents/{agent_id}/enable` — links the provisioned agent to a workspace (creates `agent_employees` record)
+- `POST /employees` — recruits a provisioned agent into a workspace (creates `agent_employees` record)
 
 Skill upload state is tracked in `.skills_registry.json` at project root (gitignored):
 `{skill_name: {skill_id, content_hash}}` — skips re-upload if content unchanged.
