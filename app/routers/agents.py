@@ -81,7 +81,18 @@ async def list_blueprints(
             continue
 
         bp = await blueprints_q.get(db, blueprint_id)
-        if not bp:
+
+        if bp is None:
+            result.append(AgentBlueprintResponse(
+                id=str(blueprint_id),
+                display_name=config.get("name", agent_id),
+                provider="",
+                slug=agent_id,
+                skills=config.get("skills", []),
+                model=config.get("model", ""),
+                is_hired=False,
+                employee_id=None,
+            ))
             continue
 
         employee = await employees_q.get(db, ctx.workspace_id, bp.id)
