@@ -4,7 +4,7 @@
 
 ## 前置：获取 Author URN
 
-发布前需要 author URN，从 `/workspace/marketing-context.md` 的 `## 已连接平台 → LinkedIn` 读取。
+发布前需要 author URN，从 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 已连接平台 → LinkedIn` 读取。
 
 - 个人账号：`urn:li:person:{person_id}`
 - 公司主页：`urn:li:organization:{org_id}`

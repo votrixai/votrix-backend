@@ -4,7 +4,7 @@
 
 ## 前置：获取 Page ID
 
-`page_id` 从 `/workspace/marketing-context.md` 的 `## 已连接平台 → Facebook` 读取。
+`page_id` 从 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 已连接平台 → Facebook` 读取。
 如需确认可调：
 
 ```

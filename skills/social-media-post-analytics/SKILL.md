@@ -16,7 +16,7 @@ integrations:
 
 ## 启动检查
 
-读取 `/workspace/marketing-context.md`，确认：
+读取 `mnt/memory/social-media-manager/marketing-context.md`，确认：
 - 已连接平台列表（只分析已连接的平台）
 - Page ID / Account ID（API 调用必需）
 
@@ -28,7 +28,7 @@ integrations:
 
 ### 第一层：本地 post-history
 
-路径：`/workspace/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
+路径：`mnt/memory/social-media-manager/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
 
 每条帖子记录格式：
 ```
@@ -68,7 +68,7 @@ API 拉取后，立即更新对应 post-history 文件里的 `-` 字段：
 
 读取文件 → 替换对应帖子下的 `触达：-`、`互动：-`、`点赞：-`、`评论：-`、`分享：-` → 写回文件。
 
-同时将本次刷新时间写入 `/workspace/marketing-context.md` 的 `## 运行状态` 对应平台字段。
+同时将本次刷新时间写入 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 运行状态` 对应平台字段。
 
 ---
 
@@ -120,7 +120,7 @@ Admin 说「出报告」时询问要哪种，或根据问句直接判断：
 
 输出：哪类内容效果最好，哪类需要调整，发布时间优化建议。
 
-分析完成后，将结论写回 `/workspace/marketing-context.md` 的 `## 内容策略`：
+分析完成后，将结论写回 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 内容策略`：
 - 若某类型触达 / 互动率显著高于其他类型，更新「当前优先类型」
 - 在「策略更新记录」末尾追加一条：
   `[analytics {日期}] {具体调整，例：Reels 触达是 Feed 3 倍，已更新优先类型为 Reels}`
@@ -145,7 +145,7 @@ Admin 说「出报告」时询问要哪种，或根据问句直接判断：
 
 报告超过一屏时，询问 admin 是否保存为文件。Admin 确认后写入：
 
-路径：`/workspace/analytics-reports/{YYYY-MM}/{报告类型}-{YYYY-MM-DD}.md`
+路径：`mnt/memory/social-media-manager/analytics-reports/{YYYY-MM}/{报告类型}-{YYYY-MM-DD}.md`
 
 文件命名示例：
 - `summary-2024-01-15.md`

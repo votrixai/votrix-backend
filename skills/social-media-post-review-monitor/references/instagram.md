@@ -11,7 +11,7 @@ INSTAGRAM_GET_IG_MEDIA_COMMENTS(
 → data[].id、data[].text、data[].username、data[].timestamp
 ```
 
-从 `/workspace/post-history/` 读取近 30 天帖子的 post_id，逐一拉取。  
+从 `mnt/memory/social-media-manager/post-history/` 读取近 30 天帖子的 post_id，逐一拉取。  
 只处理上次巡查时间之后的新评论（`timestamp > 上次巡查时间`）。
 
 ---

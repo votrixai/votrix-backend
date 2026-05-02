@@ -1,244 +1,715 @@
 ---
 name: poster-design
+version: v6-dual-route
+final_prompt_focus: true
 description: >
-  完整海报设计流程。从零开始设计可直接发布的宣传海报（单张或 Carousel 组图）：情境读取、叙事规划、文案创作、海报 prompt 构建、直接图片生成、质量复查。
-  适用于商家需要专门设计海报的场景——新品上架、活动促销、品牌宣传、节日推广等。
+  General-purpose poster design skill with two compositing routes.
+  Route A (default): generates a clean background image then composites real canvas-fonts
+  typography via Pillow — precise font control, pixel-accurate layout.
+  Route B (fast draft): generates the complete poster as one image with embedded text.
+  Covers brand campaigns, product ads, SaaS, local businesses, promotions, events,
+  recruitment, content education, and carousel sets.
 integrations: []
 ---
 
-# 海报设计
+# Poster Design
 
-## 步骤 1 — 情境读取
+## Core Principles
 
-按优先级读取所有可用上下文，能推断的直接推断，不询问：
+This skill supports two routes decided at Step 6:
 
-1. `/workspace/marketing-context.md` — 品牌名、行业、调性、品牌构图风格、目标受众、色彩系统
-2. 用户消息 — 提取：海报主题、目标受众信号、必须出现的文字
+- **Route A — Pillow composite (default):** Generate a clean background/subject image (no text),
+  then composite typography using real canvas-fonts TTF files via Pillow.
+  Use this when font precision matters — which is the default.
+- **Route B — image-complete (fast draft):** Generate the full poster as one image with text
+  embedded by the model. Use only when the user explicitly asks for a quick draft, or when
+  the style is `illustration` / `anime` and precise fonts are not required.
 
-直接确定：
-- **模式**：单张海报 or Carousel 组图（从用户消息或平台推断）
-- **宣传目的**：说服谁做什么
-- **目标受众**：他们的审美习惯和决策心理
-- **发布尺寸**：单张从平台推断，推断不出默认 1024×1024；Carousel 固定 896×1120px（4:5）
-- **宽高比**：单张从尺寸推断（1024×1024 → `1:1`，1792×1024 → `16:9`，1024×1792 → `9:16`）；Carousel 固定 `4:5`
+Always use the **image-complete** approach for Route B:
 
-唯一需要追问的情况：主题完全缺失，无法判断这张海报在宣传什么。
+- Typography instructions go into the prompt
+- Do NOT add `text` / `typography` / `letters` to negative elements in Route B
 
----
+For Route A:
 
-## 步骤 1.5 — Carousel 叙事规划（仅 Carousel 时执行）
+- Typography instructions are removed from the image prompt
+- `text, typography, letters, numbers` MUST be in negative elements
 
-根据宣传目的选定叙事模式，规划每张的叙事角色。
+> Analysis up front, convergence at the end.
+> Clean visuals, no empty advertising.
+> Final prompt is a production command for the image model.
 
-**节奏**：每套 Carousel 固定遵循 Hook → Content → CTA。
+The final prompt retains only:
 
-| 位置 | 角色 |
-|------|------|
-| 第 1 张 | Hook — 用大胆标题或反直觉主张抢停滑动 |
-| 第 2–N 张 | Content — 每张只讲一个点，绝不例外 |
-| 末张 | CTA — 引导收藏、关注或点击 |
-
-**叙事模式选择**：
-
-```
-目的：推广具体产品
-  └─ 用幽默种草类，首选「产品救场」
-     └─ 检查本次对话已用过的模式，跳过重复，按顺序轮换：
-        产品救场 → 避雷种草 → 错误打开方式 → 产品拟人自白 → 夸张测评
-
-目的：品牌宣传 / 内容教育
-  └─ 用通用内容类，按目标选：
-       收藏率     → 步骤教程、对比盘点
-       信任建立   → 数据+评价、问题→解决
-       直接行动   → 问题→解决
-```
-
-**幽默种草类**：
-
-| 模式 | 一句话说明 | 节奏 |
-|------|-----------|------|
-| 产品救场 | 先展示痛点，产品来拯救 | 共鸣痛点 → 升级恶化 → 产品登场 → 前后对比 → CTA |
-| 避雷种草 | "千万别买"逆向心理——越劝越想要 | 警告封面 → 列出"缺点"（实为卖点）→ 反转推荐 → 购买CTA |
-| 错误打开方式 | 展示错误用法，再揭示正确体验 | "别这样做" → 错误后果 → 正确用法 → 满意对比 → CTA |
-| 产品拟人自白 | 产品第一人称"抱怨"被低估 | "没人知道我能…" → 逐张功能揭秘 → 用户惊喜反应 → CTA |
-| 夸张测评 | 夸张放大产品效果制造喜感 | 离谱承诺封面 → 逐项测试 → 戏剧反应 → 诚实结论 → CTA |
-
-**通用内容类**：
-
-| 模式 | 一句话说明 | 节奏 |
-|------|-----------|------|
-| 步骤教程 | 每张一步，滑完即学会 | 问题 → 步骤1 → 步骤2 → 步骤3 → 收藏CTA |
-| 对比盘点 | 每张一个选项并排展示 | 封面 → A → B → C → 推荐 |
-| 问题→解决 | 先戳痛点再给解法 | 痛点 → 根因 → 解决方案 → 行动CTA |
-| 数据+评价 | 数字、截图、用户反馈建立信任 | 数据封面 → 证据 → 用户证言 → 尝试CTA |
-
-输出规划表：
-
-| 张 | 叙事角色 | 一句话主题方向 |
-|----|----------|--------------|
-| 1 | Hook | ... |
-| 2–N | 单点内容 | 每张只讲一件事 |
-| 末张 | CTA | 行动指引 |
-
-**告知用户每张叙事角色和主题方向，等待确认后再继续。**
+1. One core ad concept
+2. One hero visual
+3. One confirmed aspect ratio
+4. One confirmed layout
+5. One persuasive but lean copy hierarchy
+6. One set of brand / style / negative constraints
 
 ---
 
-## 步骤 2 — 文案创作
+## Step 1 — Context Read
 
-根据宣传目的和确认的叙事结构，写出所有文字内容。
+Read context in priority order. Infer what you can; do not ask unless you must:
 
-**单张**：
-- 主标题
-- 副标题（可选）
-- 卖点标签（可选，2–4 个）
-- 价格（若有）
-- CTA 文字
+1. `mnt/memory/social-media-manager/marketing-context.md` — brand name, industry, target audience,
+   brand colors, tone, composition preferences; use **Logo / brand asset URLs** from this file
+2. User message — poster purpose, product, platform, size, required text, forbidden elements
+3. Uploaded images — logo, product photos, reference style, color palette, composition constraints
+4. Conversation history — confirmed preferences such as color exclusions, text color, logo usage
 
-**Carousel**：按叙事规划表逐张写完整文案——
-- 每张：大标题 + 说明文字（1–2 行）+ 可选小标签
+Determine directly:
 
-写完后**呈现给用户确认**，确认后才继续。
+- Poster mode: single / carousel
+- Ad purpose: brand, pain point, conversion, feature, promotion, event, recruitment, education
+- Target audience: who sees it, why they care, what action you want
+- Must include: brand name, logo, product, people, scene, specified copy
+- Must avoid: colors, styles, elements, compositions, copy the user has explicitly forbidden
 
----
-
-## 步骤 3 — 锁定视觉参数（全程不变）
-
-在任何生成之前，先锁定以下参数。Carousel 所有张必须使用完全相同的值，不因每张主题不同而调整。
-
-**Style**：始终默认 `photographic`。仅当用户明确指定其他风格名称时才切换（`anime`、`cinematic`、`digital-art` 等）。不接受「插画」「卡通」等笼统描述。
-
-**Mood**：描述整套图的色温与光影氛围——不是每张的情绪，而是让所有张看起来出自同一套视觉语言的底色。例如 `warm amber tones, dramatic contrast` 或 `cool dark tones, premium studio lighting`。从品牌调性和步骤 2 确认的配色推断，锁定后不更改。
-
-**Negative elements**：
-- 基础：`watermark, busy background, cluttered, multiple competing subjects, decorative noise`
-- 有人物时追加：`extra fingers, extra limbs, fused limbs, disfigured face, extra eyes, distorted face, anatomical distortion, malformed hands`
-- ⚠️ 不排除 `text / typography`——poster-complete context 需要模型渲染文字
-
-写下锁定值，后续所有步骤直接复用，不重新决策。
+Only ask if: the topic is completely missing and you cannot determine what the poster promotes.
 
 ---
 
-## 步骤 4 — 构建完整海报 Prompt
+## Step 2 — Aspect Ratio & Format Strategy
 
-将品牌信息、画面场景、构图布局、配色、文案、排版风格整合为一段英文 prompt。每张单独写 prompt，但场景风格和视觉调性描述保持一致，只有文字内容和叙事重点随叙事角色变化。
+Do not default every poster to `vertical 4:5`.
 
-按以下顺序组织，写成连续叙述性段落：
+Priority:
 
-**① 海报类型与品牌**：说明这是什么类型的广告海报、面向什么产品/品牌。
+1. User specifies platform / size / orientation → follow strictly
+2. Unspecified → apply **controlled variation** based on use case, copy volume, hero visual, placement
+3. Do not generate an Instagram portrait just because a reference prompt mentioned Instagram
 
-**② 画面场景**：什么环境、有无人物、整体氛围，与品牌调性一致，写实全彩。
+Common formats:
 
-**③ 构图布局**：明确文字区和画面区的位置关系，例如：
-- 左侧大块放文字，右侧为场景
-- 顶部 60% 为画面，底部 40% 深色文字区
-- 全画面背景 + 底部渐变区承载文字
-- 纯深色背景，文字居中
+| Format | Best for |
+|---|---|
+| `4:5 vertical` | Social ads, product promos, mobile feed |
+| `1:1 square` | Brand posts, product posts, general social |
+| `16:9 horizontal` | Website banners, landing page heroes, decks |
+| `9:16 vertical` | Stories, Reels, TikTok, full-screen mobile ads |
+| `2:3 vertical` | Traditional posters, flyers, event promos |
 
-**④ 配色与视觉风格**：背景色调（深/浅/品牌色），整体 premium / minimal / bold 感，光影氛围。
+Canvas sizes (used by Route A Pillow composite):
 
-**⑤ 文字内容与排版**：逐一列出所有需要出现的文字，注明每段的视觉权重（大/中/小标题）、颜色（白/深/强调色）、位置。文字颜色必须与背景高对比。
+| Format | Canvas (px) |
+|---|---|
+| `4:5` | 1080 × 1350 |
+| `1:1` | 1080 × 1080 |
+| `16:9` | 1920 × 1080 |
+| `9:16` | 1080 × 1920 |
+| `2:3` | 1080 × 1620 |
 
-**⑥ 品牌元素**（如有）：Logo 位置、吉祥物。
+Output:
 
-**⑦ 整体质感**：`High contrast, premium, commercial poster quality, sharp typography, photorealistic photography.`
-
-### 参考格式
-
-```
-Create a [vertical/horizontal] advertising poster for [Brand Name]. Scene: [场景描述, realistic full color]. Composition: [文字区和画面区位置关系]. Brand/style: [Modern premium / bold / minimal], [dark/light] background layout. All poster text should be [white/dark] only. Main headline: "[主标题]". Subheadline: "[副标题]". Benefit blocks: "[卖点1]", "[卖点2]", "[卖点3]". CTA: "[CTA文字]". Visual tone: High contrast, premium, clean, commercial poster design, realistic photography with sharp typography.
+```text
+Format Strategy: [user-specified / controlled variation]
+Final format: [orientation + aspect ratio + use-case]
+Canvas size: [W × H px]
+Reason: [one sentence]
 ```
 
-### Carousel 各张差异
+---
 
-每张 prompt 完全独立——场景、构图、文案都可以不同，按叙事角色各自描述：
-- Hook 张：强视觉冲击的场景，文案聚焦痛点或悬念，主标题大
-- Content 张：配合该点内容的场景，文案只讲一个点，排版清晰
-- CTA 张：可以是纯深色背景 + 大字，不需要任何场景图
+## Step 3 — Core Ad Concept
 
-**不变的只有步骤 3 的锁定值**：style / mood / negative_elements 在所有张完全相同，这是让各张视觉上感觉出自同一套设计的底层保证。
+Before writing copy or describing the scene, distill one core ad concept.
+
+The concept must express one of: pain point, loss, desire, outcome, contrast, or reason to act.
+
+Requirements:
+
+- Speaks to the genuine psychology of the target audience, not a feature list
+- Can be translated into a clear hero visual
+- One direction only — pick the best fit, discard the rest
+- This is an internal brief; it does not have to appear verbatim in the final prompt
+
+Output:
+
+```text
+Core concept: [one sentence]
+```
 
 ---
 
-## 步骤 5 — 生成海报图片
+## Step 4 — Copy Strategy
 
-### 第 1 张（单张海报 / Carousel 第 1 张）
+Determine the poster type first, then decide the copy hierarchy.
 
-调用 `image_generate`：
+| Poster purpose | Default copy structure |
+|---|---|
+| Brand awareness | Headline + brand name |
+| Pain-point ad | Headline + subheadline + 2–3 short benefit tags |
+| Conversion ad | Headline + subheadline + 2–3 short benefit tags + 1 CTA |
+| Feature ad | Headline + feature description + 2–3 feature tags |
+| Promotion / event | Headline + key info + 1 CTA |
+| Recruitment / sign-up | Headline + role / opportunity description + 1 CTA |
+| Content education | Hook headline + one-line value + save / follow CTA |
 
-| 参数 | 取值 |
-|------|------|
-| `prompt` | 步骤 4 构建的第 1 张完整海报 prompt |
-| `style` | 步骤 3 锁定值 |
-| `mood` | 步骤 3 锁定值 |
-| `negative_elements` | 步骤 3 锁定值 |
-| `context` | `poster-complete` |
-| `aspect_ratio` | 步骤 1 确定的宽高比 |
-| `reference_image_urls` | 用户在对话中提供了参考图时传入；否则不传 |
+### Single Poster Copy Rules
 
-生成后立即进入步骤 6 质检。通过后：
-1. 告知用户：确认第 1 张已通过，说明构图和视觉效果
-2. 记录第 1 张 URL 为**风格锚 URL**
-3. 提取**风格锚描述**——描述实际渲染出来的（不是意图中的）：
-   - 色温与调色盘（如 `warm amber highlights, muted shadows`）
-   - 光影风格（如 `soft diffused light`, `dramatic side lighting`）
-   - 质感与景深（如 `shallow depth of field, slight film grain`）
+Default limits:
 
-单张海报到此结束，进入输出步骤。
+- Headline: 1, the strongest, largest, most scroll-stopping
+- Subheadline: 0–1, explains product value
+- Benefit tags: 0–3, each must be short
+- CTA: 0–1
+- Brand name / logo: include as needed
 
----
+Constraints:
 
-### 第 N 张（Carousel，N ≥ 2）
+- Headline: prefer 3–8 English words; for Chinese prefer 6–14 characters
+- No multiple headlines, no multiple CTAs, no long paragraphs
+- Do not cram every feature into one image
+- If the user provides a lot of copy, filter it — do not keep it all
 
-每张独立完整地调用 `image_generate`，当前张通过质检后才开始下一张。
+Copy priority: `Headline > Subheadline > CTA > Benefit tags > Other info`
 
-| 参数 | 取值 |
-|------|------|
-| `prompt` | 步骤 4 构建的第 N 张完整海报 prompt（该张自己的场景+文案+构图） |
-| `style` | 步骤 3 锁定值（不变） |
-| `mood` | 步骤 3 锁定值（不变，不因该张叙事角色调整） |
-| `composition` | 该张的构图描述 + 追加风格锚描述（保持视觉语言一致） |
-| `negative_elements` | 步骤 3 锁定值（不变） |
-| `context` | `poster-complete` |
-| `aspect_ratio` | 步骤 1 确定的宽高比（不变） |
-| `reference_image_urls` | **始终传第 1 张 URL**——不是上一张，永远是第 1 张 |
+### Carousel Copy Rules
 
-生成后立即进入步骤 6 质检。通过后告知用户，再生成第 N+1 张。
+Carousel follows a fixed Hook → Content → CTA structure.
 
-不合格：调整当前张 prompt 或 composition 重新生成，最多重试 3 次。3 次仍不过 → 说明卡在哪项，继续下一张。
+- Slide 1: strong hook — one pain point / contrast / curiosity trigger only
+- Middle slides: one point per slide
+- Last slide: explicit CTA
+- Keep all copy short; avoid repeating benefit tags across slides
+
+Show the user each slide's role and draft copy before generating; wait for confirmation.
 
 ---
 
-## 步骤 6 — 质量复查
+## Step 5 — Layout Strategy
 
-每张生成后立即执行，不合格立即重新生成（调整 prompt），最多重试 3 次。
+Choose one definitive layout based on aspect ratio, hero visual, and copy volume.
+**This decision is locked here and must be followed exactly by Step 7A (image prompt framing)
+and Step 9A (Pillow composite). Do not drift from it.**
 
-| 检查项 | 合格标准 | 不合格处理 |
-|--------|---------|----------|
-| 文案完整 | 步骤 2 确认的所有文字都出现在图中 | 在 prompt 中强调缺失的文字，重新生成 |
-| 文字清晰 | 标题和正文清晰可读，无乱码、无模糊 | prompt 加入 `crisp sharp legible text` 重新生成 |
-| 文字对比度 | 文字与背景之间对比度足够，视觉上清晰 | prompt 调整文字颜色或背景描述 |
-| 构图符合 | 文字区域和画面区域位置与预期一致 | 重新描述构图，更明确地指定区域位置 |
-| 风格一致 | Carousel 各张视觉风格统一 | 强化 reference 图使用，调整 mood 描述 |
-| 无不相关元素 | 无水印、无无关 logo、无杂乱视觉噪点 | prompt 加入 `no watermark, no clutter` |
+Never write multiple candidate positions in the final prompt. Pick one.
 
-**解剖检查**——仅当图中含有人物或动物时执行：
+### Text area position options
 
-| 检查项 | 合格标准 | 不合格处理 |
-|--------|---------|----------|
-| 肢体数量 | 手臂、腿、耳朵数量正确 | prompt 追加正向修正 + negative_elements 追加对应负向词，重新生成 |
-| 手指数量 | 每只人手恰好五根手指 | prompt 加 `anatomically correct hands, five fingers`，negative_elements 加 `extra fingers` |
-| 面部结构 | 眼睛、鼻子、嘴巴清晰独立，无重叠或重复 | prompt 加 `natural face structure`，negative_elements 加 `distorted face, extra eyes` |
-| 肢体边界 | 无融合、粘连或悬浮的肢体 | prompt 加 `clear limb separation`，negative_elements 加 `fused limbs, floating limbs` |
+| Position | Meaning | Good when |
+|---|---|---|
+| `bottom-third` | Lower ~35% reserved for text | Heavy copy, portrait formats, subject with natural headroom |
+| `top-third` | Upper ~35% reserved for text | Subject anchors at bottom (food on table, product on surface) |
+| `left-half` | Left ~45% reserved for text | Landscape format, subject naturally on right |
+| `right-half` | Right ~45% reserved for text | Landscape format, subject naturally on left |
+| `overlay-center` | Central band overlaid on full-bleed image | Minimal copy (1–2 lines), strong moody background |
 
-3 次后仍有问题 → 说明卡在哪项，请求用户进一步指导。
+### Selection rules by aspect ratio
+
+- `4:5 vertical` → prefer `bottom-third` or `top-third`
+- `1:1 square` → prefer `bottom-third` or `top-third`; `overlay-center` for brand-only
+- `16:9 horizontal` → prefer `left-half` or `right-half`
+- `9:16 vertical` → prefer `bottom-third` (hook at top, CTA at bottom); or `top-third`
+- `2:3 vertical` → prefer `top-third` or `bottom-third`
+
+### Carousel layout variety rule
+
+Carousel slides must not all use the same text area position.
+Assign positions before generating anything — plan across all slides first:
+
+- Hook slide: prefer `top-third` or `overlay-center` (bold, unexpected)
+- Content slides: alternate between `bottom-third` and `left-half` / `right-half`
+- CTA slide: prefer `bottom-third` (natural place for action text)
+
+Output (one block per slide for carousel, one block for single):
+
+```text
+Layout Strategy: [one sentence]
+Text area: [one fixed position]
+Hero visual: [one fixed position]
+```
 
 ---
 
-## 输出
+## Step 6 — Lock Visual Parameters + Route Decision
 
-调用 `show_post_preview` 工具展示海报：
-- **单张**：`slides: [{ path: "<生成图URL>", label: "海报" }]`
-- **Carousel**：`slides` 按张传入所有 URL，`label` 标注第几张及叙事角色（如"第 1 张 · Hook"）
-- `caption`：一句话说明核心设计决策
-- `hashtags`：`[]`
+Lock all parameters before generating. Carousel slides must stay consistent.
+
+### Route Decision
+
+| Condition | Route |
+|---|---|
+| Default | **A — Pillow composite** |
+| User says "fast" / "draft" / "quick" | B — image-complete |
+| Style is `illustration` or `anime` | B — image-complete |
+| User explicitly says they do not need precise fonts | B — image-complete |
+
+Output:
+
+```text
+Route: [A — Pillow composite / B — image-complete]
+Reason: [one phrase]
+```
+
+### Style
+
+Default: `photorealistic`. **Strongly recommended — keep this style.** The image should feel real,
+three-dimensional, and tactile, like a commercial studio shoot or a high-end ad campaign.  
+Do not switch unless the user explicitly and strongly requests it.
+Switchable options: `illustration`, `3d-render`, `anime`, `minimal`, `cinematic`, `digital-art`.
+
+### Mood
+
+Mood describes the image's **color temperature, lighting, contrast, and overall atmosphere**.
+Must be inferred from brand, ad purpose, hero visual, and user preferences — do not copy examples.
+
+Output as one compact English phrase:
+
+```text
+[color temperature], [lighting source / quality], [contrast level], [atmosphere]
+```
+
+### Font Selection (Route A only)
+
+**Fonts must be chosen from the Canvas font library below.** These TTF files are loaded by Pillow
+at composite time. Do not reference fonts outside this list.
+
+| Font | Available weights | Best for |
+|---|---|---|
+| **Boldonse** | Regular | Heavy impact headlines, street style |
+| **EricaOne** | Regular | Strong display headlines, event promos |
+| **BigShoulders** | Regular, Bold | Condensed headlines, sports, industrial |
+| **BricolageGrotesque** | Regular, Bold | Modern grotesque display, tech, SaaS |
+| **NationalPark** | Regular, Bold | Outdoor, nature, travel |
+| **Gloock** | Regular | Editorial serif display, fashion, luxury |
+| **Italiana** | Regular | Elegant Italian serif, fine dining, luxury |
+| **PoiretOne** | Regular | Geometric elegant display, beauty, soft luxury |
+| **WorkSans** | Regular, Bold, Italic, BoldItalic | Versatile modern sans-serif, corporate, SaaS |
+| **InstrumentSans** | Regular, Bold, Italic, BoldItalic | Clean modern sans-serif, brand, product |
+| **Outfit** | Regular, Bold | Clean modern sans-serif, tech, apps |
+| **SmoochSans** | Medium | Friendly sans-serif, consumer goods, food & beverage |
+| **ArsenalSC** | Regular | Small-caps sans-serif, brand labels, tags |
+| **Jura** | Light, Medium | Technical, sci-fi, minimal |
+| **CrimsonPro** | Regular, Bold, Italic | Classic editorial serif, publishing, education |
+| **IBMPlexSerif** | Regular, Bold, Italic, BoldItalic | Technical serif, tech brands, precision |
+| **Lora** | Regular, Bold, Italic, BoldItalic | Elegant editorial serif, food, lifestyle |
+| **InstrumentSerif** | Regular, Italic | Refined editorial serif, fashion, creative |
+| **YoungSerif** | Regular | Friendly serif, consumer goods, brand |
+| **LibreBaskerville** | Regular | Classic book serif, traditional brands |
+| **NothingYouCouldDo** | Regular | Handwritten, weddings, handmade, warm scenes |
+| **DMMono** | Regular | Clean monospace, code aesthetic, tech |
+| **GeistMono** | Regular, Bold | Modern monospace, developer tools, tech |
+| **IBMPlexMono** | Regular, Bold | Technical monospace, data, precision |
+| **JetBrainsMono** | Regular, Bold | Developer monospace, technical products |
+| **RedHatMono** | Regular, Bold | Clean monospace, brand labels |
+| **PixelifySans** | Medium | Pixel art, gaming, retro tech |
+| **Silkscreen** | Regular | Pixel retro, gaming, 8-bit |
+| **Tektur** | Regular, Medium | Sci-fi technical, game UI, futuristic |
+
+Font pairing rules:
+
+- One font for the headline; subheadline/body may use a different weight from the same family,
+  or one contrasting font
+- Serif + sans-serif (e.g. Gloock + WorkSans) is a reliable pairing
+- Display fonts (Boldonse, EricaOne) for headlines only
+- Monospace fonts only for labels/subheadlines in tech/code contexts
+- Maximum 2 fonts per poster
+
+Output:
+
+```text
+Font: [headline font name + weight] / [subheadline/body font name + weight (if different)]
+TTF files: [e.g. WorkSans-Bold.ttf / CrimsonPro-Regular.ttf]
+```
+
+### Negative Elements
+
+**Route A base** (always include `text` / `typography`):
+
+```text
+text, typography, letters, numbers, watermark, random logos, cluttered layout,
+unreadable background, multiple competing subjects, decorative noise
+```
+
+**Route B base** (never exclude `text` / `typography`):
+
+```text
+watermark, random logos, cluttered layout, unreadable background,
+multiple competing subjects, decorative noise, distorted text blocks
+```
+
+Add when the poster includes people or animals (both routes):
+
+```text
+extra fingers, extra limbs, fused limbs, malformed hands, distorted face, extra eyes,
+anatomical distortion
+```
+
+---
+
+## Step 7 — Compile Final Prompt
+
+### Route A — Clean Image Prompt
+
+The image prompt describes **only the background and hero subject** — no copy, no typography.
+The model must not render any text in the scene.
+
+Required elements:
+
+1. Poster type — format, brand, product category
+2. Hero visual — one hero subject; do not spread equal weight across multiple subjects
+3. Scene — environment, people, lighting, realism
+4. **Composition framing** — use the text area position locked in Step 5 to pick the exact
+   framing instruction from the table below and include it verbatim in the prompt
+5. Style — photorealistic, brand tone, color palette
+6. Explicit instruction: `no text, no letters, no typography anywhere in the image`
+
+### Composition framing instructions (pick one, paste into prompt)
+
+| Text area (Step 5) | Framing instruction to include in the image prompt |
+|---|---|
+| `bottom-third` | The subject fills the upper 60% of the frame. The bottom 35% is a clean, minimal-detail area — dark floor, soft shadow gradient, or blurred ground — naturally clear enough for text overlay. |
+| `top-third` | The subject fills the lower 60% of the frame. The top 35% is open sky, plain wall, or minimal background — naturally clear enough for text overlay. |
+| `left-half` | The subject is framed on the right half of the image. The left half has minimal visual detail — open space, soft bokeh, or a plain surface — naturally clear enough for text overlay. |
+| `right-half` | The subject is framed on the left half of the image. The right half has minimal visual detail — open space, soft bokeh, or a plain surface — naturally clear enough for text overlay. |
+| `overlay-center` | The subject fills the full frame with a naturally dark or low-contrast central horizontal band across the middle third of the image, suitable for text overlay. |
+
+Prompt opening:
+
+```text
+Create a [orientation] [aspect ratio] clean background image for a [Brand] advertising poster.
+```
+
+Target **120–180 words**. No copy hierarchy, no font names, no CTA.
+
+### Route B — Full Poster Prompt
+
+The image prompt describes the complete poster including embedded typography.
+
+Required elements:
+
+1. Poster type — format, use case, brand, product category
+2. Core idea — one visualizable ad theme
+3. Hero visual — one hero subject
+4. Scene — environment, people, lighting, realism
+5. Layout — one confirmed composition and text area position
+6. Typography — headline, subheadline, benefit tags, CTA, brand name hierarchy and positions
+7. Style — brand tone, color palette
+8. Constraints — no extra text, no random logos, no watermarks, no garbled text
+
+Forbidden in both routes: strategy sentences, non-executable lines, multiple layout candidates,
+multiple headlines, multiple CTAs, stacked feature lists, destabilizing emotion words.
+
+Prompt opening:
+
+```text
+Create a [orientation] [aspect ratio] [use-case] advertising poster for [Brand], a [product/category].
+```
+
+Target **180–280 words** for Route B.
+
+---
+
+## Step 8 — Generate Image
+
+Call `image_generate`.
+
+### Single Poster / Carousel Slide 1
+
+| Parameter | Route A value | Route B value |
+|---|---|---|
+| `prompt` | Clean image prompt (Step 7A) | Full poster prompt (Step 7B) |
+| `style` | Locked value from Step 6 | Locked value from Step 6 |
+| `mood` | Locked value from Step 6 | Locked value from Step 6 |
+| `negative_elements` | Route A negatives (includes `text, typography, letters`) | Route B negatives |
+| `aspect_ratio` | Final format from Step 2 | Final format from Step 2 |
+| `reference_image_urls` | User logo / reference / product photo (if any) | User logo / reference / product photo (if any) |
+
+After generation:
+
+- Route B single poster → proceed to Step 10 QC
+- Route A / Carousel → proceed to next section
+
+### Carousel Slide N (N ≥ 2)
+
+**Generate slide 1 first. Do not generate any subsequent slide until slide 1 has passed QC.**
+
+Always pass the **slide 1 URL** in `reference_image_urls` for slides 2+. Never reference the
+previous slide — always reference slide 1.
+
+| Parameter | Value |
+|---|---|
+| `prompt` | Current slide prompt |
+| `style` | Locked value from Step 6 |
+| `mood` | Locked value from Step 6 |
+| `negative_elements` | Same as slide 1 |
+| `aspect_ratio` | Final format from Step 2 |
+| `reference_image_urls` | **[Slide 1 URL]** + user logo / product photo (if any) |
+
+Append to every slide N prompt:
+
+```text
+Keep the same visual language as the first image: [actual style anchor description].
+```
+
+---
+
+## Step 9A — Pillow Composite (Route A only)
+
+After the clean image passes QC, composite all text layers using Pillow.
+
+**All positioning in this step is driven by the layout locked in Step 5.
+Do not choose new positions here — read `Text area` and `Hero visual` from Step 5 output
+and apply them directly.**
+
+### Canvas Size
+
+Use the canvas size locked in Step 2.
+
+### Text Zone Lookup
+
+Use the **text area position from Step 5** to look up pixel coordinates:
+
+Format: `(x0, y0, x1, y1)` — top-left to bottom-right of the text zone.
+
+| Text area position | 4:5 (1080×1350) | 1:1 (1080×1080) | 16:9 (1920×1080) | 9:16 (1080×1920) | 2:3 (1080×1620) |
+|---|---|---|---|---|---|
+| `top-third` | (40, 40, 1040, 430) | (40, 40, 1040, 340) | (60, 40, 860, 1040) | (40, 60, 1040, 600) | (40, 40, 1040, 500) |
+| `bottom-third` | (40, 920, 1040, 1310) | (40, 740, 1040, 1040) | (1060, 40, 1860, 1040) | (40, 1320, 1040, 1860) | (40, 1140, 1040, 1580) |
+| `left-half` | (40, 40, 490, 1310) | (40, 40, 490, 1040) | (60, 60, 900, 1020) | (40, 200, 490, 1720) | (40, 40, 490, 1580) |
+| `right-half` | (590, 40, 1040, 1310) | (590, 40, 1040, 1040) | (1020, 60, 1860, 1020) | (590, 200, 1040, 1720) | (590, 40, 1040, 1580) |
+| `overlay-center` | (60, 480, 1020, 870) | (60, 360, 1020, 720) | (480, 120, 1440, 960) | (60, 720, 1020, 1200) | (60, 560, 1020, 1060) |
+
+### Within-Zone Text Stacking
+
+Stack all text elements **inside the text zone** in copy priority order, top to bottom,
+left-aligned with 40px left padding (or centered for `overlay-center`).
+
+| Layer | Vertical position within zone | Alignment |
+|---|---|---|
+| Headline | Zone top + 40px | Left (or center for `overlay-center`) |
+| Subheadline | Below headline + 20px gap | Same as headline |
+| Benefit tags | Below subheadline + 28px gap | Left, arranged in a row; wrap to next row if total width exceeds zone width |
+| CTA | Below tags + 32px gap (or zone bottom − 60px, whichever is lower) | Left |
+| Brand name | Zone bottom − 40px | Right-aligned within zone |
+
+**Spacing rules:**
+
+- Minimum 16px between any two text layers
+- If total stacked height exceeds zone height: reduce all gaps proportionally, then reduce font
+  sizes in reverse priority order (brand name first, then tags, then CTA, then subheadline)
+- Never let any text layer exceed zone boundaries
+
+### Overlay Decision (3-step)
+
+**Step 1 — Sample the text zone**
+
+Convert the text zone crop to grayscale. Compute:
+- `mean` — average pixel brightness (0–255)
+- `std` — standard deviation of pixel brightness
+
+```python
+import numpy as np
+from PIL import Image
+
+zone_crop = img.crop(text_zone).convert("L")
+pixels = np.array(zone_crop)
+mean, std = pixels.mean(), pixels.std()
+```
+
+**Step 2 — Decide whether overlay is needed**
+
+| Condition | Decision | Reason |
+|---|---|---|
+| `std < 30` and `mean < 80` | **No overlay** — white text directly | Zone is uniformly dark; natural contrast is sufficient |
+| `std < 30` and `mean > 180` | **No overlay** — dark text (`#1a1a1a`) directly | Zone is uniformly light; natural contrast is sufficient |
+| `std < 30` and `80 ≤ mean ≤ 180` | **Light overlay** `alpha 80–120` | Zone is uniform mid-tone; small boost needed |
+| `std ≥ 30` | **Overlay required** | Zone is complex/textured; must suppress background for legibility |
+
+When `std ≥ 30`, set overlay alpha based on complexity:
+
+| `std` range | Overlay alpha |
+|---|---|
+| 30–60 | 140 |
+| 61–90 | 180 |
+| > 90 | 220 |
+
+Text color is always white `#FFFFFF` when an overlay is applied.
+
+**Step 3 — Gradient direction (when overlay is applied)**
+
+Draw the overlay as a **linear gradient** that fades from opaque at the text zone edge
+to transparent toward the hero visual — never a hard-edged rectangle.
+
+| Text area position | Gradient direction |
+|---|---|
+| `bottom-third` | Opaque at bottom edge → transparent upward |
+| `top-third` | Opaque at top edge → transparent downward |
+| `left-half` | Opaque at left edge → transparent rightward |
+| `right-half` | Opaque at right edge → transparent leftward |
+| `overlay-center` | Semi-transparent solid rectangle with 20px feathered edges |
+
+Overlay color: `rgba(0, 0, 0, alpha)`. Do not use brand color for the overlay — it
+competes with the hero visual.
+
+### Font Loading
+
+Load TTF files from the `canvas-fonts/` directory using the font names locked in Step 6:
+
+```python
+# Example
+from PIL import ImageFont
+headline_font = ImageFont.truetype("canvas-fonts/WorkSans-Bold.ttf", size=headline_size)
+sub_font = ImageFont.truetype("canvas-fonts/CrimsonPro-Regular.ttf", size=sub_size)
+```
+
+Font size calculation (start from max, shrink until text fits zone width):
+
+| Copy layer | Starting size | Minimum size | Step |
+|---|---|---|---|
+| Headline | 96px | 48px | −4px |
+| Subheadline | 56px | 32px | −4px |
+| Benefit tags | 40px | 28px | −2px |
+| CTA | 44px | 30px | −2px |
+| Brand name | 32px | 24px | −2px |
+
+Measure with `font.getbbox(text)`. Shrink until text width ≤ zone width. Wrap at word boundaries
+if text still does not fit at minimum size.
+
+### Layer Order
+
+```
+1. Background / hero image (full canvas)
+2. Gradient overlay on text zone (if needed)
+3. Solid color block behind tags (if using benefit tags)
+4. Headline text
+5. Subheadline text
+6. Benefit tag texts
+7. CTA text
+8. Brand name text
+9. Logo (bottom-right corner, width ≤ 12% of canvas width, 24px margin)
+```
+
+### Logo Handling
+
+If `marketing-context.md` provides a logo path:
+
+- No transparent background → use `rembg` or threshold masking to remove background
+- Low resolution or blurry → extract alpha shape, fill with `text_color` (single-color treatment)
+- Composite with `Image.alpha_composite`; preserve transparency channel
+
+### Output Path
+
+- Single: `/mnt/session/outputs/poster_{slug}.png`
+- Carousel: `/mnt/session/outputs/poster_{slug}_slide{n}.png`
+
+---
+
+## Step 10 — Quality Check
+
+**Run after every generated or composited image. For carousel, check each slide before
+proceeding to the next. Fix and redo immediately on any failure. Maximum 3 retries per slide.**
+
+### Route A Checklist (Pillow output)
+
+| Check | Pass standard | Action on fail |
+|---|---|---|
+| **Text not clipped** | No text character cut off at canvas edge | Reduce font size or adjust text zone |
+| **No text overlap** | No two text layers intersect | Recalculate vertical spacing |
+| **Text contrast** | Every text layer is legible against its local background | Increase overlay alpha or switch to darker overlay zone |
+| **Font loaded correctly** | Fonts render as the selected canvas-fonts typeface, not a system fallback | Verify TTF path; re-check font name mapping |
+| **Copy complete** | Every line of copy confirmed in Step 4 appears in the output | Re-add missing copy layer |
+| **No garbled characters** | No □□□ or replacement characters | Check font supports the character set; add NotoSansCJK fallback for CJK |
+| **Logo present and clean** | Logo in bottom-right, not distorted, correct color treatment | Re-run logo preprocessing |
+| **Layout matches preset** | Text zone position matches the `Text area` locked in Step 5 | Re-composite using the correct zone coordinates |
+| **Clean background** | No text rendered by the image model in the background image | Verify `text, typography, letters` were in negative elements; regenerate if present |
+| **Composition matches Step 5** | Hero visual and text area are where Step 5 specified | Adjust zone coordinates |
+| **Not overcrowded** | Information does not feel overloaded; composition is clean | Remove weakest copy layer |
+
+### Route B Checklist (image-complete output)
+
+| Check | Pass standard | Action on fail |
+|---|---|---|
+| Copy complete | All key text present; no stray characters | Emphasize missing text / no extra text, retry |
+| Text legibility | Headline readable; no garbled characters | Add `crisp, sharp, highly legible typography` |
+| Copy hierarchy | Headline largest; correct size order | Rewrite typography instruction |
+| Hero visual | Hero subject immediately recognizable | Strengthen hero object description |
+| Layout | Matches Step 5; text area unambiguous | Fix text area position |
+| Non-templated | Does not look like a generic template | Use natural negative space |
+| Marketing completeness | Pain point / value / action present | Add subheadline, tag, or CTA |
+| Not overcrowded | Clean composition | Remove weak copy |
+| Brand constraints | Colors, logo, forbidden elements comply | Correct conflicting constraints |
+
+**Both routes — when people or animals are present:** also check for anatomical distortion
+(hands, face, limbs). On failure, add anatomical correction terms and retry.
+
+After 3 failed retries: report exactly which check is failing; do not pretend it passed.
+
+---
+
+## Step 11 — Output
+
+Call `show_post_preview`.
+
+Single poster:
+
+```text
+slides: [{ path: "<output path>", label: "Poster" }]
+caption: "One sentence explaining the core design decision"
+hashtags: []
+```
+
+Carousel:
+
+```text
+slides: [
+  { path: "<output path>", label: "Slide 1 · Hook" },
+  { path: "<output path>", label: "Slide 2 · Content" },
+  { path: "<output path>", label: "Slide N · CTA" }
+]
+caption: "One sentence explaining the carousel narrative"
+hashtags: []
+```
+
+Do not generate hashtags unless the user explicitly asks.
+
+---
+
+## Extra Rules
+
+### Logo / Reference Images
+
+If the user provides a logo or product image:
+
+- Always pass it in `reference_image_urls` for the image generation call
+- Route A: describe how the scene should relate to the product; do not instruct the model to render text
+- Route B: describe how to use it; do not redesign, distort, or enlarge to compete with the headline
+- Logo placed in corner, small and clear (Pillow handles final logo placement in Route A)
+
+### User Preferences Take Priority
+
+Explicitly stated preferences persist for the entire session:
+excluded colors, text color, full color scenes, no black-and-white, ad placement requirements,
+premium / clean / realistic look. If a default rule conflicts with a user preference, the user wins.
+
+### Text Color (Route B)
+
+If the user says "white text", this means poster text white only — not a desaturated image:
+
+```text
+All poster text should be white only, while the scene and people remain realistic full color.
+```
+
+### Busy Scenes
+
+A busy atmosphere is fine; a cluttered layout is not:
+
+```text
+busy but controlled atmosphere, clean composition, no cluttered layout
+```
+
+### Prompt Quality Floor
+
+The final prompt must satisfy:
+
+- One hero visual
+- One composition
+- One headline
+- Minimal but complete persuasion structure
+- No multiple candidate directions spliced together
+- No lengthy ad strategy explanation
+- No over-templated layout

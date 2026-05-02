@@ -14,7 +14,7 @@ TWITTER_GET_POST_ANALYTICS(
 → data[].impression_count、like_count、retweet_count、reply_count、quote_count
 ```
 
-从 `/workspace/post-history/` 读取近 30 天推文的 tweet_id，批量传入（每次最多 100 个）。
+从 `mnt/memory/social-media-manager/post-history/` 读取近 30 天推文的 tweet_id，批量传入（每次最多 100 个）。
 
 ---
 

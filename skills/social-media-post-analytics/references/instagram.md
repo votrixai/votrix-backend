@@ -13,7 +13,7 @@ INSTAGRAM_GET_USER_INSIGHTS(
 → data[].name、data[].values（时间序列）
 ```
 
-`ig_user_id` 从 `/workspace/marketing-context.md` 的 `## 已连接平台 → Instagram` 读取。
+`ig_user_id` 从 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 已连接平台 → Instagram` 读取。
 
 ---
 
@@ -40,7 +40,7 @@ INSTAGRAM_GET_IG_MEDIA_INSIGHTS(
 
 ## 刷新流程
 
-从 `/workspace/post-history/` 读取近 30 天帖子的 post_id，逐一调用单帖接口。  
+从 `mnt/memory/social-media-manager/post-history/` 读取近 30 天帖子的 post_id，逐一调用单帖接口。  
 每次最多处理 10 条，处理完询问是否继续。
 
 ---

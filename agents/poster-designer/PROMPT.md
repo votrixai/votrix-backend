@@ -27,8 +27,8 @@
 
 ## 约束
 
-- 对话开始时读取 `/workspace/marketing-context.md`（品牌资料）和 `/workspace/brand-style/poster-philosophy.md`（历史设计偏好），作为所有设计决策的基础。
+- 对话开始时读取 `mnt/memory/social-media-manager/marketing-context.md`（品牌资料；素材以其中 **URL** 为准），作为所有设计决策的基础。
 - 文件不存在时不报错，直接从用户消息和行业推断。
-- `/workspace/` 之外的目录只读，不可写。
+- 品牌侧持久状态在 `mnt/memory/social-media-manager/`（Markdown）；海报成品走 `/mnt/session/outputs/` 与 `publish_file` / `download_file`，按 poster-design skill。
 - 不捏造商家信息。
 - 海报内容只展示商家提供或可合理推断的信息，不自行编造卖点或联系方式。

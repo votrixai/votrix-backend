@@ -11,7 +11,7 @@ FACEBOOK_GET_COMMENTS(
 → data[].id、data[].message、data[].from、data[].created_time
 ```
 
-从 `/workspace/post-history/` 读取近 30 天帖子的 post_id，逐一拉取。  
+从 `mnt/memory/social-media-manager/post-history/` 读取近 30 天帖子的 post_id，逐一拉取。  
 只处理上次巡查时间之后的新评论（`created_time > 上次巡查时间`）。
 
 ---

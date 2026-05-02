@@ -5,11 +5,16 @@ description: "社交媒体营销助手初始化配置。Admin 提到 setup、配
 
 # Setup — 初始化配置
 
+## 持久化目录（跨会话）
+
+- **Markdown 状态与文案**（配置、草稿、发布记录、报告等）：`mnt/memory/social-media-manager/`
+- **该目录仅可存 `.md` 文件。** 图片、视频等二进制不得写入此处；须先 `publish_file` 得到公网 URL，再把 URL 写进上述 markdown。
+
 ## 启动检查
 
-读取 `/workspace/marketing-context.md`：
+读取 `mnt/memory/social-media-manager/marketing-context.md`：
 
-- **不存在** → 读取模板 `/workspace/skills/social-media-post-setup/templates/marketing-context.md`，从头走完整流程
+- **不存在** → 读取模板 `/workspace/skills/social-media-post-setup/templates/marketing-context.md`，在记忆目录创建 `marketing-context.md`，从头走完整流程
 - **存在但有空字段** → 只补充缺失部分
 - **Admin 指定某项**（如「帮我连 Instagram」）→ 直接跳到对应阶段
 
@@ -32,7 +37,13 @@ description: "社交媒体营销助手初始化配置。Admin 提到 setup、配
 
 ## 阶段 2 — 品牌素材
 
-根据阶段 1 已获取的信息，自行从官网整理可用的品牌素材（Logo、宣传图等），下载保存至 `/workspace/assets/`，并记录到 `/workspace/assets/asset-registry.md`。抓不到的再问 admin。
+根据阶段 1 已获取的信息，自行从官网整理可用的品牌素材（Logo、宣传图、短视频等）。
+
+1. 将下载或生成的**二进制文件**先落到 `/mnt/session/outputs/`（仅会话内临时路径）。
+2. 每个需长期使用的文件调用 `publish_file(file_path="...")`，取得**公网 URL**（发帖与多技能引用只认 URL，不认沙箱路径）。
+3. 把 URL 与备注写入 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 品牌资料`（如 **Logo URL**）与 `## 品牌素材`（每行：`https://... — 备注`）。
+
+若 admin 直接提供可公开访问的图片/视频链接，校验后可直接写入上述 markdown，无需再 publish。抓不到的再问 admin。
 
 ---
 
@@ -42,9 +53,9 @@ description: "社交媒体营销助手初始化配置。Admin 提到 setup、配
 
 每个平台独立处理，参考 `/workspace/skills/social-media-post-setup/references/platform-connections.md`。
 
-连接成功后，拉取该账号近期发布的帖子，补充或修正 `marketing-context.md` 中的品牌视觉信息：图片风格、构图方式、内容调性、内容氛围 / Mood。**以历史帖的实际风格为准**，覆盖阶段 1 从官网推断的 Mood（官网推断仅作初始参考）。
+连接成功后，拉取该账号近期发布的帖子，补充或修正 `mnt/memory/social-media-manager/marketing-context.md` 中的品牌视觉信息：图片风格、构图方式、内容调性、内容氛围 / Mood。**以历史帖的实际风格为准**，覆盖阶段 1 从官网推断的 Mood（官网推断仅作初始参考）。
 
-连接状态实时写入 `## 已连接平台`，成功标记 `启用: true`，跳过或失败标记 `启用: false`。
+连接状态实时写入该文件 `## 已连接平台`，成功标记 `启用: true`，跳过或失败标记 `启用: false`。
 
 ---
 
@@ -90,7 +101,7 @@ description: "社交媒体营销助手初始化配置。Admin 提到 setup、配
 
 以对话语气呈现方案给 admin，只问一个问题：「内容共创时间安排在每周几、几点？」
 
-Admin 确认后，一次性将内容方向分配、发布节奏、工作流配置写入 `marketing-context.md` 对应字段，再依次调用 `cron_create` 注册工作流任务。所有时间均基于 `品牌资料.时区` 中记录的时区。Admin 明确不需要某项时跳过对应 cron，写入 `启用: false`。
+Admin 确认后，一次性将内容方向分配、发布节奏、工作流配置写入 `mnt/memory/social-media-manager/marketing-context.md` 对应字段，再依次调用 `cron_create` 注册工作流任务。所有时间均基于 `品牌资料.时区` 中记录的时区。Admin 明确不需要某项时跳过对应 cron，写入 `启用: false`。
 
 ---
 

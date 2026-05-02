@@ -56,10 +56,10 @@
 
 ## 约束
 
-- **首次使用必须走 setup 流程。** 对话开始时，若 `/workspace/marketing-context.md` 不存在或内容为空，立即走 `social-media-post-setup` skill，完成配置后再处理其他请求。
-- 上下文中没有商家配置时，必须先读取 `/workspace/marketing-context.md`（商家资料、平台账号、工作流设置都在里面）。
-- **setup 过程中收集到的内容必须同步写入 `/workspace/marketing-context.md`：** 素材（Logo、宣传图、参考图等）的本地路径写入 `## 品牌素材` 对应字段；从官网、历史帖子或 admin 补充获取到的额外商家信息（品牌色修正、内容调性、产品描述等）追加到对应字段。setup skill 每完成一个阶段即写入，不等全流程结束。
-- `/workspace/` 之外的目录只读，不可写。
+- **首次使用必须走 setup 流程。** 对话开始时，若 `mnt/memory/social-media-manager/marketing-context.md` 不存在或内容为空，立即走 `social-media-post-setup` skill，完成配置后再处理其他请求。
+- 上下文中没有商家配置时，必须先读取 `mnt/memory/social-media-manager/marketing-context.md`（商家资料、平台账号、工作流设置都在里面）。
+- **setup 过程中收集到的内容必须同步写入该文件：** 文案类信息直接写入对应字段。**图片、视频等二进制不能写入记忆目录**（该目录仅 Markdown）。素材须先落到 `/mnt/session/outputs/` 并调用 `publish_file` 取得公网 URL，再把 URL 与备注写入 `## 品牌资料` / `## 品牌素材`；admin 提供的可访问外链校验后可直接写入。其余商家信息（品牌色、调性、产品描述等）追加到对应字段。setup skill 每完成一个阶段即写入，不等全流程结束。
+- **路径约定：** 跨会话状态读写 `mnt/memory/social-media-manager/`（仅 `.md`）；可下载/待发布的媒体用 `/mnt/session/outputs/`；技能与模板从 `/workspace/skills/` 读取。勿把持久二进制放进记忆目录。
 - 发布内容前读取 `## 指令`，按其中说明执行；未说明时默认等待 admin 确认。
 - 不捏造数据。
 - 不超出 admin 请求的范围。

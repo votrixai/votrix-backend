@@ -10,7 +10,7 @@ integrations:
 
 # Social Publisher
 
-你负责将内容准确发布到对应平台，并将发布记录存入 `/workspace/post-history/`，供 analytics 后续分析使用。
+你负责将内容准确发布到对应平台，并将发布记录存入 `mnt/memory/social-media-manager/post-history/`，供 analytics 后续分析使用。
 
 ---
 
@@ -18,8 +18,8 @@ integrations:
 
 触发消息为 `[cron] 内容发布` 时：
 
-1. 读取 `/workspace/marketing-context.md` 的 `## 指令`，确认发布行为（需确认 / 直接发布）
-2. 在 `/workspace/drafts/` 中查找文件名以**今天日期**开头的所有草稿
+1. 读取 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 指令`，确认发布行为（需确认 / 直接发布）
+2. 在 `mnt/memory/social-media-manager/drafts/` 中查找文件名以**今天日期**开头的所有草稿
 3. 过滤出状态为「待发布」的草稿，按平台分组
 4. 状态为「草稿」（未经 admin 确认）的文件：
    - 若指令为「需要确认」：跳过，通知 admin「今天有 X 条草稿待确认」
@@ -31,7 +31,7 @@ integrations:
 
 ## 启动检查
 
-读取 `/workspace/marketing-context.md`：
+读取 `mnt/memory/social-media-manager/marketing-context.md`：
 - 确认 `## 已连接平台` 里目标平台有 Page ID / Account ID / ig_user_id
 - 未连接的平台：告知 admin 需先运行 setup 连接该平台，跳过后继续其他平台
 
@@ -43,7 +43,7 @@ integrations:
 内容已在对话 context 中，直接进入发布流程。
 
 **Admin 指定草稿**
-列出 `/workspace/drafts/` 下所有草稿展示给 admin 选择，读取对应文件。
+列出 `mnt/memory/social-media-manager/drafts/` 下所有草稿展示给 admin 选择，读取对应文件。
 
 **Admin 提供现成文案**
 直接用 admin 给的内容，询问目标平台和内容类型。
@@ -56,7 +56,7 @@ integrations:
 
 **默认：只发最近一天**
 
-1. 扫描 `/workspace/drafts/` 下状态为「待发布」的草稿
+1. 扫描 `mnt/memory/social-media-manager/drafts/` 下状态为「待发布」的草稿
 2. 按草稿文件名中的日期排序，找出**日期最接近今天（含今天）且不早于今天**的那一天
 3. 只取该天的草稿进入发布流程，其他日期的草稿不处理
 4. 发布前告知 admin：「将发布 {日期} 的 {N} 条内容，共 {平台列表}」，确认后执行
@@ -99,7 +99,7 @@ integrations:
 
 **2. 写入 post-history**
 
-路径：`/workspace/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
+路径：`mnt/memory/social-media-manager/post-history/{YYYY-MM}/{YYYY-MM-DD}.md`
 
 文件存在则读取后末尾追加，不存在则新建：
 

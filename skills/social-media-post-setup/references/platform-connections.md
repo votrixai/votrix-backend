@@ -2,6 +2,8 @@
 
 每个平台的连接流程都一样：调用 `manage_connections(toolkit="<name>")` → 检查状态 → 引导授权 → 记录账号信息。
 
+连接信息与平台 ID 写入 **`mnt/memory/social-media-manager/marketing-context.md`** 的 `## 已连接平台`（持久记忆仅 Markdown；媒体文件用 `publish_file` 得 URL 后再写入该文件的 `## 品牌素材` 等小节）。
+
 ---
 
 ## Facebook
@@ -13,7 +15,7 @@ manage_connections(toolkit="facebook")
 - `connected: false` → 发 `redirect_url` 给 admin，提醒勾选 **Pages** 权限
 - 连接后：列出 Pages → 让 admin 选择 → 记录 `page_id`、`page_name`
 
-写入 marketing-context.md：
+写入 `mnt/memory/social-media-manager/marketing-context.md` 对应小节：
 ```
 ### Facebook
 - 启用：true
@@ -37,7 +39,7 @@ manage_connections(toolkit="instagram")
 
 - 若 `account_type` 是 PERSONAL，停止并提示 admin 切换为企业号
 
-写入 marketing-context.md：
+写入 `mnt/memory/social-media-manager/marketing-context.md` 对应小节：
 ```
 ### Instagram
 - 启用：true
@@ -57,7 +59,7 @@ manage_connections(toolkit="linkedin")
 
 连接后获取：`linkedin_person_id`、`linkedin_organization_id`（公司 Page）、`company_name`
 
-写入 marketing-context.md：
+写入 `mnt/memory/social-media-manager/marketing-context.md` 对应小节：
 ```
 ### LinkedIn
 - 启用：true
@@ -78,7 +80,7 @@ manage_connections(toolkit="twitter")
 
 连接后获取：`twitter_user_id`、`username`
 
-写入 marketing-context.md：
+写入 `mnt/memory/social-media-manager/marketing-context.md` 对应小节：
 ```
 ### Twitter
 - 启用：true
@@ -96,7 +98,7 @@ Yelp 不是发帖平台，只支持评论管理。用 `tool_search("composio man
 
 连接后获取：`yelp_business_id`、`business_name`
 
-写入 marketing-context.md：
+写入 `mnt/memory/social-media-manager/marketing-context.md` 对应小节：
 ```
 ### Yelp
 - 商家名称：{business_name}

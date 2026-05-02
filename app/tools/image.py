@@ -4,7 +4,8 @@ Returns a public URL and a sandbox path.
 
 Flow:
   1. Generate image bytes via Gemini
-  2. Upload to Supabase → permanent public URL (recorded in asset-registry.md)
+  2. Upload to Supabase → permanent public URL (agent records URL in
+     mnt/memory/social-media-manager/marketing-context.md under 品牌素材 / Logo URL)
   3. Upload to Anthropic Files API → file_id
   4. Mount into session sandbox at /mnt/session/uploads/ → agent can read/view via built-in read tool
 
@@ -44,47 +45,27 @@ DEFINITIONS = [
         "type": "custom",
         "name": "image_generate",
         "description": (
-            "Generate an image from a structured prompt, optionally guided by reference images. "
+            "Generate an image from a text prompt, optional style token, aspect ratio, and optional reference images. "
             "Returns a public URL to the generated image. "
             "Aspect ratios: 1:1 (feed), 9:16 (Stories/Reels), 16:9 (YouTube/LinkedIn), 4:5 (Instagram portrait). "
-            "Provide up to 14 reference image URLs via reference_image_urls to steer style, composition, or content."
+            "Up to 14 reference_image_urls for visual reference."
         ),
         "input_schema": {
             "type": "object",
             "properties": {
                 "prompt": {
                     "type": "string",
-                    "description": "Core scene description — who/what, where, key visual details.",
+                    "description": "What to generate — subject, setting, and key visual details.",
                 },
                 "style": {
                     "type": "string",
                     "description": (
-                        "Visual style token. Always default to photographic (photorealistic) — this is the standard and produces the best results. "
+                        "Visual style token. Default to photographic (photorealistic) when unsure. "
                         "Supported values: "
                         "photographic, 3d-model, analog-film, anime, cinematic, comic-book, digital-art, "
                         "enhance, fantasy-art, isometric, line-art, low-poly, neon-punk, "
                         "origami, pixel-art, tile-texture."
                     ),
-                },
-                "mood": {
-                    "type": "string",
-                    "description": "Emotional atmosphere, e.g. 'serene, nostalgic', 'dramatic', 'warm and inviting'.",
-                },
-                "composition": {
-                    "type": "string",
-                    "description": "Framing / layout instructions, e.g. 'upper third open for title text', 'rule of thirds', 'centered'.",
-                },
-                "negative_elements": {
-                    "type": "string",
-                    "description": "Comma-separated list of things to exclude, e.g. 'text, watermark, people'.",
-                },
-                "context": {
-                    "type": "string",
-                    "enum": [
-                        "poster-background", "poster-complete", "banner", "icon", "social-media",
-                        "product-shot", "editorial", "hero-image", "thumbnail", "illustration",
-                    ],
-                    "description": "Intended use case — drives composition and style adjustments. Use poster-complete when the prompt already describes all text, layout, and typography to be rendered inside the image.",
                 },
                 "aspect_ratio": {
                     "type": "string",
@@ -94,10 +75,7 @@ DEFINITIONS = [
                 "reference_image_urls": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": (
-                        "Optional list of public image URLs (max 14) to use as visual references. "
-                        "The model will use them to guide style, composition, or subject."
-                    ),
+                    "description": "Optional public image URLs (max 14) as visual references.",
                 },
             },
             "required": ["prompt"],
@@ -138,48 +116,11 @@ async def _mount_into_sandbox(session_id: str, img_bytes: bytes, mime_type: str,
         return None
 
 
-_CONTEXT_HINTS = {
-    "poster-background": "Leave a clean area suitable for text overlay.",
-    "poster-complete": "Render all text, headlines, and typographic elements crisply and legibly exactly as specified in the prompt. High contrast typography, commercial poster quality.",
-    "banner": "Wide horizontal composition, subject must read clearly at small sizes.",
-    "icon": "Simple shapes, solid or white background, minimal detail.",
-    "thumbnail": "Bold composition, readable at small sizes.",
-    "social-media": "Eye-catching colors, strong focal point, punchy contrast.",
-    "product-shot": "Clean studio lighting, sharp product focus, commercial quality.",
-    "hero-image": "Dramatic composition, strong visual impact.",
-}
-
-
 def _build_enhanced_prompt(raw_input: dict) -> str:
+    """Merge only supported fields: prompt + optional style line."""
     parts = [raw_input["prompt"].strip()]
-
     if style := raw_input.get("style"):
         parts.append(f"Style: {style}.")
-    if mood := raw_input.get("mood"):
-        parts.append(f"Mood: {mood}.")
-    if composition := raw_input.get("composition"):
-        parts.append(f"Composition: {composition}.")
-
-    context = raw_input.get("context")
-    if hint := _CONTEXT_HINTS.get(context or ""):
-        parts.append(hint)
-
-    negatives = []
-    if context in ("poster-background", "banner"):
-        negatives.extend(["text", "typography", "letters"])
-    if context != "poster-complete":
-        negatives.extend(["watermark", "signature"])
-    else:
-        negatives.extend(["watermark"])
-
-    neg_input = raw_input.get("negative_elements") or raw_input.get("negativeElements")
-    if neg_input:
-        for item in neg_input.split(","):
-            item = item.strip()
-            if item:
-                negatives.append(item)
-
-    parts.append("No " + ", no ".join(negatives) + ".")
     return " ".join(parts)
 
 
@@ -190,10 +131,12 @@ async def handle(name: str, input: dict, workspace_id: str, session_id: str | No
     if not settings.supabase_url:
         return {"status": False, "message": "Supabase storage not configured"}
 
-    prompt = _build_enhanced_prompt(input)
-    aspect_ratio = input.get("aspect_ratio", "1:1")
+    allowed = {"prompt", "style", "aspect_ratio", "reference_image_urls"}
+    safe_input = {k: v for k, v in input.items() if k in allowed}
+    prompt = _build_enhanced_prompt(safe_input)
+    aspect_ratio = safe_input.get("aspect_ratio", "1:1")
     size = _RATIO_TO_SIZE.get(aspect_ratio, "1024x1024")
-    reference_urls: List[str] = input.get("reference_image_urls") or []
+    reference_urls: List[str] = safe_input.get("reference_image_urls") or []
 
     # Build the contents list: reference images first, then the text prompt.
     contents: list = []
@@ -214,7 +157,7 @@ async def handle(name: str, input: dict, workspace_id: str, session_id: str | No
 
     contents.append(
         genai_types.Part.from_text(
-            text=f"{prompt}\n\nImage dimensions: {size}. High quality, suitable for social media."
+            text=f"{prompt}\n\nImage dimensions: {size}. High quality."
         )
     )
 

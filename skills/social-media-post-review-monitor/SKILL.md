@@ -15,7 +15,7 @@ integrations:
 
 ## 启动检查
 
-读取 `/workspace/marketing-context.md`：
+读取 `mnt/memory/social-media-manager/marketing-context.md`：
 - 确认已连接平台
 - 读取 `## 运行状态` 各平台的上次巡查时间和最后处理 ID，确定从哪里开始拉取新数据
 
@@ -23,7 +23,7 @@ integrations:
 
 ## 数据来源
 
-从 `/workspace/post-history/` 读取近 30 天的帖子记录，拿到各帖子的 post_id。
+从 `mnt/memory/social-media-manager/post-history/` 读取近 30 天的帖子记录，拿到各帖子的 post_id。
 
 根据已连接平台，读取对应 reference 文件执行 API 调用：
 
@@ -54,7 +54,7 @@ integrations:
 
 ## 话题信号写入
 
-情感分类完成后，若发现高频主题（同一问题出现 2 次以上），将信号写入 `/workspace/marketing-context.md` 的 `## 内容策略 → 近期重点话题`：
+情感分类完成后，若发现高频主题（同一问题出现 2 次以上），将信号写入 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 内容策略 → 近期重点话题`：
 
 ```
 - {日期} [review] {话题描述}（{N} 条评论提及）→ 建议：{内容行动建议}
@@ -84,7 +84,7 @@ integrations:
 
 ## 草拟回复
 
-为每条评论生成回复草稿，结合 `/workspace/marketing-context.md` 的品牌语气：
+为每条评论生成回复草稿，结合 `mnt/memory/social-media-manager/marketing-context.md` 的品牌语气：
 
 | 类型 | 策略 |
 |---|---|
@@ -115,13 +115,13 @@ integrations:
 
 每批评论处理完后：
 
-**1. 更新 `/workspace/marketing-context.md` 的 `## 运行状态`**
+**1. 更新 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 运行状态`**
 
 更新各平台的上次巡查时间和最后处理 ID。
 
 **2. 写入 review-history**
 
-路径：`/workspace/review-history/{YYYY-MM}/{YYYY-MM-DD}.md`
+路径：`mnt/memory/social-media-manager/review-history/{YYYY-MM}/{YYYY-MM-DD}.md`
 
 ```markdown
 ## {HH:MM} | {平台} | 评论
@@ -145,7 +145,7 @@ integrations:
 
 Admin 说「出一个评论报告」或「本月评论情况怎样」：
 
-从 `/workspace/review-history/` 读取指定时间范围的记录，生成：
+从 `mnt/memory/social-media-manager/review-history/` 读取指定时间范围的记录，生成：
 
 - 各平台评论总数 + 正 / 中 / 负比例
 - 高频正面关键词（服务好、速度快...）

@@ -15,7 +15,7 @@ TWITTER_FULL_ARCHIVE_SEARCH(
 → data[].id、data[].text、data[].author_id、data[].created_at
 ```
 
-`twitter_handle` 从 `/workspace/marketing-context.md` 的 `## 已连接平台 → Twitter` 读取。
+`twitter_handle` 从 `mnt/memory/social-media-manager/marketing-context.md` 的 `## 已连接平台 → Twitter` 读取。
 
 过滤掉自身账号发出的推文（`author_id` = 自身账号 ID），只处理他人的 @提及和 reply。
 

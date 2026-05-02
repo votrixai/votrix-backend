@@ -59,7 +59,7 @@ integrations: []
 
 ## 阶段 1 — 内容计划
 
-读取 `/workspace/marketing-context.md`，了解品牌调性、已连接平台、发布节奏、内容方向。
+读取 `mnt/memory/social-media-manager/marketing-context.md`，了解品牌调性、已连接平台、发布节奏、内容方向；配图需用该文件中已登记的 **素材 URL**（记忆目录不存放二进制）。
 
 结合上方平台规格，为本周每条待发内容起草：日期、平台、内容类型、主题（一句话）、素材需求（AI 生成 / 需用户提供）。
 
@@ -123,7 +123,7 @@ show_post_preview({
 
 ## 阶段 6 — 存档
 
-每条确认后写入 `/workspace/drafts/`：
+每条确认后写入 `mnt/memory/social-media-manager/drafts/`：
 
 文件名：`{YYYY-MM-DD}-{platform}-{type}-{slug}.md`
 
