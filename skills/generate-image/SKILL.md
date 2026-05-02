@@ -14,12 +14,11 @@ description: >
 Confirm the following parameters:
 - **Subject description**: What each image should convey (one sentence or keywords per image)
 - **Aspect ratio** (`aspect_ratio`): `1:1` / `4:5` / `9:16` / `16:9`
-- **Use case** (`context`): Choose from `social-media`, `poster-background`, `banner`, `icon`, `thumbnail`, `product-shot`, `editorial`, `hero-image`, `illustration`
-  - If `poster-background`: which region is reserved for text? (e.g. bottom third, top, left side) — that area must remain clean in every image
+- **Use case** (`context`): Choose from `social-media`, `banner`, `icon`, `thumbnail`, `product-shot`, `editorial`, `hero-image`, `illustration`
 - **Multi-image mode**: Are multiple images needed? If yes, how many?
 - **User-uploaded images** (if any):
   - Style / content reference → pass as `reference_image_urls` to guide generation
-  - Brand assets (logo, stickers to be composited) → do not pass to generation; composite manually after
+  - Brand assets (logo, stickers to be composited) → do not pass to generation; handle separately after
 
 ---
 
@@ -33,11 +32,9 @@ Decide the shared visual language for the entire set upfront. These parameters a
 
 **Composition base** (`composition`): Lock the shared framing principles:
 - `single focal point, generous negative space, clean composition, focused subject, no clutter`
-- For `poster-background`: append `leave clean space in [position] for text overlay` — apply to every image
 
 **Negative elements** (`negative_elements`): Lock once:
 - `text, watermark, logo, typography, busy background, cluttered, multiple competing subjects, decorative noise, visual complexity`
-- Always exclude `text` and `typography` — image generation models cannot reliably render legible text; any text that appears will be distorted, misspelled, or garbled. Text is added in the compositing step, never in generation.
 - If the subject includes any person or animal, also add: `extra fingers, extra limbs, extra arms, extra legs, fused limbs, merged body parts, floating limbs, disfigured face, extra eyes, distorted face, anatomical distortion, malformed hands`
 
 Write down the locked parameters before proceeding. They will be reused verbatim for every image.

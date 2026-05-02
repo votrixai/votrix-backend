@@ -81,10 +81,10 @@ DEFINITIONS = [
                 "context": {
                     "type": "string",
                     "enum": [
-                        "poster-background", "banner", "icon", "social-media",
+                        "poster-background", "poster-complete", "banner", "icon", "social-media",
                         "product-shot", "editorial", "hero-image", "thumbnail", "illustration",
                     ],
-                    "description": "Intended use case — drives composition and style adjustments.",
+                    "description": "Intended use case — drives composition and style adjustments. Use poster-complete when the prompt already describes all text, layout, and typography to be rendered inside the image.",
                 },
                 "aspect_ratio": {
                     "type": "string",
@@ -140,6 +140,7 @@ async def _mount_into_sandbox(session_id: str, img_bytes: bytes, mime_type: str,
 
 _CONTEXT_HINTS = {
     "poster-background": "Leave a clean area suitable for text overlay.",
+    "poster-complete": "Render all text, headlines, and typographic elements crisply and legibly exactly as specified in the prompt. High contrast typography, commercial poster quality.",
     "banner": "Wide horizontal composition, subject must read clearly at small sizes.",
     "icon": "Simple shapes, solid or white background, minimal detail.",
     "thumbnail": "Bold composition, readable at small sizes.",
@@ -166,7 +167,10 @@ def _build_enhanced_prompt(raw_input: dict) -> str:
     negatives = []
     if context in ("poster-background", "banner"):
         negatives.extend(["text", "typography", "letters"])
-    negatives.extend(["watermark", "signature"])
+    if context != "poster-complete":
+        negatives.extend(["watermark", "signature"])
+    else:
+        negatives.extend(["watermark"])
 
     neg_input = raw_input.get("negative_elements") or raw_input.get("negativeElements")
     if neg_input:
